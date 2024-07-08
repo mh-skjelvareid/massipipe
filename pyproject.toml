@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "massipipe"
+version = "0.1"
+dependencies = [
+  "numpy<2.0",
+  "pyproj",
+  "rasterio",
+  "spectral",
+  "scipy"
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "Martin H. Skjelvareid"},
+]
+maintainers = [
+  {name = "Martin H. Skjelvareid"}
+]
+description = "PIpeline and library for processing hyperspectral images acquired with a Resonon Pika L imager. The pipeline was developed as part of the MASSIMAL project; Mapping of Algae and Seagrass using Spectral Imaging and MAchine Learning."
+readme = "README.md"
+license = {file = "LICENSE"}
+keywords = ["hyperspectral", "uav", "radiance","irradiance","sun glint", "sky glint", "georeference", "ENVI", "GeoTIFF", "Resonon", "Pika L"]
+classifiers = [
+  "Programming Language :: Python"
+]
+
+[project.optional-dependencies]
+dev = [
+  "jupyterlab",
+  "matplotlib",
+  "pytest",
+  "ruff"
+]
+
+[project.urls]
+Repository = "https://github.com/mh-skjelvareid/massipipe"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "I"]
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = 88
