@@ -1,12 +1,17 @@
-# Imports 
+# Imports
 import json
 import logging
+import subprocess
 import zipfile
 from pathlib import Path
 from typing import Iterable, Union
 
 import numpy as np
+import rasterio
 from numpy.polynomial import Polynomial
+from rasterio.crs import CRS
+from rasterio.profiles import DefaultGTiffProfile
+from rasterio.transform import Affine
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
@@ -14,6 +19,7 @@ import massipipe.utils as mpu
 
 # Get logger
 logger = logging.getLogger(__name__)
+
 
 class RadianceCalibrationDataset:
     """A radiance calibration dataset for Resonon hyperspectral cameras.
@@ -101,7 +107,8 @@ class RadianceCalibrationDataset:
             )
         except Exception:
             logger.error(
-                f"Unexpected error when extracting calibration file {self.calibration_file}",
+                "Unexpected error when extracting calibration file "
+                f"{self.calibration_file}",
                 exc_info=True,
             )
 
@@ -112,7 +119,7 @@ class RadianceCalibrationDataset:
         dark_frame_gains = []
         dark_frame_shutters = []
         for dark_frame_path in self.dark_frame_paths:
-            # Strip file extensions, split on underscores, keep only gain and shutter info
+            # Strip file extensions, split on underscores, keep gain and shutter info
             _, _, _, gain_str, _, shutter_str = dark_frame_path.name.split(".")[
                 0
             ].split("_")
@@ -331,7 +338,7 @@ class RadianceConverter:
         return dark_frame
 
     def _scale_rad_conv_frame(self, raw_image_metadata: dict) -> np.ndarray:
-        """Scale radiance conversion frame to match binning, gain and shutter for input image"""
+        """Scale radiance conversion frame to match input binning, gain and shutter"""
         # Scaling due to binning
         binning_factor = 1.0 / (
             float(raw_image_metadata["sample binning"])
@@ -541,7 +548,8 @@ class IrradianceConverter:
             )
         except Exception as e:
             logger.error(
-                f"Error while extracting downwelling calibration file {self.irrad_cal_file}",
+                "Error while extracting downwelling calibration file "
+                f"{self.irrad_cal_file}",
                 exc_info=True,
             )
 
@@ -555,7 +563,9 @@ class IrradianceConverter:
 
         # Read from files
         cal_dark_spec, cal_dark_wl, cal_dark_metadata = mpu.read_envi(cal_dark_path)
-        irrad_sens_spec, irrad_sens_wl, irrad_sens_metadata = mpu.read_envi(irrad_sens_path)
+        irrad_sens_spec, irrad_sens_wl, irrad_sens_metadata = mpu.read_envi(
+            irrad_sens_path
+        )
 
         # Save attributes
         assert np.array_equal(cal_dark_wl, irrad_sens_wl)
@@ -1446,3 +1456,181 @@ class ImageFlightMetadata:
 
 
 class SimpleGeoreferencer:
+    def georeference_hyspec_save_geotiff(
+        self,
+        image_path: Union[Path, str],
+        imudata_path: Union[Path, str],
+        geotiff_path: Union[Path, str],
+        rgb_only: bool = True,
+        nodata_value: int = -9999,
+        **kwargs,
+    ):
+        """Georeference hyperspectral image and save as GeoTIFF
+
+        Arguments:
+        ----------
+        image_path:
+            Path to hyperspectral image header.
+        imudata_path:
+            Path to JSON file containing IMU data.
+        geotiff_path:
+            Path to (output) GeoTIFF file.
+        rgb_only: bool
+            Whether to only output an RGB version of the hyperspectral image.
+            If false, the entire hyperspectral image is used. Note that
+            this typically creates very large files that some programs
+            (e.g. QGIS) can struggle to read.
+        nodata_value:
+            Value to insert in place of invalid pixels.
+            Pixels which contain "all zeros" are considered invalid.
+        """
+        image, wl, _ = mpu.read_envi(image_path)
+        if rgb_only:
+            image, wl = mpu.rgb_subset_from_hsi(image, wl)
+        self.insert_image_nodata_value(image, nodata_value)
+        geotiff_profile = self.create_geotiff_profile(
+            image, imudata_path, nodata_value=nodata_value, **kwargs
+        )
+
+        self.write_geotiff(geotiff_path, image, wl, geotiff_profile)
+
+    @staticmethod
+    def move_bands_axis_first(image):
+        """Move spectral bands axis from position 2 to 0"""
+        return np.moveaxis(image, 2, 0)
+
+    @staticmethod
+    def insert_image_nodata_value(image, nodata_value):
+        """Insert nodata values in image (in-place)
+
+        Arguments:
+        ----------
+        image:
+            3D image array ordered as (lines, samples, bands)
+            Pixels where every band value is equal to zero
+            are interpreted as invalid (no data).
+        nodata_value:
+            Value to insert in place of invalid data.
+        """
+        nodata_mask = np.all(image == 0, axis=2)
+        image[nodata_mask] = nodata_value
+
+    @staticmethod
+    def create_geotiff_profile(
+        image: np.ndarray,
+        imudata_path: Union[Path, str],
+        nodata_value: int = -9999,
+        **kwargs,
+    ):
+        """Create profile for writing image as geotiff using rasterio
+
+        Arguments:
+        ----------
+        image:
+            3D image array ordered, shape (n_lines,n_samples,n_bands).
+        imudata_path:
+            Path to JSON file containing IMU data for image
+
+        Keyword arguments:
+        ------------------
+        nodata_value:
+
+        """
+        imu_data = ImuDataParser.read_imu_json_file(imudata_path)
+        image_flight_meta = ImageFlightMetadata(imu_data, image.shape, **kwargs)
+        transform = Affine(*image_flight_meta.get_image_transform())
+        crs_epsg = image_flight_meta.utm_epsg
+
+        profile = DefaultGTiffProfile()
+        profile.update(
+            height=image.shape[0],
+            width=image.shape[1],
+            count=image.shape[2],
+            dtype=str(image.dtype),
+            crs=CRS.from_epsg(crs_epsg),
+            transform=transform,
+            nodata=nodata_value,
+        )
+
+        return profile
+
+    def write_geotiff(
+        self,
+        geotiff_path: Union[Path, str],
+        image: np.ndarray,
+        wavelengths: np.ndarray,
+        geotiff_profile: dict,
+    ):
+        """Write image as GeoTIFF
+
+        Arguments:
+        ----------
+        geotiff_path: Path | str
+            Path to (output) GeoTIFF file
+        image: np.ndarray
+            Image to write, shape (n_lines, n_samples, n_bands)
+        wavelengths: np.ndarray
+            Wavelengths (in nm) corresponding to each image band.
+            The wavelengths are used to set the descption of each band
+            in the GeoTIFF file.
+
+        # Notes:
+        --------
+        - Rasterio / GDAL required the image to be ordered "bands first",
+        e.g. shape (bands, lines, samples). However, the default used by e.g.
+        the spectral library is (lines, samples, bands), and this convention
+        should be used consistenly to avoid bugs. This function moves the band
+        axis directly before writing.
+
+        """
+        image = self.move_bands_axis_first(image)  # Band ordering requred by GeoTIFF
+        band_names = [f"{wl:.3f}" for wl in wavelengths]
+        with rasterio.Env():
+            with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
+                if band_names is not None:
+                    for i in range(dataset.count):
+                        dataset.set_band_description(i + 1, band_names[i])
+                dataset.write(image)
+
+    @staticmethod
+    def update_image_file_transform(
+        geotiff_path: Union[Path, str], imu_data_path: Union[Path, str], **kwargs
+    ):
+        """Update the affine transform of an image
+
+        Arguments:
+        ----------
+        geotiff_path:
+            Path to existing GeoTIFF file.
+        imu_data_path:
+            Path to JSON file with IMU data.
+
+        Keyword arguments:
+        ------------------
+        **kwargs:
+            Keyword arguments are passed along to create an ImageFlightMetadata object.
+            Options include e.g. 'altitude_offset'. This can be useful in case
+            the shape of the existing GeoTIFF indicates that some adjustments
+            should be made to the image transform (which can be re-generated using
+            an ImageFlightMetadata object).
+
+        References:
+        -----------
+        - https://rasterio.readthedocs.io/en/latest/api/rasterio.rio.edit_info.html
+        """
+        imu_data = ImuDataParser.read_imu_json_file(imu_data_path)
+        with rasterio.open(geotiff_path, "r") as dataset:
+            im_width = dataset.width
+            im_height = dataset.height
+        image_flight_meta = ImageFlightMetadata(
+            imu_data, image_shape=(im_height, im_width), **kwargs
+        )
+        new_transform = image_flight_meta.get_image_transform()
+        rio_cmd = [
+            "rio",
+            "edit-info",
+            "--transform",
+            str(list(new_transform)),
+            str(geotiff_path),
+        ]
+        subprocess.run(rio_cmd)

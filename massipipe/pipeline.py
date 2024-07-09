@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+import massipipe.processors as mpp
+
 # Get logger
 logger = logging.getLogger(__name__)
 
@@ -201,7 +203,8 @@ class PipelineProcessor:
             )
         else:
             raise ValueError(
-                f"More than one radiance calibration file (*.icp) found in {self.calibration_dir}"
+                "More than one radiance calibration file (*.icp) found in "
+                + f"{self.calibration_dir}"
             )
 
     def _get_irradiance_calibration_path(self):
@@ -211,18 +214,20 @@ class PipelineProcessor:
             return dcp_files[0]
         elif len(dcp_files) == 0:
             raise FileNotFoundError(
-                f"No irradiance calibration file (*.dcp) found in {self.calibration_dir}"
+                "No irradiance calibration file (*.dcp) found in "
+                + f"{self.calibration_dir}"
             )
         else:
             raise ValueError(
-                f"More than one irradiance calibration file (*.dcp) found in {self.calibration_dir}"
+                "More than one irradiance calibration file (*.dcp) found in "
+                + f"{self.calibration_dir}"
             )
 
     def convert_raw_images_to_radiance(self, **kwargs):
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        radiance_converter = RadianceConverter(self.radiance_calibration_file)
+        radiance_converter = mpp.RadianceConverter(self.radiance_calibration_file)
         for raw_image_path, radiance_image_path in zip(
             self.raw_image_paths, self.rad_im_paths
         ):
@@ -241,7 +246,7 @@ class PipelineProcessor:
         """Convert raw spectra (DN) to irradiance (W/(m2*nm))"""
         logger.info("---- IRRADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        irradiance_converter = IrradianceConverter(self.irradiance_calibration_file)
+        irradiance_converter = mpp.IrradianceConverter(self.irradiance_calibration_file)
         for raw_spec_path, irrad_spec_path in zip(
             self.raw_spec_paths, self.irrad_spec_paths
         ):
@@ -266,7 +271,7 @@ class PipelineProcessor:
             raise FileNotFoundError(
                 "Radiance folder with irradiance spectra does not exist"
             )
-        wavelength_calibrator = WavelengthCalibrator()
+        wavelength_calibrator = mpp.WavelengthCalibrator()
         irradiance_spec_paths = list(self.radiance_dir.glob("*.spec.hdr"))
         if irradiance_spec_paths:
             wavelength_calibrator.fit_batch(irradiance_spec_paths)
@@ -287,7 +292,7 @@ class PipelineProcessor:
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
         logger.info("---- IMU DATA PROCESSING ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        imu_data_parser = ImuDataParser()
+        imu_data_parser = mpp.ImuDataParser()
         for lcf_path, times_path, imu_data_path in zip(
             self.lcf_paths, self.times_paths, self.imu_data_paths
         ):
@@ -306,7 +311,7 @@ class PipelineProcessor:
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
-        reflectance_converter = ReflectanceConverter(
+        reflectance_converter = mpp.ReflectanceConverter(
             irrad_spec_paths=self.irrad_spec_paths
         )
 
@@ -334,7 +339,7 @@ class PipelineProcessor:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
-        glint_corrector = GlintCorrector()
+        glint_corrector = mpp.GlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_dir}")
@@ -355,7 +360,7 @@ class PipelineProcessor:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
-        georeferencer = SimpleGeoreferencer()
+        georeferencer = mpp.SimpleGeoreferencer()
 
         if all([not rp.exists() for rp in self.refl_gc_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_gc_dir}")
@@ -377,7 +382,8 @@ class PipelineProcessor:
                     )
                 except Exception:
                     logger.error(
-                        f"Error occured while georeferencing RGB version of {refl_gc_path}",
+                        "Error occured while georeferencing RGB version of "
+                        f"{refl_gc_path}",
                         exc_info=True,
                     )
                     logger.error("Skipping file")
@@ -424,13 +430,9 @@ class PipelineProcessor:
             str(mosaic_path),
         ]
         subprocess.run(gdalwarp_args)
-        # NOTE: Example code below runs GDAL from within shell - avoid if possible
-        # geotiff_search_string = str(self.reflectance_gc_rgb_dir / '*.tiff')
-        # gdalwarp_cmd = f"gdalwarp -overwrite -q -r near -of GTiff {geotiff_search_string} {mosaic_path}"
-        # subprocess.run(gdalwarp_cmd,shell=True)
 
         # Add image pyramids to file
-        logger.info(f"Adding image pyramids to mosaic {mosaic_path}")
+        logger.info(f"Adding image pyramids to mosaic {mosaic_path.name}")
         gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(mosaic_path)]
         subprocess.run(gdaladdo_args)
 
@@ -448,7 +450,7 @@ class PipelineProcessor:
 
         """
         logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
-        georeferencer = SimpleGeoreferencer()
+        georeferencer = mpp.SimpleGeoreferencer()
 
         if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
             warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
@@ -556,3 +558,14 @@ class PipelineProcessor:
                 self.mosaic_geotiffs()
             except Exception:
                 logger.error("Error while mosaicing geotiffs ", exc_info=True)
+
+if __name__ == "__main__":
+    dataset_dir = Path(
+        "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
+    )
+    pl = PipelineProcessor(dataset_dir)
+    pl.run()
+    # pl.glint_correct_reflectance_images()
+    # pl.georeference_glint_corrected_reflectance(
+    #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0
+    # )

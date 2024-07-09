@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "massipipe"
-version = "0.1"
+version = "0.1.0"
 dependencies = [
   "numpy<2.0",
   "pyproj",
