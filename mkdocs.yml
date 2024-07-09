@@ -21,6 +21,7 @@ plugins:
           show_signature: true
 
 nav:
+  - Introduction: index.md
   - Pipeline reference: pipeline_ref.md
   - Processors reference: processors_ref.md
   - Utilities reference: utils_ref.md
