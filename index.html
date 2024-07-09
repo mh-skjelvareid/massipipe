@@ -12,6 +12,8 @@
       
       
       
+        <link rel="next" href="pipeline_ref/">
+      
       
       <link rel="icon" href="assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.28">
@@ -62,7 +64,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#welcome-to-mkdocs" class="md-skip">
+        <a href="#massipipe" class="md-skip">
           Skip to content
         </a>
       
@@ -98,7 +100,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Welcome to MkDocs
+              Introduction
             
           </span>
         </div>
@@ -170,6 +172,80 @@
     </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe" class="md-nav__link">
+    <span class="md-ellipsis">
+      MassiPipe
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick start
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
     
       
       
@@ -268,8 +344,6 @@
   
   
   
-    
-  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -278,18 +352,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#commands" class="md-nav__link">
+  <a href="#massipipe" class="md-nav__link">
     <span class="md-ellipsis">
-      Commands
+      MassiPipe
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#project-layout" class="md-nav__link">
+  <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
-      Project layout
+      Quick start
     </span>
   </a>
   
@@ -313,20 +387,55 @@
   
 
 
-<h1 id="welcome-to-mkdocs">Welcome to MkDocs</h1>
-<p>For full documentation visit <a href="https://www.mkdocs.org">mkdocs.org</a>.</p>
-<h2 id="commands">Commands</h2>
+  <h1>Introduction</h1>
+
+<h2 id="massipipe">MassiPipe</h2>
+<p>MassiPipe is a data processing pipeline for hyperspectral data acquired with the Airborne Remote Sensing System from Resonon, using a <a href="https://resonon.com/Pika-L">Pika L</a> hyperspectral camera and a <a href="https://www.oceanoptics.com/blog/flame-series-general-purpose-spectrometers/">Flame-S-VIS-NIR</a> spectrometer with a cosine corrector for measuring downwelling irradiance.</p>
+<p>The pipeline was (originally) developed to process large amounts of data acquired in the <a href="https://en.uit.no/project/massimal">"Mapping Algae and Seagrass using Spectral Imaging and Machine Learning" (MASSIMAL)</a> project. </p>
+<p>Resonon provides a free version of their hyperspectral processing software <a href="https://resonon.com/software">Spectronon</a> that can do many of the processes that are implemented in the pipeline. However, this typically requires a lot of manual configuration for each step in the processing chain. The pipeline allows all the steps to be automated.</p>
+<p>The pipeline also has the following improvements / additional features compared to Spectronon:</p>
 <ul>
-<li><code>mkdocs new [dir-name]</code> - Create a new project.</li>
-<li><code>mkdocs serve</code> - Start the live-reloading docs server.</li>
-<li><code>mkdocs build</code> - Build the documentation site.</li>
-<li><code>mkdocs -h</code> - Print help message and exit.</li>
+<li>Wavelength calibration of irradiance spectra using Fraunhofer lines.</li>
+<li>Parsing and interpolating IMU data to match image line timestamps</li>
+<li>Sun/sky glint correction (useful for images taken over water)</li>
+<li>Simplified georeferencing procedure using affine transform (faster iteration when parameters are changed)</li>
+<li>Combining GeoTIFFs into single large "mosaic", with "pyramids" allowing fast image viewing at different resolutions. </li>
 </ul>
-<h2 id="project-layout">Project layout</h2>
-<pre><code>mkdocs.yml    # The configuration file.
-docs/
-    index.md  # The documentation homepage.
-    ...       # Other markdown pages, images and other files.
+<h2 id="quick-start">Quick start</h2>
+<p>The dataset shold be organized as follows:</p>
+<pre><code>├── 0_raw
+│   ├── &lt;Raw data folder 1&gt;
+│   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec
+│   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec.hdr
+│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil
+│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.hdr
+│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.times
+│   │   └── &lt;ImageSetName&gt;_Pika_L_1.lcf
+│   ├── &lt;Raw data folder 2&gt;
+│   └── ...
+└── calibration
+    ├── &lt;downwelling_calibration_file&gt;.dcp
+    └── &lt;radiance_calibration_file&gt;.icp
+</code></pre>
+<p>Create a pipeline processor for a dataset at path <code>dataset_dir</code>, and run all default processing steps:</p>
+<pre><code>from massipipe.pipeline import PipelineProcessor
+processor = PipelineProcessor(dataset_dir)
+processor.run()
+</code></pre>
+<p>After processing, the dataset has the following structure (files not shown), with processed files in folders <code>1_radiance</code>, <code>2_reflectance</code>, <code>2b_reflectance_gc</code>, and <code>mosaics</code>:</p>
+<pre><code>├── 0_raw
+│   ├── OlbergholmenS1-5
+│   ├── OlbergholmenS1-7
+│   └── OlbergholmenS1-8
+├── 1_radiance
+├── 2a_reflectance
+├── 2b_reflectance_gc
+│   └── rgb_geotiff
+├── calibration
+│   ├── downwelling_calibration_spectra
+│   └── radiance_calibration_frames
+├── logs
+└── mosaics
 </code></pre>
 
 

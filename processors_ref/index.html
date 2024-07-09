@@ -182,6 +182,26 @@
   
   
     <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../pipeline_ref/" class="md-nav__link">
         
   
@@ -1839,8 +1859,9 @@ Spectra are assumed to be ENVI files.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
-            <td><code>header_paths</code></td>
+            <td><code>header_path</code></td>
             <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -2641,8 +2662,9 @@ Shape (n_lines, n_samples, n_bands)</p>
             </td>
           </tr>
           <tr class="doc-section-item">
-            <td><code>raw_wl</code></td>
+            <td><code>rad_wl</code></td>
             <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
