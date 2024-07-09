@@ -12,11 +12,20 @@ plugins:
       python:
         options:
           docstring_style: numpy
+          docstring_options:
+            ignore_init_summary: true
+          members_order: source
+          heading_level: 2
+          show_root_heading: false
+          show_source: false
+          show_signature: true
 
 nav:
-  - Introduction: index.md
   - Pipeline reference: pipeline_ref.md
   - Processors reference: processors_ref.md
   - Utilities reference: utils_ref.md
   - Example Usage: example_usage.md
 
+markdown_extensions:
+  - toc:
+      toc_depth: 2

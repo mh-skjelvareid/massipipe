@@ -9,6 +9,7 @@ from typing import Iterable, Union
 import numpy as np
 import rasterio
 from numpy.polynomial import Polynomial
+from numpy.typing import ArrayLike, NDArray
 from rasterio.crs import CRS
 from rasterio.profiles import DefaultGTiffProfile
 from rasterio.transform import Affine
@@ -24,8 +25,8 @@ logger = logging.getLogger(__name__)
 class RadianceCalibrationDataset:
     """A radiance calibration dataset for Resonon hyperspectral cameras.
 
-    Attributes:
-    -----------
+    Attributes
+    ----------
     calibration_file: Path
         Path to Imager Calibration Pack (*.icp) file
     calibration_dir: Path
@@ -40,8 +41,8 @@ class RadianceCalibrationDataset:
         taken with no light incident on the sensor, taken with different gain
         and shutter values.
 
-    Methods:
-    --------
+    Methods
+    -------
     get_rad_conv_frame():
         Returns radiance conversion frame, shape (n_samples, n_channels)
     get_closest_dark_frame(gain,shutter)
@@ -56,14 +57,14 @@ class RadianceCalibrationDataset:
     ):
         """Un-zip calibration file and create radiance calibration dataset
 
-        Arguments:
+        Parameters
         ----------
         calibration_file: Path | str
             Path to *.icp Resonon "Imager Calibration Pack" file
         calibration_dir_name: str
             Name of subdirectory into which calibration frames are unzipped
 
-        Raises:
+        Raises
         -------
         zipfile.BadZipfile:
             If given *.icp file is not a valid zip file
@@ -170,25 +171,25 @@ class RadianceCalibrationDataset:
 
     def get_closest_dark_frame(
         self, gain: Union[int, float], shutter: Union[int, float]
-    ) -> tuple[np.ndarray, np.ndarray, dict, float, float]:
+    ) -> tuple[NDArray, NDArray, dict, float, float]:
         """Get dark frame which most closely matches given gain and shutter values
 
-        Arguments:
+        Parameters
         ----------
-        gain:
+        gain : Union[int, float]
             Gain value used for search, typically gain value of image that should
             be converted from raw to radiance. Values follow Resonon convention
             used in header files++ (logarithmic values, 20 log10).
-        shutter:
+        shutter : Union[int, float]
             Shutter value used for search, typically shutter value of image that should
             be converted from raw to radiance. Values follow Resonon convention
             used in header files++ (unit: milliseconds).
 
-        Returns:
-        --------
-        frame: np.ndarray
+        Returns
+        -------
+        frame: NDArray
             Single dark frame, shape (1,n_samples,n_channels)
-        wl: np.ndarray
+        wl: NDArray
             Vector of wavelengths for each spectral channel (nanometers)
         metadata: dict
             Metadata from ENVI header, formatted as dictionary
@@ -199,14 +200,14 @@ class RadianceCalibrationDataset:
         frame, wl, metadata = mpu.read_envi(closest_file)
         return frame, wl, metadata, closest_gain, closest_shutter
 
-    def get_rad_conv_frame(self) -> tuple[np.ndarray, np.ndarray, dict]:
+    def get_rad_conv_frame(self) -> tuple[NDArray, NDArray, dict]:
         """Read and return radiance conversion curve ("gain" file)
 
-        Returns:
-        --------
-        frame: np.ndarray
+        Returns
+        -------
+        frame: NDArray
             Radiance conversion frame, shape (1,n_samples,n_channels)
-        wl: np.ndarray
+        wl: NDArray
             Vector of wavelengths for each spectral channel (nanometers)
         metadata: dict
             Metadata from ENVI header, formatted as dictionary
@@ -218,28 +219,28 @@ class RadianceCalibrationDataset:
 class RadianceConverter:
     """A class for converting raw hyperspectral images from Pika L cameras to radiance.
 
-    Attributes:
-    -----------
+    Attributes
+    ----------
     radiance_calibration_file: Path | str
         Path to Imager Calibration Pack (*.icp) file.
     rc_dataset: RadianceCalibrationDataset
         A radiance calibration dataset object representing the calibration
         data supplied in the *.icp file.
-    rad_conv_frame: np.ndarray
+    rad_conv_frame: NDArray
         Frame representing conversion factors from raw data to radiance for
         every pixel and wavelength.
     rad_conv_metadata: dict
         ENVI metadata for rad_conv_frame
 
-    Methods:
-    --------
+    Methods
+    -------
     convert_raw_image_to_radiance(raw_image, raw_image_metadata):
         Convert single image (3D array) from raw to radiance
     convert_raw_file_to_radiance(raw_image, raw_image_metadata):
         Read raw file, convert, and save as radiance image
 
-    Notes:
-    ------
+    Notes
+    -----
     Most image sensors register some amount of "dark current", i.e. a signal
     which is present even though no photons enter the sensor. The dark current
     should be subtracted for the measurement to be as accurate as possible.
@@ -275,7 +276,7 @@ class RadianceConverter:
     def __init__(self, radiance_calibration_file: Union[Path, str]):
         """Create radiance converter object
 
-        Arguments:
+        Parameters
         ----------
         radiance_calibration_file: Path | str
             Path to Imager Calibration Pack (*.icp) file.
@@ -304,7 +305,7 @@ class RadianceConverter:
 
     def _get_best_matching_dark_frame(
         self, raw_image_metadata: dict
-    ) -> tuple[np.ndarray, dict]:
+    ) -> tuple[NDArray, dict]:
         """Get dark fram from calibration data that best matches input data"""
         dark_frame, _, dark_frame_metadata, _, _ = (
             self.rc_dataset.get_closest_dark_frame(
@@ -316,10 +317,10 @@ class RadianceConverter:
 
     def _scale_dark_frame(
         self,
-        dark_frame: np.ndarray,
+        dark_frame: NDArray,
         dark_frame_metadata: dict,
         raw_image_metadata: dict,
-    ) -> np.ndarray:
+    ) -> NDArray:
         """Scale dark frame to match binning for input image"""
         assert dark_frame_metadata["sample binning"] == "1"
         assert dark_frame_metadata["spectral binning"] == "1"
@@ -337,7 +338,7 @@ class RadianceConverter:
 
         return dark_frame
 
-    def _scale_rad_conv_frame(self, raw_image_metadata: dict) -> np.ndarray:
+    def _scale_rad_conv_frame(self, raw_image_metadata: dict) -> NDArray:
         """Scale radiance conversion frame to match input binning, gain and shutter"""
         # Scaling due to binning
         binning_factor = 1.0 / (
@@ -371,16 +372,16 @@ class RadianceConverter:
 
     def convert_raw_image_to_radiance(
         self,
-        raw_image: np.ndarray,
+        raw_image: NDArray,
         raw_image_metadata: dict,
         set_saturated_pixels_to_zero: bool = True,
         saturation_value: int = 2**12 - 1,
-    ) -> np.ndarray:
+    ) -> NDArray:
         """Convert raw image (3d array) to radiance image
 
-        Arguments:
+        Parameters
         ----------
-        raw_image: np.ndarray
+        raw_image: NDArray
             Raw hyperspectral image, shape (n_lines, n_samples, n_channels)
             The image is assumed to have been created by a Resonon Pika L
             camera, which has 900 spatial pixels x 600 spectral channels
@@ -395,16 +396,16 @@ class RadianceConverter:
             ENVI metadata formatted as dict.
             See spectral.io.envi.open()
 
-        Returns:
+        Returns
         --------
-        radiance_image: np.ndarray (int16, microflicks)
+        radiance_image: NDArray (int16, microflicks)
             Radiance image with same shape as raw image, with spectral radiance
             in units of microflicks = 10e-5 W/(m2*nm). Microflicks are used
             to be consistent with Resonon formatting, and because microflick
             values typically are in a range suitable for (memory-efficient)
             encoding as 16-bit unsigned integer.
 
-        Raises:
+        Raises
         -------
         ValueError:
             In case the raw image does not have the expected dimensions.
@@ -471,7 +472,7 @@ class RadianceConverter:
     ) -> None:
         """Read raw image file, convert to radiance, and save to file
 
-        Arguments:
+        Parameters
         ----------
         raw_header_path: Path | str
             Path to raw hyperspectral image acquired with Resonon Pika L camera.
@@ -479,15 +480,12 @@ class RadianceConverter:
             Path to save converted radiance image to.
             The name of the header file should match the 'interleave' argument
             (default: bip), e.g. 'radiance_image.bip.hdr'
-
-        Keyword arguments:
-        ------------------
-        interleave: str, {'bip','bil','bsq'}
+        interleave: str, {'bip','bil','bsq'}, default 'bip'
             String inticating how binary image file is organized.
             See spectral.io.envi.save_image()
 
-        # Notes:
-        --------
+        Notes
+        -----
         The radiance image is saved with the same metadata as the raw image.
         """
         raw_image, _, raw_image_metadata = mpu.read_envi(raw_header_path)
@@ -510,6 +508,19 @@ class IrradianceConverter:
         wl_min: Union[int, float, None] = 370,
         wl_max: Union[int, float, None] = 1000,
     ):
+        """Initialize irradiance converter
+
+        Parameters
+        ----------
+        irrad_cal_file : Union[Path, str]
+            Path to downwelling irradiance calibration file.
+        irrad_cal_dir_name : str, default "downwelling_calibration_spectra"
+            Name of folder which calibration files will be unzipped into.
+        wl_min : Union[int, float, None], default 370
+            Shortest valid wavelength (nm) in irradiance spectrum.
+        wl_max : Union[int, float, None], default 1000
+            Longest valid wavelength (nm) in irradiance spectrum.
+        """
         # Save calibration file path
         self.irrad_cal_file = Path(irrad_cal_file)
         assert self.irrad_cal_file.exists()
@@ -579,22 +590,36 @@ class IrradianceConverter:
 
     def convert_raw_spectrum_to_irradiance(
         self,
-        raw_spec: np.ndarray,
-        raw_metadata: np.ndarray,
+        raw_spec: NDArray,
+        raw_metadata: dict,
         set_irradiance_outside_wl_limits_to_zero: bool = True,
         keep_original_dimensions: bool = True,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """
+    ) -> tuple[NDArray, NDArray]:
+        """_summary_
 
-        Returns:
-        --------
-        irradiance_spectrum: np.ndarray, shape (n_wl,)
+        Parameters
+        ----------
+        raw_spec : NDArray
+            Raw spectrum
+        raw_metadata : dict
+            Dictionary with ENVI metadata for raw spectrum.
+        set_irradiance_outside_wl_limits_to_zero : bool, default True
+            Whether to set spectrum values outside wavelength limits to zero.
+            If False, values outside valid range are treated the same as
+            values inside valid range.
+        keep_original_dimensions : bool, default True
+            Whether to format output spectrum with same (singleton)
+            dimensions as input spectrum. Can be useful for broadcasting.
+
+        Returns
+        -------
+        irradiance_spectrum: NDArray, shape (n_wl,)
             Spectrom converted to spectral irradiance, unit W/(m2*nm)
-        wl: np.ndarray, shape (n_wl,)
+        wl: NDArray, shape (n_wl,)
             Wavelengths for each element in irradiance spectrum
 
-        Notes:
-        -------
+        Notes
+        -----
         The irradiance conversion spectrum is _inversely_ scaled with
         the input spectrum shutter. E.g., if the input spectrum has a higher shutter
         value than the calibration file (i.e. higher values per amount of photons),
@@ -604,9 +629,7 @@ class IrradianceConverter:
 
         original_input_dimensions = raw_spec.shape
         raw_spec = np.squeeze(raw_spec)
-
-        if raw_spec.ndim > 1:
-            raise ValueError("Raw irradiance spectrum must be a 1D array.")
+        assert raw_spec.ndim == 1
 
         # Scale conversion spectrum according to difference in shutter values
         raw_shutter = float(raw_metadata["shutter"])
@@ -633,7 +656,15 @@ class IrradianceConverter:
     def convert_raw_file_to_irradiance(
         self, raw_spec_path: Union[Path, str], irrad_spec_path: Union[Path, str]
     ):
-        """Read raw spectrum, convert to irradiance, and save"""
+        """Read raw spectrum, convert to irradiance, and save
+
+        Parameters
+        ----------
+        raw_spec_path : Union[Path, str]
+            Path to ENVI header file for raw spectrum
+        irrad_spec_path : Union[Path, str]
+            Path to ENVI header file for saving irradiance spectrum
+        """
         raw_spec, _, spec_metadata = mpu.read_envi(raw_spec_path)
         irrad_spec = self.convert_raw_spectrum_to_irradiance(raw_spec, spec_metadata)
         spec_metadata["unit"] = "W/(m2*nm)"
@@ -642,6 +673,7 @@ class IrradianceConverter:
 
 class WavelengthCalibrator:
     def __init__(self):
+        """Initialize wavelength calibrator"""
         self._fh_line_indices = None
         self._fh_wavelengths = None
         self._wl_poly_coeff = None
@@ -662,9 +694,9 @@ class WavelengthCalibrator:
         }
 
     @staticmethod
-    def detect_absorption_lines(
-        spec: np.ndarray,
-        wl: np.ndarray,
+    def _detect_absorption_lines(
+        spec: NDArray,
+        wl: NDArray,
         distance: int = 20,
         width: int = 5,
         rel_prominence: float = 0.1,
@@ -678,22 +710,22 @@ class WavelengthCalibrator:
         return peak_indices, peak_properties
 
     @staticmethod
-    def fit_wavelength_polynomial(
-        sample_indices: np.ndarray, wavelengths: np.ndarray, n_samples: int
-    ) -> tuple[np.ndarray, np.ndarray]:
+    def _fit_wavelength_polynomial(
+        sample_indices: NDArray, wavelengths: NDArray, n_samples: int
+    ) -> tuple[NDArray, NDArray]:
         """Fit 2nd degree polynomial to set of (sample, wavelength) pairs
 
-        Arguments:
+        Parameters
         ----------
-        sample_indices: np.ndarray
+        sample_indices: NDArray
             Indices of samples in a sampled spectrum, typically for spectral
             peaks / absorption lines with known wavelengths.
-        wavelengths: np.ndarray
+        wavelengths: NDArray
             Wavelengths (in physical units) corresponding to sample_indices.
         n_samples: int
             Total number of samples in sampled spectrum
 
-        Returns:
+        Returns
         --------
         wl_cal:
             Array of (calibrated) wavelengths, shape (n_samples,)
@@ -709,30 +741,34 @@ class WavelengthCalibrator:
         wl_poly_coeff = polynomial_fitted.coef
         return wl_cal, wl_poly_coeff
 
-    def _filter_fraunhofer_lines(self, line_indices, orig_wl, win_width_nm=20):
+    def _filter_fraunhofer_lines(
+        self,
+        line_indices: NDArray,
+        orig_wl: NDArray,
+        win_width_nm: Union[int, float] = 20,
+    ):
         """Calibrate wavelength values from known Fraunhofer absorption lines
 
-        Arguments:
+        Parameters
         ----------
-        line_indices: np.ndarray
+        line_indices: NDArray
             Indices of samples in spectrum where a (potential) absorption
             line has been detected. Indices must be within the range
             (0, len(orig_wl))
-        orig_wl: np.ndarray
+        orig_wl: NDArray
             Original wavelength vector. Values are assumed to be "close enough"
             to be used to create search windows for each Fraunhofer line,
             typically within a few nm. Shape (n_samples,)
-        win_width_nm:
+        win_width_nm: Union[int, float], default 20
             The width of the search windows in units of nanometers.
 
-        Returns:
+        Returns
         filtered_line_indices:
             Indices for absorption lines found close to Fraunhofer line
         fraunhofer_wavelengths:
             Corresponding Fraunhofer line wavelengths for filtered absorption lines
 
         """
-
         filtered_line_indices = []
         fraunhofer_wavelengths = []
         for fh_line_wl in self.fraunhofer_wls.values():
@@ -757,23 +793,27 @@ class WavelengthCalibrator:
 
         return filtered_line_indices, fraunhofer_wavelengths
 
-    def fit(self, spec: np.ndarray, wl_orig: np.ndarray) -> np.ndarray:
-        """Detect absorption lines in spectrum and fit polynomial wavelength function
+    def fit(self, spec: NDArray, wl_orig: NDArray):
+        """_summary_
 
-        Arguments:
+        Parameters
         ----------
-        spec: np.ndarray
+        spec: NDArray
             Sampled radiance/irradiance spectrum, shape (n_samples,)
-        wl_orig: np.ndarray
+        wl_orig: NDArray
             Wavelengths corresponding to spectral samples, shape (n_samples)
             Wavelengths values are assumed to be close (within a few nm)
             to their true values.
+
+        Raises
+        ------
+        ValueError
+            Raised if less than 3 absorption lines found in data.
         """
         spec = np.squeeze(spec)
-        if spec.ndim > 1:
-            raise ValueError("Spectrum must be a 1D array")
+        assert spec.ndim == 1
 
-        line_indices, _ = self.detect_absorption_lines(spec, wl_orig)
+        line_indices, _ = self._detect_absorption_lines(spec, wl_orig)
         fh_line_indices, fh_wavelengths = self._filter_fraunhofer_lines(
             line_indices, wl_orig
         )
@@ -781,7 +821,7 @@ class WavelengthCalibrator:
             raise ValueError(
                 "Too low data quality: Less than 3 absorption lines found."
             )
-        wl_cal, wl_poly_coeff = self.fit_wavelength_polynomial(
+        wl_cal, wl_poly_coeff = self._fit_wavelength_polynomial(
             fh_line_indices, fh_wavelengths, len(wl_orig)
         )
 
@@ -794,7 +834,7 @@ class WavelengthCalibrator:
     def fit_batch(self, spectrum_header_paths: Iterable[Union[Path, str]]):
         """Calibrate wavelength based on spectrum with highest SNR (among many)
 
-        Arguments:
+        Parameters
         ----------
         spectrum_header_paths: Iterable[Path | str]
             Paths to multiple spectra. The spectrum with the highest maximum
@@ -823,7 +863,7 @@ class WavelengthCalibrator:
     def update_header_wavelengths(self, header_path: Union[Path, str]):
         """Update header file with calibrated wavelengths
 
-        Arguments:
+        Parameters
         ----------
         header_paths: Path | str
             Iterable with paths multiple spectra.
@@ -836,26 +876,23 @@ class WavelengthCalibrator:
 
 class ImuDataParser:
     @staticmethod
-    def read_lcf_file(lcf_file_path, time_rel_to_file_start=True):
+    def read_lcf_file(lcf_file_path: Union[str, Path], time_rel_to_file_start=True):
         """Read location files (.lcf) generated by Resonon Airborne Hyperspectral imager
 
-        Arguments:
+        Parameters
         ----------
-        lcf_file_path:
+        lcf_file_path: Union[str, Path]
             Path to lcf file. Usually a "sidecar" file to an hyperspectral image
             with same "base" filename.
-
-        Keyword arguments (optional):
-        time_rel_to_file_start:
+        time_rel_to_file_start: bool, default True
             Boolean indicating if first timestamp should be subtracted from each
             timestamp, making time relative to start of file.
 
-        # Returns:
-        ----------
+        Returns
+        -------
         lcf_data:
             Dictionary with keys describing the type of data, and data
             formatted as numpy arrays. All arrays have equal length.
-
             The 7 types of data:
             - 'time': System time in seconds, relative to some (unknown)
             starting point. Similar to "Unix time" (seconds since January 1. 1970),
@@ -869,12 +906,10 @@ class ImuDataParser:
             - 'latitude': Latitude in decimal degrees, negative for southern hemisphere
             - 'altitude': Altitude in meters relative to the WGS-84 ellipsiod.
 
-        # Notes:
+        Notes:
         - The LCF file format was shared by Casey Smith at Resonon on February 16. 2021.
         - The LCF specification was inherited from Space Computer Corp.
         """
-
-        # Load LCF data
         lcf_raw = np.loadtxt(lcf_file_path)
         column_headers = [
             "time",
@@ -893,28 +928,27 @@ class ImuDataParser:
         return lcf_data
 
     @staticmethod
-    def read_times_file(times_file_path, time_rel_to_file_start=True):
+    def read_times_file(times_file_path: Union[Path, str], time_rel_to_file_start=True):
         """Read image line timestamps (.times) file generated by Resonon camera
 
-        Arguments:
+        Parameters
         ----------
-        times_file_path:
+        times_file_path: Union[Path,str]
             Path to times file. Usually a "sidecar" file to an hyperspectral image
             with same "base" filename.
-        time_rel_to_file_start:
+        time_rel_to_file_start: bool, default True
             Boolean indicating if times should be offset so that first
             timestamp is zero. If not, the original timestamp value is returned.
 
-        # Returns:
-        ----------
+        Returns
+        -------
         times:
             Numpy array containing timestamps for every line of the corresponding
             hyperspectral image. The timestamps are in units of seconds, and are
             relative to when the system started (values are usually within the
             0-10000 second range). If time_rel_to_file_start=True, the times
             are offset so that the first timestamp is zero.
-
-            The first timestamp of the times file and the  first timestamp of the
+            The first timestamp of the times file and the first timestamp of the
             corresponding lcf file (GPS/IMU data) are assumed to the
             recorded at exactly the same time. If both sets of timestamps are
             offset so that time is measured relative to the start of the file,
@@ -928,8 +962,29 @@ class ImuDataParser:
         return image_times
 
     @staticmethod
-    def interpolate_lcf_to_times(lcf_data, image_times, convert_to_list=True):
-        """Interpolate LCF data to image line times"""
+    def interpolate_lcf_to_times(
+        lcf_data: dict, image_times: NDArray, convert_to_list=True
+    ) -> dict:
+        """Interpolate LCF data to image line times
+
+        Parameters
+        ----------
+        lcf_data : dict
+            Dictionary with data read from *.lcf file
+        image_times : NDArray
+            Array of time stamps from *.times file
+        convert_to_list : bool, default True
+            Whether to convert interpolated LCF data to list
+            (useful for saving data as JSON).
+            If False, interpolated values in lcf_data_interp are
+            formatted as NDArray.
+
+        Returns
+        -------
+        lcf_data_interp: dict[list | NDArray]
+            Version of lcf_data with all measured values
+            interpolated to image timestamps.
+        """
         lcf_data_interp = {}
         lcf_times = lcf_data["time"]
         for lcf_key, lcf_value in lcf_data.items():
@@ -938,7 +993,23 @@ class ImuDataParser:
                 lcf_data_interp[lcf_key] = lcf_data_interp[lcf_key].tolist()
         return lcf_data_interp
 
-    def read_and_save_imu_data(self, lcf_path, times_path, json_path):
+    def read_and_save_imu_data(
+        self,
+        lcf_path: Union[Path, str],
+        times_path: Union[Path, str],
+        json_path: Union[Path, str],
+    ):
+        """Parse *.lcf and *.times files and save as JSON
+
+        Parameters
+        ----------
+        lcf_path : Union[Path, str]
+            Path to *.lcf (IMU data) file
+        times_path : Union[Path, str]
+            Path to *.times (image line timestamps) file
+        json_path : Union[Path, str]
+            Path to output JSON file
+        """
         lcf_data = self.read_lcf_file(lcf_path)
         times_data = self.read_times_file(times_path)
         lcf_data_interp = self.interpolate_lcf_to_times(lcf_data, times_data)
@@ -947,7 +1018,19 @@ class ImuDataParser:
             json.dump(lcf_data_interp, write_file, ensure_ascii=False, indent=4)
 
     @staticmethod
-    def read_imu_json_file(imu_json_path):
+    def read_imu_json_file(imu_json_path: Union[Path, str]) -> dict:
+        """Read IMU data saved in JSON file
+
+        Parameters
+        ----------
+        imu_json_path : Union[Path,str]
+            Path to JSON file with IMU data
+
+        Returns
+        -------
+        imu_data: dict
+            IMU data
+        """
         with open(imu_json_path, "r") as imu_file:
             imu_data = json.load(imu_file)
         return imu_data
@@ -960,27 +1043,32 @@ class ReflectanceConverter:
         self,
         wl_min: Union[int, float] = 400,
         wl_max: Union[int, float] = 930,
-        irrad_spec_paths=None,
+        irrad_spec_paths: Union[Iterable[Union[Path, str]], None] = None,
     ):
-        """
+        """Initialize reflectance converter
 
-        Keyword arguments:
-        wl_min, wl_max: int | float
-            Minimum/maximum wavelength to include in the reflectance image.
-            The signal-to-noise ratio of both radiance images and irradiance
-            spectra is generally lower at the low and high ends. When
-            radiance is divided by noisy irradiance values close to zero, the
-            noise can "blow up". Limiting the wavelength range can ensure
-            that the reflectance images have more well-behaved values.
-        irrad_spec_paths:
+        Parameters
+        ----------
+        wl_min : Union[int, float], default 400
+            Minimum wavelength (nm) to include in reflectance image.
+        wl_max : Union[int, float], default 930
+            Maximum wavelength (nm) to include in reflectance image.
+        irrad_spec_paths : Union[Iterable[Union[Path, str]], None], default None
             List of paths to irradiance spectra which can be used as reference
             spectra when convering radiance to irradiance.
 
+        Notes
+        ------
+        The signal-to-noise ratio of both radiance images and irradiance
+        spectra is generally lower at the low and high ends. When
+        radiance is divided by noisy irradiance values close to zero, the
+        noise can "blow up". Limiting the wavelength range can ensure
+        that the reflectance images have more well-behaved values.
         """
         self.wl_min = float(wl_min)
         self.wl_max = float(wl_max)
         if irrad_spec_paths is not None:
-            irrad_spec_mean, irrad_wl, irrad_spectra = self.get_mean_irrad_spec(
+            irrad_spec_mean, irrad_wl, irrad_spectra = self._get_mean_irrad_spec(
                 irrad_spec_paths
             )
         else:
@@ -990,7 +1078,7 @@ class ReflectanceConverter:
         self.ref_irrad_spectra = irrad_spectra
 
     @staticmethod
-    def get_mean_irrad_spec(irrad_spec_paths):
+    def _get_mean_irrad_spec(irrad_spec_paths):
         """Read irradiance spectra from file and calculate mean"""
         irrad_spectra = []
         for irrad_spec_path in irrad_spec_paths:
@@ -1003,29 +1091,29 @@ class ReflectanceConverter:
 
     @staticmethod
     def conv_spec_with_gaussian(
-        spec: np.ndarray, wl: np.ndarray, gauss_fwhm: float
-    ) -> np.ndarray:
+        spec: NDArray, wl: NDArray, gauss_fwhm: float
+    ) -> NDArray:
         """Convolve spectrum with Gaussian kernel to smooth / blur spectral details
 
-        Arguments:
+        Parameters
         ----------
-        spec: np.ndarray
+        spec: NDArray
             Input spectrum, shape (n_bands,)
-        wl: np.ndarray, nanometers
+        wl: NDArray, nanometers
             Wavelengths corresponding to each spectrum value, shape (n_bands,)
-        gauss_fwhm
+        gauss_fwhm: float
             "Full width half maximum" (FWHM) of Gaussian kernel used for
             smoothin the spectrum. FWHM is the width of the kernel in nanometers
             at the level where the kernel values are half of the maximum value.
 
-        Returns:
-        --------
-        spec_filtered: np.ndarray
+        Returns
+        -------
+        spec_filtered: NDArray
             Filtered / smoothed version of spec, with same dimensions
 
-        Notes:
-        ------
-        - When the kernel extends outside the data while filtering, edges are handled
+        Notes
+        -----
+        When the kernel extends outside the data while filtering, edges are handled
         by repeating the nearest sampled value (edge value).
 
         """
@@ -1036,49 +1124,59 @@ class ReflectanceConverter:
         return spec_filtered
 
     @staticmethod
-    def interpolate_irrad_to_image_wl(
-        irrad_spec: np.ndarray,
-        irrad_wl: np.ndarray,
-        image_wl: np.ndarray,
-    ) -> np.ndarray:
+    def _interpolate_irrad_to_image_wl(
+        irrad_spec: NDArray,
+        irrad_wl: NDArray,
+        image_wl: NDArray,
+    ) -> NDArray:
         """Interpolate downwelling spectrum to image wavelengths"""
         return np.interp(x=image_wl, xp=irrad_wl, fp=irrad_spec)
 
     def convert_radiance_image_to_reflectance(
         self,
-        rad_image: np.ndarray,
-        rad_wl: np.ndarray,
-        irrad_spec: np.ndarray,
-        irrad_wl: np.ndarray,
+        rad_image: NDArray,
+        rad_wl: NDArray,
+        irrad_spec: NDArray,
+        irrad_wl: NDArray,
         convolve_irradiance_with_gaussian: bool = True,
         gauss_fwhm: float = 3.5,  # TODO: Find "optimal" default value for Pika-L
         smooth_with_savitsky_golay=False,
-    ):
+    ) -> tuple[NDArray, NDArray, NDArray]:
         """Convert radiance image to reflectance using downwelling spectrum
 
-        Arguments:
+        Parameters
         ----------
-        rad_image:
+        rad_image: NDArray
             Spectral radiance image in units of microflicks = 10e-5 W/(sr*m2*nm)
             Shape (n_lines, n_samples, n_bands)
-        raw_wl:
+        raw_wl: NDArray
             Wavelengths (in nanometers) corresponding to each band in rad_image
-        irrad_spec:
+        irrad_spec: NDArray
             Spectral irradiance in units of W/(m2*nm)
-        irrad_wl:
+        irrad_wl: NDArray
             Wavelengths (in nanometers) corresponding to each band in irrad_spec
-
-        Keyword arguments:
-        ------------------
-        convolve_irradiance_with_gaussian: bool
+        convolve_irradiance_with_gaussian: bool, default True
             Indicate if irradiance spectrum should be smoothed with Gaussian kernel.
             This may be useful if irradiance is measured with a higher spectral
             resolution than radiance, and thus has sharper "spikes".
-        gauss_fwhm: float
+        gauss_fwhm: float, default 3.5
             Full-width-half-maximum for Gaussian kernel, in nanometers.
             Only used if convolve_irradiance_with_gaussian==True
-        smooth_with_savitsky_golay: bool
+        smooth_with_savitsky_golay: bool, default False
             Whether to smooth the reflectance spectra using a Savitzky-Golay filter
+
+        Returns
+        -------
+        refl_image: NDArray
+            Reflectance image, unitless. Shape is same as rad_image for the
+            first 2 axes, but may be less than that of rad_image along
+            3rd axis due to limiting of wavelength range.
+        refl_wl: NDArray
+            Wavelengths for reflectance image
+        irrad_spec:
+            Irradiance spectrum used for reflectance conversion.
+            The spectrum has been interpolated to match the wavelengths
+            of refl_image.
 
         """
 
@@ -1095,7 +1193,7 @@ class ReflectanceConverter:
         irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
         if convolve_irradiance_with_gaussian:
             irrad_spec = self.conv_spec_with_gaussian(irrad_spec, irrad_wl, gauss_fwhm)
-        irrad_spec = self.interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
+        irrad_spec = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
         irrad_spec = np.expand_dims(irrad_spec, axis=(0, 1))
 
         # Convert to reflectance, assuming Lambertian (perfectly diffuse) surface
@@ -1118,23 +1216,21 @@ class ReflectanceConverter:
         use_mean_ref_irrad_spec: bool = False,
         **kwargs,
     ):
-        """
+        """Read radiance image from file, convert to reflectance and save
 
-        Arguments:
-        radiance_image_header:
+        Parameters
+        ----------
+        radiance_image_header: Union[Path, str]
             Path to header file for radiance image.
-        irradiance_header:
+        irradiance_header: Union[Path, str]
             Path to ENVI file containing irradiance measurement
             corresponding to radiance image file.
             Not used if use_mean_ref_irrad_spec is True - in this
             case, it can be set to None.
-        reflectance_image_header:
+        reflectance_image_header: Union[Path, str]
             Path to header file for (output) reflectance image.
             Binary file will be saved with same name, except .hdr extension.
-
-        Keyword arguments:
-        ------------------
-        use_mean_ref_irrad_spec:
+        use_mean_ref_irrad_spec: bool, default False
             Whether to use mean of irradiance reference spectra (see __init__)
             rather than an irradiance spectrum recorded together with the
             radiance image. This may be useful in cases where the recorded
@@ -1165,68 +1261,40 @@ class GlintCorrector:
     ):
         """Initialize glint corrector
 
-        Keyword arguments:
-        method:
+        Parameters
+        ----------
+        method : str, default "flat_spec"
             Method for removing / correcting for sun/sky glint.
             Currently, only 'flat_spec' is implemented.
-        smooth_with_savitsky_golay: bool
+        smooth_with_savitsky_golay : bool, default True
             Whether to smooth glint corrected images using a
             Savitsky-Golay filter.
-
         """
         self.method = method
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
 
-    @staticmethod
-    def get_nir_ind(
-        wl,
-        nir_band: tuple[float] = (740.0, 805.0),
-        nir_ignore_band: tuple[float] = (753.0, 773.0),
-    ):
-        """Get indices of NIR band
-
-        Keyword arguments:
-        ------------------
-        nir_band: tuple[float, float]
-            Lower and upper edge of near-infrared (NIR) band.
-        nir_ignore_band: tuple [float, float]
-            Lower and upper edge of band to ignore (not include in indices)
-            with nir_band. Default value corresponds to O2 absorption band
-            around 760 nm.
-
-        Notes:
-        ------
-        - Default values are at relatively short wavelengths (just above visible)
-        in order to generate a NIR image with high signal-no-noise level.
-        The default nir_ignore_band
-
-        """
-        nir_ind = (wl >= nir_band[0]) & (wl <= nir_band[1])
-        ignore_ind = (wl >= nir_ignore_band[0]) & (wl <= nir_ignore_band[1])
-        nir_ind = nir_ind & ~ignore_ind
-        return nir_ind
-
     def remove_glint_flat_spec(
-        self, refl_image: np.ndarray, refl_wl: np.ndarray, **kwargs
-    ) -> np.ndarray:
+        self, refl_image: NDArray, refl_wl: NDArray, **kwargs
+    ) -> NDArray:
         """Remove sun and sky glint from image assuming flat glint spectrum
 
-        Arguments:
+        Parameters
         ----------
-        refl_image:
+        refl_image: NDArray
             Reflectance image, shape (n_lines, n_samples, n_bands)
-        refl_wl:
+        refl_wl: NDArray
             Wavelengths (in nm) for each band in refl_image
 
-        Returns:
+        Returns
         --------
-        refl_image_glint_corr:
+        refl_image_glint_corr: NDArray
             Glint corrected reflectance image, same shape as refl_image.
             The mean NIR value is subtracted from each spectrum in the input
             image. Thus, only the spectral baseline / offset is changed -
             the original spectral shape is maintained.
 
-        Notes:
+        Notes
+        -----
         - The glint correction is based on the assumption that there is
         (approximately) no water-leaving radiance in the NIR spectral region.
         This is often the case, since NIR light is very effectively
@@ -1237,7 +1305,7 @@ class GlintCorrector:
         NIR region. This is usually _not_ exactly true, but the assumption
         can be "close enough" to still produce useful results.
         """
-        nir_ind = self.get_nir_ind(refl_wl, **kwargs)
+        nir_ind = mpu.get_nir_ind(refl_wl, **kwargs)
         nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
         refl_image_glint_corr = refl_image - nir_im
 
@@ -1248,21 +1316,32 @@ class GlintCorrector:
 
         return refl_image_glint_corr
 
-    def glint_correct_image_file(self, image_path, glint_corr_image_path, **kwargs):
-        """Read reflectance file, apply glint correction, and save result"""
-        if self.method == "flat_spec":
-            image, wl, metadata = mpu.read_envi(image_path)
-            glint_corr_image = self.remove_glint_flat_spec(image, wl, **kwargs)
-            mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
-        else:
-            raise ValueError(f"Glint correction method {self.method=} invalid.")
+    def glint_correct_image_file(
+        self,
+        image_path: Union[Path, str],
+        glint_corr_image_path: Union[Path, str],
+        **kwargs,
+    ):
+        """Read reflectance file, apply glint correction, and save result
+
+        Parameters
+        ----------
+        image_path : Union[Path, str]
+            Path to hyperspectral image (ENVI header file)
+        glint_corr_image_path : Union[Path, str]
+            Path for saving output image (ENVI header file)
+
+        """
+        image, wl, metadata = mpu.read_envi(image_path)
+        glint_corr_image = self.remove_glint_flat_spec(image, wl, **kwargs)
+        mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
 
 class ImageFlightMetadata:
     """
 
-    Attributes:
-    -----------
+    Attributes
+    ----------
     u_alongtrack:
         Unit vector (easting, northing) pointing along flight direction
     u_crosstrack:
@@ -1287,39 +1366,34 @@ class ImageFlightMetadata:
         altitude_offset: float = 0.0,
         **kwargs,
     ):
-        """
+        """Initialize image flight metadata object
 
-        Arguments:
+        Parameters
         ----------
-        imu_data: dict
+        imu_data : dict
             Dictionary with imu_data, as formatted by ImuDataParser
-        image_shape: tuple[int]
+        image_shape : tuple[int]
             Shape of image, typically (n_lines,n_samples,n_bands)
-
-
-        Keyword arguments:
-        ------------------
-        camera_opening_angle: float (degrees)
+        camera_opening_angle : float, default 36.5
             Full opening angle of camera, in degrees.
             Corresponds to angle between rays hitting leftmost and
             rightmost pixels of image.
-        pitch_offset: float (degrees)
+        pitch_offset : float, default 0.0
             How much forward the camera is pointing relative to nadir
-        roll_offset: float (degrees)
+        roll_offset : float, default 0.0
             How much to the right ("right wing up") the camera is pointing
             relative to nadir.
-        assume_square_pixels: bool
+        assume_square_pixels : bool, default True
             Whether to assume that the original image was acquired with
             flight parameters (flight speed, frame rate, altitude)
             that would produce square pixels. If true, the altitude of the
             camera is estimated from the shape of the image and the (along-track)
             swath length. This can be useful in cases where absolute altitude
             measurement of the camera IMU is not very accurate.
-        altitude_offset:
+        altitude_offset : float, default 0.0
             Offset added to the estimated altitude. If the UAV was higher
             in reality than that estimated by the ImageFlightMetadata
             object, add a positive altitude_offset.
-
         """
 
         # Set input attributes
@@ -1386,7 +1460,8 @@ class ImageFlightMetadata:
     def _calc_mean_altitude(self, assume_square_pixels):
         """Calculate mean altitude of uav during imaging
 
-        Arguments:
+        Parameters
+        ----------
         assume_square_pixels: bool
             If true, the across-track sampling distance is assumed to
             be equal to the alongtrack sampling distance. The altitude
@@ -1431,15 +1506,25 @@ class ImageFlightMetadata:
         )
         return image_origin
 
-    def get_image_transform(self, ordering="alphabetical"):
+    def get_image_transform(self, ordering: str = "alphabetical") -> tuple[float]:
         """Get 6-element affine transform for image
 
-        Keyword arguments:
-        ------------------
-        ordering: ['alphabetical','worldfile']
+        Parameters
+        ----------
+        ordering : str, {"alphabetical","worldfile"}, default "alphabetical"
             If 'alphabetical', return A,B,C,D,E,F
             If 'worldfile', return A,D,B,E,C,F
             See https://en.wikipedia.org/wiki/World_file
+
+        Returns
+        -------
+        transform: tuple[float]
+            6-element affine transform
+
+        Raises
+        ------
+        ValueError
+            If invalid ordering parameter is used
         """
         A, D = self.gsd_crosstrack * self.u_crosstrack
         B, E = self.gsd_alongtrack * self.u_alongtrack
@@ -1467,7 +1552,7 @@ class SimpleGeoreferencer:
     ):
         """Georeference hyperspectral image and save as GeoTIFF
 
-        Arguments:
+        Parameters
         ----------
         image_path:
             Path to hyperspectral image header.
@@ -1487,7 +1572,7 @@ class SimpleGeoreferencer:
         image, wl, _ = mpu.read_envi(image_path)
         if rgb_only:
             image, wl = mpu.rgb_subset_from_hsi(image, wl)
-        self.insert_image_nodata_value(image, nodata_value)
+        self._insert_image_nodata_value(image, nodata_value)
         geotiff_profile = self.create_geotiff_profile(
             image, imudata_path, nodata_value=nodata_value, **kwargs
         )
@@ -1495,15 +1580,15 @@ class SimpleGeoreferencer:
         self.write_geotiff(geotiff_path, image, wl, geotiff_profile)
 
     @staticmethod
-    def move_bands_axis_first(image):
+    def _move_bands_axis_first(image):
         """Move spectral bands axis from position 2 to 0"""
         return np.moveaxis(image, 2, 0)
 
     @staticmethod
-    def insert_image_nodata_value(image, nodata_value):
+    def _insert_image_nodata_value(image, nodata_value):
         """Insert nodata values in image (in-place)
 
-        Arguments:
+        Parameters
         ----------
         image:
             3D image array ordered as (lines, samples, bands)
@@ -1517,23 +1602,21 @@ class SimpleGeoreferencer:
 
     @staticmethod
     def create_geotiff_profile(
-        image: np.ndarray,
+        image: NDArray,
         imudata_path: Union[Path, str],
         nodata_value: int = -9999,
         **kwargs,
     ):
         """Create profile for writing image as geotiff using rasterio
 
-        Arguments:
+        Parameters
         ----------
         image:
             3D image array ordered, shape (n_lines,n_samples,n_bands).
         imudata_path:
             Path to JSON file containing IMU data for image
-
-        Keyword arguments:
-        ------------------
-        nodata_value:
+        nodata_value: int, default -9999
+            Nodata value to insert for invalid pixels
 
         """
         imu_data = ImuDataParser.read_imu_json_file(imudata_path)
@@ -1557,33 +1640,34 @@ class SimpleGeoreferencer:
     def write_geotiff(
         self,
         geotiff_path: Union[Path, str],
-        image: np.ndarray,
-        wavelengths: np.ndarray,
+        image: NDArray,
+        wavelengths: NDArray,
         geotiff_profile: dict,
     ):
         """Write image as GeoTIFF
 
-        Arguments:
+        Parameters
         ----------
-        geotiff_path: Path | str
+        geotiff_path : Union[Path, str]
             Path to (output) GeoTIFF file
-        image: np.ndarray
+        image : NDArray
             Image to write, shape (n_lines, n_samples, n_bands)
-        wavelengths: np.ndarray
+        wavelengths : NDArray
             Wavelengths (in nm) corresponding to each image band.
             The wavelengths are used to set the descption of each band
             in the GeoTIFF file.
+        geotiff_profile : dict
+            Dict with GeoTIFF parameters ("profile")
 
-        # Notes:
-        --------
-        - Rasterio / GDAL required the image to be ordered "bands first",
+        Notes
+        -----
+        Rasterio / GDAL requires the image to be ordered "bands first",
         e.g. shape (bands, lines, samples). However, the default used by e.g.
-        the spectral library is (lines, samples, bands), and this convention
+        the 'spectral' library is (lines, samples, bands), and this convention
         should be used consistenly to avoid bugs. This function moves the band
         axis directly before writing.
-
         """
-        image = self.move_bands_axis_first(image)  # Band ordering requred by GeoTIFF
+        image = self._move_bands_axis_first(image)  # Band ordering requred by GeoTIFF
         band_names = [f"{wl:.3f}" for wl in wavelengths]
         with rasterio.Env():
             with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
@@ -1598,15 +1682,12 @@ class SimpleGeoreferencer:
     ):
         """Update the affine transform of an image
 
-        Arguments:
+        Parameters
         ----------
         geotiff_path:
             Path to existing GeoTIFF file.
         imu_data_path:
             Path to JSON file with IMU data.
-
-        Keyword arguments:
-        ------------------
         **kwargs:
             Keyword arguments are passed along to create an ImageFlightMetadata object.
             Options include e.g. 'altitude_offset'. This can be useful in case

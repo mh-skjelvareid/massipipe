@@ -16,9 +16,9 @@ class PipelineProcessor:
     def __init__(self, dataset_dir: Union[Path, str]):
         """Create a pipeline for processing all data in a dataset
 
-        Arguments:
+        Parameters
         ----------
-        dataset_dir:
+        dataset_dir : Union[Path, str]
             Path to folder containing dataset. The name of the folder
             will be used as the "base name" for all processed files.
             The folder should contain at least two subfolders:
@@ -26,6 +26,12 @@ class PipelineProcessor:
             - calibration: Contains Resonon calibration files for
             camera (*.icp) and downwelling irradiance sensor (*.dcp)
 
+        Raises
+        ------
+        FileNotFoundError
+            No folder called "0_raw" found
+        FileNotFoundError
+            No folder called "calibration" found
         """
         self.dataset_dir = Path(dataset_dir)
         self.dataset_base_name = dataset_dir.name
@@ -49,7 +55,7 @@ class PipelineProcessor:
 
         # Search for raw files, sort and validate
         self.raw_image_paths = list(self.raw_dir.rglob("*.bil.hdr"))
-        self.raw_image_paths = sorted(self.raw_image_paths, key=self.get_image_number)
+        self.raw_image_paths = sorted(self.raw_image_paths, key=self._get_image_number)
         times_paths, lcf_paths = self._validate_raw_files()
         self.times_paths = times_paths
         self.lcf_paths = lcf_paths
@@ -121,11 +127,26 @@ class PipelineProcessor:
         return times_paths, lcf_paths
 
     @staticmethod
-    def get_image_number(raw_image_path):
+    def _get_image_number(raw_image_path: Union[Path, str]) -> int:
         """Get image number from raw image
 
-        Notes:
-        ------
+        Parameters
+        ----------
+        raw_image_path : Union[Path, str]
+            Path to raw image (ENVI header file)
+
+        Returns
+        -------
+        int
+            Image number
+
+        Examples
+        --------
+        >>> PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr")
+        5
+
+        Notes
+        -----
         Raw files are numbered sequentially, but the numbers are not
         zero-padded. This can lead to incorrect sorting of the images, e.g.
         ['im_1','im_2','im_10'] (simplified names for example) are sorted
@@ -133,6 +154,7 @@ class PipelineProcessor:
         of raw files and sorting explicitly on these (as integers),
         correct ordering can be achieved.
         """
+        raw_image_path = Path(raw_image_path)
         image_file_stem = raw_image_path.name.split(".")[0]
         image_number = image_file_stem.split("_")[-1]
         return int(image_number)
@@ -180,7 +202,7 @@ class PipelineProcessor:
         spec_paths = []
         for raw_image_path in self.raw_image_paths:
             spec_base_name = raw_image_path.name.split("_Pika_L")[0]
-            image_number = self.get_image_number(raw_image_path)
+            image_number = self._get_image_number(raw_image_path)
             spec_binary = (
                 raw_image_path.parent
                 / f"{spec_base_name}_downwelling_{image_number}_pre.spec"
@@ -388,34 +410,26 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def mosaic_geotiffs(self, mosaic_path=None):
+    def mosaic_geotiffs(self, mosaic_path: Union[Path, str, None] = None):
         """Convert set of rotated geotiffs into single mosaic with overviews
 
-        Arguments:
-        mosaic_path
+        Parameters
+        ----------
+        mosaic_path: Union[Path,str,None]
             Path to output mosaic. If None, default dataset folder and name
             is used.
 
-        # Explanation of gdalwarp arguments used:
-        -overwrite:
-            Overwrite existing files without error / warning
-        -q:
-            Suppress GDAL output (quiet)
-        -r near:
-            Resampling method: Nearest neighbor
-        -of GTiff:
-            Output format: GeoTiff
-
-        # Explanation of gdaladdo agruments:
-        -r average
-            Use averaging when resampling to lower spatial resolution
-        -q
-            Suppress output (be quiet)
         """
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
         if mosaic_path is None:
             mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
+
+        # Explanation of gdalwarp options used:
+        # -overwrite: Overwrite existing files without error / warning
+        # -q: Suppress GDAL output (quiet)
+        # -r near: Resampling method: Nearest neighbor
+        # -of GTiff: Output format: GeoTiff
 
         # Run as subprocess without invoking shell. Note input file unpacking.
         gdalwarp_args = [
@@ -433,6 +447,9 @@ class PipelineProcessor:
 
         # Add image pyramids to file
         logger.info(f"Adding image pyramids to mosaic {mosaic_path.name}")
+        # Explanation of gdaladdo options used:
+        # -r average: Use averaging when resampling to lower spatial resolution
+        # -q: Suppress output (be quiet)
         gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(mosaic_path)]
         subprocess.run(gdaladdo_args)
 
@@ -485,22 +502,33 @@ class PipelineProcessor:
         mosaic_geotiffs=True,
         **kwargs,
     ):
-        """Run pipeline process(es)
+        """_summary_
 
-        Keyword arguments:
-        ------------------
-        convert_raw_images_to_radiance,
-        convert_raw_spectra_to_irradiance,
-        calibrate_irradiance_wavelengths,
-        parse_imu_data,
-        convert_radiance_to_reflectance,
-        glint_correct_reflectance,
-        geotiff_from_glint_corrected_reflectance,
-        mosaic_geotiffs: bool
-            All keyword arguments are boolean "switches" used to indicate
-            whether a process should be run. By default, all are True.
-            If e.g. raw images have already been processed, specify
-            convert_raw_images_to_radiance=False to avoid reprocessing.
+        Parameters
+        ----------
+        convert_raw_images_to_radiance : bool, default True
+            Whether to convert raw images to radiance
+        convert_raw_spectra_to_irradiance : bool, default True
+            Whether to convert raw spectra to irradiance.
+            Raw spectra ("downwelling") must exist in the 0_raw folder
+        calibrate_irradiance_wavelengths : bool, default True
+            Whether to calibrate irrdaiance wavelengths using
+            known Fraunhofer absorption lines.
+        parse_imu_data : bool, default True
+            Wheter to read IMU data from *.lcf files,
+            interpolate it to match image line timestamps in
+            *.times files, and save the results in JSON file.
+        convert_radiance_to_reflectance : bool, default True
+            Whether to convert radiance iamges to reflectance images.
+            Radiance images must exist in folder 1_radiance.
+        glint_correct_reflectance : bool, default True
+            Whether to apply glint correction to reflectance images.
+            Reflectance images must exist in folder 2_reflectance
+        geotiff_from_glint_corrected_reflectance : bool, default True
+            Whether to create georeferenced GeoTIFF images from
+            glint corrected reflectance images.
+        mosaic_geotiffs : bool, default True
+            Whether to combine all GeoTIFFs in a single "mosaic" GeoTIFF
         """
         if convert_raw_images_to_radiance:
             try:
@@ -559,12 +587,15 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while mosaicing geotiffs ", exc_info=True)
 
+
 if __name__ == "__main__":
-    dataset_dir = Path(
-        "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
-    )
-    pl = PipelineProcessor(dataset_dir)
-    pl.run()
+    print(PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr"))
+    # dataset_dir = Path(
+    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
+    # )
+    # pl = PipelineProcessor(dataset_dir)
+    # pl.run()
+
     # pl.glint_correct_reflectance_images()
     # pl.georeference_glint_corrected_reflectance(
     #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0

@@ -331,3 +331,38 @@ def convert_long_lat_to_utm(
     UTMx, UTMy = proj(long, lat)
 
     return UTMx, UTMy, utm_crs.to_epsg()
+
+
+def get_nir_ind(
+    wl: NDArray,
+    nir_band: tuple[float] = (740.0, 805.0),
+    nir_ignore_band: tuple[float] = (753.0, 773.0),
+) -> NDArray:
+    """Get indices of NIR band
+
+    Parameters
+    ----------
+    nir_band: tuple[float], default (740.0, 805.0)
+        Lower and upper edge of near-infrared (NIR) band.
+    nir_ignore_band: tuple [float], default (753.0, 773.0)
+        Lower and upper edge of band to ignore (not include in indices)
+        with nir_band. Default value corresponds to O2 absorption band
+        around 760 nm.
+
+    Returns
+    -------
+    NDArray:
+        Array with indices of NIR band wavelengths.
+
+    Notes:
+    ------
+    - Default values are at relatively short wavelengths (just above visible)
+    in order to generate a NIR image with high signal-no-noise level.
+    The default nir_ignore_band is used to exclude the "A" Fraunhofer
+    line (around 759 nm).
+
+    """
+    nir_ind = (wl >= nir_band[0]) & (wl <= nir_band[1])
+    ignore_ind = (wl >= nir_ignore_band[0]) & (wl <= nir_ignore_band[1])
+    nir_ind = nir_ind & ~ignore_ind
+    return nir_ind
