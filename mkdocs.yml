@@ -1,0 +1,22 @@
+site_name: MassiPipe Documentation
+site_description: MassiPipe - a data processing pipeline for hyperspectral data acquired in the Massimal project.
+
+theme:
+  name: "material"
+
+repo_url: https://github.com/mh-skjelvareid/massipipe
+
+plugins:
+- mkdocstrings:
+    handlers:
+      python:
+        options:
+          docstring_style: numpy
+
+nav:
+  - Introduction: index.md
+  - Pipeline reference: pipeline_ref.md
+  - Processors reference: processors_ref.md
+  - Utilities reference: utils_ref.md
+  - Example Usage: example_usage.md
+

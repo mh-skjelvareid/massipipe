@@ -19,28 +19,21 @@ def read_envi(
 ) -> tuple[np.ndarray, np.ndarray, dict]:
     """Load image in ENVI format, including wavelength vector and other metadata
 
-    Usage:
-    ------
-    (image,wl,rgb_ind,metadata) = read_envi(header_path,...)
-
-    Arguments:
+    Parameters
     ----------
     header_path: Path | str
         Path to ENVI file header.
-
-    Keyword arguments:
-    ------------------
-    image_path: Path | str
+    image_path: Path | str | None, default None
         Path to ENVI data file, useful if data file is not found
         automatically from header file name (see spectral.io.envi.open).
-    write_byte_order_if_missing: bool
+    write_byte_order_if_missing: bool, default True
         Flag to indicate if the string "byte order = 0" should be written
         to the header file in case of MissingEnviHeaderParameter error
         (byte order is required by the "spectral" library, but is missing
         in some Resonon ENVI files)
 
-    Returns:
-    --------
+    Returns
+    -------
     image: np.ndarray
         image, shape (n_lines, n_samples, n_channels)
     wl: np.ndarray

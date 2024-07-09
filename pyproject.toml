@@ -32,7 +32,11 @@ dev = [
   "jupyterlab",
   "matplotlib",
   "pytest",
-  "ruff"
+  "ruff",
+  "numpydoc-linter",
+  "mkdocs",
+  "mkdocstrings-python",
+  "mkdocs-material"
 ]
 
 [project.urls]
