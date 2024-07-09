@@ -865,7 +865,7 @@ class WavelengthCalibrator:
 
         Parameters
         ----------
-        header_paths: Path | str
+        header_path: Union[Path, str]
             Iterable with paths multiple spectra.
 
         """
@@ -1149,7 +1149,7 @@ class ReflectanceConverter:
         rad_image: NDArray
             Spectral radiance image in units of microflicks = 10e-5 W/(sr*m2*nm)
             Shape (n_lines, n_samples, n_bands)
-        raw_wl: NDArray
+        rad_wl: NDArray
             Wavelengths (in nanometers) corresponding to each band in rad_image
         irrad_spec: NDArray
             Spectral irradiance in units of W/(m2*nm)
