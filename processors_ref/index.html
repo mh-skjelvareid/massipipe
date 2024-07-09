@@ -1,0 +1,3918 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="MassiPipe - a data processing pipeline for hyperspectral data acquired in the Massimal project.">
+      
+      
+      
+      
+        <link rel="prev" href="../pipeline_ref/">
+      
+      
+        <link rel="next" href="../utils_ref/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.28">
+    
+    
+      
+        <title>Processors reference - MassiPipe Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6543a935.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#massipipe.processors" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MassiPipe Documentation" class="md-header__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MassiPipe Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Processors reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var media,input,key,value,palette=__md_get("__palette");if(palette&&palette.color){"(prefers-color-scheme)"===palette.color.media&&(media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']"),palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent"));for([key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MassiPipe Documentation" class="md-nav__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    MassiPipe Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.5.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pipeline_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Pipeline reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Processors reference
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Processors reference
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      processors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.RadianceCalibrationDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      RadianceCalibrationDataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.RadianceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      RadianceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.IrradianceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      IrradianceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.WavelengthCalibrator" class="md-nav__link">
+    <span class="md-ellipsis">
+      WavelengthCalibrator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ImuDataParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      ImuDataParser
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ReflectanceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReflectanceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.GlintCorrector" class="md-nav__link">
+    <span class="md-ellipsis">
+      GlintCorrector
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ImageFlightMetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      ImageFlightMetadata
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.SimpleGeoreferencer" class="md-nav__link">
+    <span class="md-ellipsis">
+      SimpleGeoreferencer
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utilities reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors" class="md-nav__link">
+    <span class="md-ellipsis">
+      processors
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.RadianceCalibrationDataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      RadianceCalibrationDataset
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.RadianceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      RadianceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.IrradianceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      IrradianceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.WavelengthCalibrator" class="md-nav__link">
+    <span class="md-ellipsis">
+      WavelengthCalibrator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ImuDataParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      ImuDataParser
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ReflectanceConverter" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReflectanceConverter
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.GlintCorrector" class="md-nav__link">
+    <span class="md-ellipsis">
+      GlintCorrector
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.ImageFlightMetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      ImageFlightMetadata
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.processors.SimpleGeoreferencer" class="md-nav__link">
+    <span class="md-ellipsis">
+      SimpleGeoreferencer
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+  <h1>Processors reference</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="massipipe.processors"></a>
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.RadianceCalibrationDataset" class="doc doc-heading">
+            <code>RadianceCalibrationDataset</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+      <p>A radiance calibration dataset for Resonon hyperspectral cameras.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceCalibrationDataset.calibration_file">calibration_file</span></code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to Imager Calibration Pack (*.icp) file</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceCalibrationDataset.calibration_dir">calibration_dir</span></code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Folder into which all the data in the calibration_file
+is put (unzipped).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceCalibrationDataset.gain_file_path">gain_file_path</span></code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to "gain file", i.e. ENVI file with "gain spectra",
+per-wavelength values for converting from raw (digital numbers)
+data to radiance data (in physical units).</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceCalibrationDataset.dark_frame_paths">dark_frame_paths</span></code></td>
+            <td>
+                  <code>list[<span title="pathlib.Path">Path</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of paths to "dark frames", i.e. files with a single line / spectrum
+taken with no light incident on the sensor, taken with different gain
+and shutter values.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="massipipe.processors.RadianceCalibrationDataset.get_rad_conv_frame" href="#massipipe.processors.RadianceCalibrationDataset.get_rad_conv_frame">get_rad_conv_frame</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Returns radiance conversion frame, shape (n_samples, n_channels)</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="massipipe.processors.RadianceCalibrationDataset.get_closest_dark_frame" href="#massipipe.processors.RadianceCalibrationDataset.get_closest_dark_frame">get_closest_dark_frame</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Returns dark frame which best matches given gain and shutter values</p>
+                </div>
+              </td>
+            </tr>
+      </tbody>
+    </table>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceCalibrationDataset.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">calibration_file</span><span class="p">,</span> <span class="n">calibration_dir_name</span><span class="o">=</span><span class="s1">&#39;radiance_calibration_frames&#39;</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>calibration_file</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to *.icp Resonon "Imager Calibration Pack" file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>calibration_dir_name</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of subdirectory into which calibration frames are unzipped</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;radiance_calibration_frames&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>zipfile.BadZipfile:</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If given *.icp file is not a valid zip file</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceCalibrationDataset.get_closest_dark_frame" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_closest_dark_frame</span><span class="p">(</span><span class="n">gain</span><span class="p">,</span> <span class="n">shutter</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Get dark frame which most closely matches given gain and shutter values</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>gain</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Gain value used for search, typically gain value of image that should
+be converted from raw to radiance. Values follow Resonon convention
+used in header files++ (logarithmic values, 20 log10).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>shutter</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shutter value used for search, typically shutter value of image that should
+be converted from raw to radiance. Values follow Resonon convention
+used in header files++ (unit: milliseconds).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>frame</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Single dark frame, shape (1,n_samples,n_channels)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>wl</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Vector of wavelengths for each spectral channel (nanometers)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>metadata</code></td>            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Metadata from ENVI header, formatted as dictionary</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceCalibrationDataset.get_rad_conv_frame" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_rad_conv_frame</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read and return radiance conversion curve ("gain" file)</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>frame</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Radiance conversion frame, shape (1,n_samples,n_channels)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>wl</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Vector of wavelengths for each spectral channel (nanometers)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>metadata</code></td>            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Metadata from ENVI header, formatted as dictionary</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.RadianceConverter" class="doc doc-heading">
+            <code>RadianceConverter</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+      <p>A class for converting raw hyperspectral images from Pika L cameras to radiance.</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceConverter.radiance_calibration_file">radiance_calibration_file</span></code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span> | str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to Imager Calibration Pack (*.icp) file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceConverter.rc_dataset">rc_dataset</span></code></td>
+            <td>
+                  <code><a class="autorefs autorefs-internal" title="massipipe.processors.RadianceCalibrationDataset" href="#massipipe.processors.RadianceCalibrationDataset">RadianceCalibrationDataset</a></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>A radiance calibration dataset object representing the calibration
+data supplied in the *.icp file.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceConverter.rad_conv_frame">rad_conv_frame</span></code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Frame representing conversion factors from raw data to radiance for
+every pixel and wavelength.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.RadianceConverter.rad_conv_metadata">rad_conv_metadata</span></code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ENVI metadata for rad_conv_frame</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Methods:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="massipipe.processors.RadianceConverter.convert_raw_image_to_radiance" href="#massipipe.processors.RadianceConverter.convert_raw_image_to_radiance">convert_raw_image_to_radiance</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Convert single image (3D array) from raw to radiance</p>
+                </div>
+              </td>
+            </tr>
+            <tr class="doc-section-item">
+              <td><code><a class="autorefs autorefs-internal" title="massipipe.processors.RadianceConverter.convert_raw_file_to_radiance" href="#massipipe.processors.RadianceConverter.convert_raw_file_to_radiance">convert_raw_file_to_radiance</a></code></td>
+              <td>
+                <div class="doc-md-description">
+                  <p>Read raw file, convert, and save as radiance image</p>
+                </div>
+              </td>
+            </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Most image sensors register some amount of "dark current", i.e. a signal
+which is present even though no photons enter the sensor. The dark current
+should be subtracted for the measurement to be as accurate as possible.
+The amount of dark current also depends on camera gain (signal amplification)
+and camera shutter (time available for the sensor to collect photons).
+The *.icp calibration file (ICP = "Imager Calibration Pack") is a ZIP archine
+which includes dark current measurements taken at different gain and shutter
+settings (raw images). To remove dark current from a new image, this set of
+dark current frames is searched, and the one which best matches the gain and
+shutter values of the new image is used as a reference. The dark frame
+needs to be scaled to account for differences in binning, gain and shutter
+between it and the new image. The dark frame is then subtracted from the image.</p>
+<p>To convert raw images from digital numbers to radiance, a physical quantity,
+the raw images are multiplied with a "radiance conversion frame". This frame
+represents "microflicks per digital number" for every pixel and every
+spectral channel, where the spectral radiance unit "flick" is defined as
+"watts per steradian per square centimeter of surface per micrometer of span
+in wavelength" (see https://en.wikipedia.org/wiki/Flick_(physics) ).
+The radiance conversion frame also needs to be scaled to account for differences
+in binning, gain and shutter.</p>
+<p>When both the dark current frame (DCF) and the radiance conversion frame (RCF)
+have been scaled to match the raw input image (IM), the radiance output image
+(OI) is given by OI = (IM-DCF)*RCF</p>
+<p>Note that the conversion assumes that the camera response is completely linear
+after dark current is removed. This may not be completely accurate, but is
+assumed to be within an acceptable margin of error.</p>
+</details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceConverter.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">radiance_calibration_file</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>radiance_calibration_file</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to Imager Calibration Pack (<em>.icp) file.
+The </em>.icp file is a zip archive, and the file will be unzipped into
+a subfolder in the same folder containing the *.icp file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceConverter.convert_raw_image_to_radiance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_raw_image_to_radiance</span><span class="p">(</span><span class="n">raw_image</span><span class="p">,</span> <span class="n">raw_image_metadata</span><span class="p">,</span> <span class="n">set_saturated_pixels_to_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">saturation_value</span><span class="o">=</span><span class="mi">2</span> <span class="o">**</span> <span class="mi">12</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Convert raw image (3d array) to radiance image</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>raw_image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raw hyperspectral image, shape (n_lines, n_samples, n_channels)
+The image is assumed to have been created by a Resonon Pika L
+camera, which has 900 spatial pixels x 600 spectral channels
+before any binning has been applied. Typically, spectral binning
+with a bin size of 2 is applied during image aqusition, resulting
+in images with shape (n_lines, 900, 300). It is assumed that no
+spectral or spatial (sample) cropping has been applied. Where binning
+has been applied, it is assumed that
+    - n_samples<em>sample_bin_size = 900
+    - n_channels</em>channel_bin_size = 600</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>raw_image_metadata</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>ENVI metadata formatted as dict.
+See spectral.io.envi.open()</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>radiance_image</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span>(int16, microflicks)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Radiance image with same shape as raw image, with spectral radiance
+in units of microflicks = 10e-5 W/(m2*nm). Microflicks are used
+to be consistent with Resonon formatting, and because microflick
+values typically are in a range suitable for (memory-efficient)
+encoding as 16-bit unsigned integer.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError:</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>In case the raw image does not have the expected dimensions.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="references:" open>
+  <summary>References:</summary>
+  <ul>
+<li><a href="https://en.wikipedia.org/wiki/Flick_(physics)">"flick" unit</a></li>
+</ul>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.RadianceConverter.convert_raw_file_to_radiance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_raw_file_to_radiance</span><span class="p">(</span><span class="n">raw_header_path</span><span class="p">,</span> <span class="n">radiance_header_path</span><span class="p">,</span> <span class="n">interleave</span><span class="o">=</span><span class="s1">&#39;bip&#39;</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read raw image file, convert to radiance, and save to file</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>raw_header_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to raw hyperspectral image acquired with Resonon Pika L camera.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>radiance_header_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to save converted radiance image to.
+The name of the header file should match the 'interleave' argument
+(default: bip), e.g. 'radiance_image.bip.hdr'</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>interleave</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>String inticating how binary image file is organized.
+See spectral.io.envi.save_image()</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;bip&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>The radiance image is saved with the same metadata as the raw image.</p>
+</details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.IrradianceConverter" class="doc doc-heading">
+            <code>IrradianceConverter</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.IrradianceConverter.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">irrad_cal_file</span><span class="p">,</span> <span class="n">irrad_cal_dir_name</span><span class="o">=</span><span class="s1">&#39;downwelling_calibration_spectra&#39;</span><span class="p">,</span> <span class="n">wl_min</span><span class="o">=</span><span class="mi">370</span><span class="p">,</span> <span class="n">wl_max</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>irrad_cal_file</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to downwelling irradiance calibration file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irrad_cal_dir_name</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Name of folder which calibration files will be unzipped into.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;downwelling_calibration_spectra&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wl_min</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float, None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shortest valid wavelength (nm) in irradiance spectrum.</p>
+              </div>
+            </td>
+            <td>
+                  <code>370</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wl_max</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float, None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Longest valid wavelength (nm) in irradiance spectrum.</p>
+              </div>
+            </td>
+            <td>
+                  <code>1000</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.IrradianceConverter.convert_raw_spectrum_to_irradiance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_raw_spectrum_to_irradiance</span><span class="p">(</span><span class="n">raw_spec</span><span class="p">,</span> <span class="n">raw_metadata</span><span class="p">,</span> <span class="n">set_irradiance_outside_wl_limits_to_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">keep_original_dimensions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p><em>summary</em></p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>raw_spec</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raw spectrum</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>raw_metadata</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary with ENVI metadata for raw spectrum.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>set_irradiance_outside_wl_limits_to_zero</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to set spectrum values outside wavelength limits to zero.
+If False, values outside valid range are treated the same as
+values inside valid range.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>keep_original_dimensions</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to format output spectrum with same (singleton)
+dimensions as input spectrum. Can be useful for broadcasting.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>irradiance_spectrum</code></td>            <td>
+                  <code>(<span title="numpy.typing.NDArray">NDArray</span>, shape(n_wl))</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spectrom converted to spectral irradiance, unit W/(m2*nm)</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>wl</code></td>            <td>
+                  <code>(<span title="numpy.typing.NDArray">NDArray</span>, shape(n_wl))</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths for each element in irradiance spectrum</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>The irradiance conversion spectrum is <em>inversely</em> scaled with
+the input spectrum shutter. E.g., if the input spectrum has a higher shutter
+value than the calibration file (i.e. higher values per amount of photons),
+the conversion spectrum values are decreased to account for this.
+Dark current is assumed to be independent of shutter value.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.IrradianceConverter.convert_raw_file_to_irradiance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_raw_file_to_irradiance</span><span class="p">(</span><span class="n">raw_spec_path</span><span class="p">,</span> <span class="n">irrad_spec_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read raw spectrum, convert to irradiance, and save</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>raw_spec_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to ENVI header file for raw spectrum</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irrad_spec_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to ENVI header file for saving irradiance spectrum</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.WavelengthCalibrator" class="doc doc-heading">
+            <code>WavelengthCalibrator</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.WavelengthCalibrator.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.WavelengthCalibrator.fit" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fit</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">wl_orig</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p><em>summary</em></p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>spec</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Sampled radiance/irradiance spectrum, shape (n_samples,)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wl_orig</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths corresponding to spectral samples, shape (n_samples)
+Wavelengths values are assumed to be close (within a few nm)
+to their true values.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Raised if less than 3 absorption lines found in data.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.WavelengthCalibrator.fit_batch" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">fit_batch</span><span class="p">(</span><span class="n">spectrum_header_paths</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Calibrate wavelength based on spectrum with highest SNR (among many)</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>spectrum_header_paths</code></td>
+            <td>
+                  <code><span title="typing.Iterable">Iterable</span>[<span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Paths to multiple spectra. The spectrum with the highest maximum
+value will be used for wavelength calibration.
+Spectra are assumed to be ENVI files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.WavelengthCalibrator.update_header_wavelengths" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">update_header_wavelengths</span><span class="p">(</span><span class="n">header_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Update header file with calibrated wavelengths</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>header_paths</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Iterable with paths multiple spectra.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.ImuDataParser" class="doc doc-heading">
+            <code>ImuDataParser</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImuDataParser.read_lcf_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">read_lcf_file</span><span class="p">(</span><span class="n">lcf_file_path</span><span class="p">,</span> <span class="n">time_rel_to_file_start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read location files (.lcf) generated by Resonon Airborne Hyperspectral imager</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>lcf_file_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[str, <span title="pathlib.Path">Path</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to lcf file. Usually a "sidecar" file to an hyperspectral image
+with same "base" filename.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>time_rel_to_file_start</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean indicating if first timestamp should be subtracted from each
+timestamp, making time relative to start of file.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>lcf_data</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary with keys describing the type of data, and data
+formatted as numpy arrays. All arrays have equal length.
+The 7 types of data:
+- 'time': System time in seconds, relative to some (unknown)
+starting point. Similar to "Unix time" (seconds since January 1. 1970),
+but values indicate starting point around 1980. The values are
+usually offset to make the first timestamp equal to zero.
+See flag time_rel_to_file_start.
+- 'roll': Roll angle in radians, positive for "right wing up"
+- 'pitch': Pitch angle in radians, positive nose up
+- 'yaw': (heading) in radians, zero at due North, PI/2 at due East
+- 'longitude': Longitude in decimal degrees, negative for west longitude
+- 'latitude': Latitude in decimal degrees, negative for southern hemisphere
+- 'altitude': Altitude in meters relative to the WGS-84 ellipsiod.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>Notes</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code>- The LCF file format was shared by Casey Smith at Resonon on February 16. 2021.</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td></td>            <td>
+                  <code>- The LCF specification was inherited from Space Computer Corp.</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImuDataParser.read_times_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">read_times_file</span><span class="p">(</span><span class="n">times_file_path</span><span class="p">,</span> <span class="n">time_rel_to_file_start</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read image line timestamps (.times) file generated by Resonon camera</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>times_file_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to times file. Usually a "sidecar" file to an hyperspectral image
+with same "base" filename.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>time_rel_to_file_start</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean indicating if times should be offset so that first
+timestamp is zero. If not, the original timestamp value is returned.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>times</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Numpy array containing timestamps for every line of the corresponding
+hyperspectral image. The timestamps are in units of seconds, and are
+relative to when the system started (values are usually within the
+0-10000 second range). If time_rel_to_file_start=True, the times
+are offset so that the first timestamp is zero.
+The first timestamp of the times file and the first timestamp of the
+corresponding lcf file (GPS/IMU data) are assumed to the
+recorded at exactly the same time. If both sets of timestamps are
+offset so that time is measured relative to the start of the file,
+the times can be used to calculate interpolated GPS/IMU values
+for each image line.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImuDataParser.interpolate_lcf_to_times" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">interpolate_lcf_to_times</span><span class="p">(</span><span class="n">lcf_data</span><span class="p">,</span> <span class="n">image_times</span><span class="p">,</span> <span class="n">convert_to_list</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Interpolate LCF data to image line times</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>lcf_data</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary with data read from *.lcf file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>image_times</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Array of time stamps from *.times file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>convert_to_list</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to convert interpolated LCF data to list
+(useful for saving data as JSON).
+If False, interpolated values in lcf_data_interp are
+formatted as NDArray.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>lcf_data_interp</code></td>            <td>
+                  <code>dict[list | <span title="numpy.typing.NDArray">NDArray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Version of lcf_data with all measured values
+interpolated to image timestamps.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImuDataParser.read_and_save_imu_data" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">read_and_save_imu_data</span><span class="p">(</span><span class="n">lcf_path</span><span class="p">,</span> <span class="n">times_path</span><span class="p">,</span> <span class="n">json_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Parse <em>.lcf and </em>.times files and save as JSON</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>lcf_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to *.lcf (IMU data) file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>times_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to *.times (image line timestamps) file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>json_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to output JSON file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImuDataParser.read_imu_json_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">read_imu_json_file</span><span class="p">(</span><span class="n">imu_json_path</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read IMU data saved in JSON file</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>imu_json_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON file with IMU data</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>imu_data</code></td>            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>IMU data</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.ReflectanceConverter" class="doc doc-heading">
+            <code>ReflectanceConverter</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+      <p>A class for converting images from Resonon Pika L cameras to reflectance</p>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ReflectanceConverter.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">wl_min</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">wl_max</span><span class="o">=</span><span class="mi">930</span><span class="p">,</span> <span class="n">irrad_spec_paths</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>wl_min</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Minimum wavelength (nm) to include in reflectance image.</p>
+              </div>
+            </td>
+            <td>
+                  <code>400</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wl_max</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[int, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Maximum wavelength (nm) to include in reflectance image.</p>
+              </div>
+            </td>
+            <td>
+                  <code>930</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irrad_spec_paths</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="typing.Iterable">Iterable</span>[<span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]], None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of paths to irradiance spectra which can be used as reference
+spectra when convering radiance to irradiance.</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>The signal-to-noise ratio of both radiance images and irradiance
+spectra is generally lower at the low and high ends. When
+radiance is divided by noisy irradiance values close to zero, the
+noise can "blow up". Limiting the wavelength range can ensure
+that the reflectance images have more well-behaved values.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ReflectanceConverter.conv_spec_with_gaussian" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">conv_spec_with_gaussian</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">wl</span><span class="p">,</span> <span class="n">gauss_fwhm</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Convolve spectrum with Gaussian kernel to smooth / blur spectral details</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>spec</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Input spectrum, shape (n_bands,)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wl</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths corresponding to each spectrum value, shape (n_bands,)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>gauss_fwhm</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>"Full width half maximum" (FWHM) of Gaussian kernel used for
+smoothin the spectrum. FWHM is the width of the kernel in nanometers
+at the level where the kernel values are half of the maximum value.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>spec_filtered</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Filtered / smoothed version of spec, with same dimensions</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>When the kernel extends outside the data while filtering, edges are handled
+by repeating the nearest sampled value (edge value).</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ReflectanceConverter.convert_radiance_image_to_reflectance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_radiance_image_to_reflectance</span><span class="p">(</span><span class="n">rad_image</span><span class="p">,</span> <span class="n">rad_wl</span><span class="p">,</span> <span class="n">irrad_spec</span><span class="p">,</span> <span class="n">irrad_wl</span><span class="p">,</span> <span class="n">convolve_irradiance_with_gaussian</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">gauss_fwhm</span><span class="o">=</span><span class="mf">3.5</span><span class="p">,</span> <span class="n">smooth_with_savitsky_golay</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Convert radiance image to reflectance using downwelling spectrum</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>rad_image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spectral radiance image in units of microflicks = 10e-5 W/(sr<em>m2</em>nm)
+Shape (n_lines, n_samples, n_bands)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>raw_wl</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths (in nanometers) corresponding to each band in rad_image</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irrad_spec</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Spectral irradiance in units of W/(m2*nm)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irrad_wl</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths (in nanometers) corresponding to each band in irrad_spec</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>convolve_irradiance_with_gaussian</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Indicate if irradiance spectrum should be smoothed with Gaussian kernel.
+This may be useful if irradiance is measured with a higher spectral
+resolution than radiance, and thus has sharper "spikes".</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>gauss_fwhm</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Full-width-half-maximum for Gaussian kernel, in nanometers.
+Only used if convolve_irradiance_with_gaussian==True</p>
+              </div>
+            </td>
+            <td>
+                  <code>3.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>smooth_with_savitsky_golay</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to smooth the reflectance spectra using a Savitzky-Golay filter</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>refl_image</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Reflectance image, unitless. Shape is same as rad_image for the
+first 2 axes, but may be less than that of rad_image along
+3rd axis due to limiting of wavelength range.</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>refl_wl</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths for reflectance image</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+<td><code>irrad_spec</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Irradiance spectrum used for reflectance conversion.
+The spectrum has been interpolated to match the wavelengths
+of refl_image.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ReflectanceConverter.convert_radiance_file_to_reflectance" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">convert_radiance_file_to_reflectance</span><span class="p">(</span><span class="n">radiance_image_header</span><span class="p">,</span> <span class="n">irradiance_header</span><span class="p">,</span> <span class="n">reflectance_image_header</span><span class="p">,</span> <span class="n">use_mean_ref_irrad_spec</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read radiance image from file, convert to reflectance and save</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>radiance_image_header</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to header file for radiance image.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>irradiance_header</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to ENVI file containing irradiance measurement
+corresponding to radiance image file.
+Not used if use_mean_ref_irrad_spec is True - in this
+case, it can be set to None.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>reflectance_image_header</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to header file for (output) reflectance image.
+Binary file will be saved with same name, except .hdr extension.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>use_mean_ref_irrad_spec</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to use mean of irradiance reference spectra (see <strong>init</strong>)
+rather than an irradiance spectrum recorded together with the
+radiance image. This may be useful in cases where the recorded
+irradiance spectra are missing, or have low quality, e.g. at low
+sun angles where movement of the UAV strongly affects the measurement.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.GlintCorrector" class="doc doc-heading">
+            <code>GlintCorrector</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.GlintCorrector.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;flat_spec&#39;</span><span class="p">,</span> <span class="n">smooth_with_savitsky_golay</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>method</code></td>
+            <td>
+                  <code>str</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Method for removing / correcting for sun/sky glint.
+Currently, only 'flat_spec' is implemented.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;flat_spec&#34;</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>smooth_with_savitsky_golay</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to smooth glint corrected images using a
+Savitsky-Golay filter.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.GlintCorrector.remove_glint_flat_spec" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">remove_glint_flat_spec</span><span class="p">(</span><span class="n">refl_image</span><span class="p">,</span> <span class="n">refl_wl</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Remove sun and sky glint from image assuming flat glint spectrum</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>refl_image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Reflectance image, shape (n_lines, n_samples, n_bands)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>refl_wl</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths (in nm) for each band in refl_image</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>refl_image_glint_corr</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Glint corrected reflectance image, same shape as refl_image.
+The mean NIR value is subtracted from each spectrum in the input
+image. Thus, only the spectral baseline / offset is changed -
+the original spectral shape is maintained.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <ul>
+<li>The glint correction is based on the assumption that there is
+(approximately) no water-leaving radiance in the NIR spectral region.
+This is often the case, since NIR light is very effectively
+absorbed by water.</li>
+<li>The glint correction also assumes that the sun and sky glint
+reflected in the water surface has a flat spectrum, so that the
+glint in the visible region can be estimated from the glint in the
+NIR region. This is usually <em>not</em> exactly true, but the assumption
+can be "close enough" to still produce useful results.</li>
+</ul>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.GlintCorrector.glint_correct_image_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">glint_correct_image_file</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">glint_corr_image_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Read reflectance file, apply glint correction, and save result</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to hyperspectral image (ENVI header file)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>glint_corr_image_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path for saving output image (ENVI header file)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.ImageFlightMetadata" class="doc doc-heading">
+            <code>ImageFlightMetadata</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.ImageFlightMetadata.u_alongtrack">u_alongtrack</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Unit vector (easting, northing) pointing along flight direction</p>
+              </div>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code><span title="massipipe.processors.ImageFlightMetadata.u_crosstrack">u_crosstrack</span></code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Unit vector (easting, northing) pointing left relative to
+flight direction. The direction is chosen to match that of
+the image coordinate system: Origin in upper left corner,
+down (increasing line number) corresponds to positive along-track
+direction, right (increasing sample number) corresponds to
+positive cross-track direction.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImageFlightMetadata.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">imu_data</span><span class="p">,</span> <span class="n">image_shape</span><span class="p">,</span> <span class="n">camera_opening_angle</span><span class="o">=</span><span class="mf">36.5</span><span class="p">,</span> <span class="n">pitch_offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">roll_offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">assume_square_pixels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">altitude_offset</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>imu_data</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary with imu_data, as formatted by ImuDataParser</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>image_shape</code></td>
+            <td>
+                  <code>tuple[int]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Shape of image, typically (n_lines,n_samples,n_bands)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>camera_opening_angle</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Full opening angle of camera, in degrees.
+Corresponds to angle between rays hitting leftmost and
+rightmost pixels of image.</p>
+              </div>
+            </td>
+            <td>
+                  <code>36.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>pitch_offset</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>How much forward the camera is pointing relative to nadir</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>roll_offset</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>How much to the right ("right wing up") the camera is pointing
+relative to nadir.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>assume_square_pixels</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to assume that the original image was acquired with
+flight parameters (flight speed, frame rate, altitude)
+that would produce square pixels. If true, the altitude of the
+camera is estimated from the shape of the image and the (along-track)
+swath length. This can be useful in cases where absolute altitude
+measurement of the camera IMU is not very accurate.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>altitude_offset</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Offset added to the estimated altitude. If the UAV was higher
+in reality than that estimated by the ImageFlightMetadata
+object, add a positive altitude_offset.</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.0</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.ImageFlightMetadata.get_image_transform" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_image_transform</span><span class="p">(</span><span class="n">ordering</span><span class="o">=</span><span class="s1">&#39;alphabetical&#39;</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Get 6-element affine transform for image</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>ordering</code></td>
+            <td>
+                  <code>(str, {alphabetical, worldfile})</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If 'alphabetical', return A,B,C,D,E,F
+If 'worldfile', return A,D,B,E,C,F
+See https://en.wikipedia.org/wiki/World_file</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#34;alphabetical&#34;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>transform</code></td>            <td>
+                  <code>tuple[float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>6-element affine transform</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code>ValueError</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If invalid ordering parameter is used</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.processors.SimpleGeoreferencer" class="doc doc-heading">
+            <code>SimpleGeoreferencer</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.SimpleGeoreferencer.georeference_hyspec_save_geotiff" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">georeference_hyspec_save_geotiff</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">imudata_path</span><span class="p">,</span> <span class="n">geotiff_path</span><span class="p">,</span> <span class="n">rgb_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">nodata_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Georeference hyperspectral image and save as GeoTIFF</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to hyperspectral image header.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>imudata_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON file containing IMU data.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>geotiff_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to (output) GeoTIFF file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>rgb_only</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to only output an RGB version of the hyperspectral image.
+If false, the entire hyperspectral image is used. Note that
+this typically creates very large files that some programs
+(e.g. QGIS) can struggle to read.</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>nodata_value</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Value to insert in place of invalid pixels.
+Pixels which contain "all zeros" are considered invalid.</p>
+              </div>
+            </td>
+            <td>
+                  <code>-9999</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.SimpleGeoreferencer.create_geotiff_profile" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_geotiff_profile</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">imudata_path</span><span class="p">,</span> <span class="n">nodata_value</span><span class="o">=-</span><span class="mi">9999</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Create profile for writing image as geotiff using rasterio</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>3D image array ordered, shape (n_lines,n_samples,n_bands).</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>imudata_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON file containing IMU data for image</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>nodata_value</code></td>
+            <td>
+                  <code>int</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Nodata value to insert for invalid pixels</p>
+              </div>
+            </td>
+            <td>
+                  <code>-9999</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.SimpleGeoreferencer.write_geotiff" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">write_geotiff</span><span class="p">(</span><span class="n">geotiff_path</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">wavelengths</span><span class="p">,</span> <span class="n">geotiff_profile</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Write image as GeoTIFF</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>geotiff_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to (output) GeoTIFF file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Image to write, shape (n_lines, n_samples, n_bands)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>wavelengths</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths (in nm) corresponding to each image band.
+The wavelengths are used to set the descption of each band
+in the GeoTIFF file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>geotiff_profile</code></td>
+            <td>
+                  <code>dict</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict with GeoTIFF parameters ("profile")</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Rasterio / GDAL requires the image to be ordered "bands first",
+e.g. shape (bands, lines, samples). However, the default used by e.g.
+the 'spectral' library is (lines, samples, bands), and this convention
+should be used consistenly to avoid bugs. This function moves the band
+axis directly before writing.</p>
+</details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.processors.SimpleGeoreferencer.update_image_file_transform" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">update_image_file_transform</span><span class="p">(</span><span class="n">geotiff_path</span><span class="p">,</span> <span class="n">imu_data_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-staticmethod"><code>staticmethod</code></small>
+  </span>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Update the affine transform of an image</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>geotiff_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to existing GeoTIFF file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>imu_data_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to JSON file with IMU data.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>**kwargs</code></td>
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Keyword arguments are passed along to create an ImageFlightMetadata object.
+Options include e.g. 'altitude_offset'. This can be useful in case
+the shape of the existing GeoTIFF indicates that some adjustments
+should be made to the image transform (which can be re-generated using
+an ImageFlightMetadata object).</p>
+              </div>
+            </td>
+            <td>
+                  <code>{}</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="references:" open>
+  <summary>References:</summary>
+  <ul>
+<li>https://rasterio.readthedocs.io/en/latest/api/rasterio.rio.edit_info.html</li>
+</ul>
+</details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
+      
+    
+  </body>
+</html>
