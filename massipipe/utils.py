@@ -6,6 +6,7 @@ from typing import Union
 import numpy as np
 import pyproj
 import spectral
+from numpy.typing import ArrayLike, NDArray
 from scipy.signal import savgol_filter
 
 # Get loggger
@@ -16,7 +17,7 @@ def read_envi(
     header_path: Union[Path, str],
     image_path: Union[Path, str, None] = None,
     write_byte_order_if_missing=True,
-) -> tuple[np.ndarray, np.ndarray, dict]:
+) -> tuple[NDArray, NDArray, dict]:
     """Load image in ENVI format, including wavelength vector and other metadata
 
     Parameters
@@ -34,9 +35,9 @@ def read_envi(
 
     Returns
     -------
-    image: np.ndarray
+    image: NDArray
         image, shape (n_lines, n_samples, n_channels)
-    wl: np.ndarray
+    wl: NDArray
         Wavelength vector, shape (n_channels,). None if no wavelengths listed.
     metadata:  dict
         Image metadata (ENVI header content).
@@ -83,48 +84,65 @@ def read_envi(
 
 
 def save_envi(
-    header_path: Union[Path, str], image: np.ndarray, metadata: dict, **kwargs
+    header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs
 ) -> None:
     """Save ENVI file with parameters compatible with Spectronon
 
-    # Usage:
-    save_envi(header_path,image,metadata)
-
-    # Arguments:
-    ------------
-    header_path: Path | str
+    Parameters
+    ----------
+    header_path : Union[Path, str]
         Path to header file.
         Data file will be saved in the same location and with
         the same name, but without the '.hdr' extension.
-    image: np.ndarray
-        Numpy array with hyperspectral image
-    metadata:
+    image : NDArray
+        Hyperspectral image, shape (n_lines, n_samples, n_bands)
+    metadata : dict
         Dict containing (updated) image metadata.
-        See load_envi_image()
-
-    Optional arguments:
-    -------------------
-    dtype:
-        Data type for ENVI file. Follows numpy naming convention.
-        Typically 'uint16' or 'single' (32-bit float)
-        If None, dtype = image.dtype
+        See read_envi()
     """
-
     # Save file
     spectral.envi.save_image(
         header_path, image, metadata=metadata, force=True, ext=None, **kwargs
     )
 
 
-def wavelength_array_to_header_string(wavelengths: np.ndarray):
-    """Convert numeric wavelength array to single ENVI-formatted string"""
+def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
+    """Convert wavelength array to ENVI header string
+
+    Parameters
+    ----------
+    wavelengths : ArrayLike
+        Array of wavelengths
+
+    Returns
+    -------
+    str
+        Single string with wavelengths in curly braces,
+        with 3 decimals.
+
+    Examples
+    --------
+    >>> wavelength_array_to_header_string([420.32, 500, 581.28849])
+    '{420.320, 500.000, 581.288}'
+
+    """
     wl_str = [f"{wl:.3f}" for wl in wavelengths]  # Convert each number to string
     wl_str = "{" + ", ".join(wl_str) + "}"  # Join into single string
     return wl_str
 
 
-def update_header_wavelengths(wavelengths: np.ndarray, header_path: Union[Path, str]):
-    """Update ENVI header wavelengths"""
+def update_header_wavelengths(
+    wavelengths: NDArray, header_path: Union[Path, str]
+) -> None:
+    """Update ENVI header wavelengths
+
+    Parameters
+    ----------
+    wavelengths : NDArray
+        Array of wavelengths.
+    header_path : Union[Path, str]
+        Path to ENVI header file.
+    """
     header_path = Path(header_path)
     header_dict = spectral.io.envi.read_envi_header(header_path)
     wl_str = wavelength_array_to_header_string(wavelengths)
@@ -133,39 +151,44 @@ def update_header_wavelengths(wavelengths: np.ndarray, header_path: Union[Path, 
 
 
 def bin_image(
-    image: np.ndarray,
+    image: NDArray,
     line_bin_size: int = 1,
     sample_bin_size: int = 1,
     channel_bin_size: int = 1,
     average: bool = True,
-) -> np.ndarray:
+) -> NDArray:
     """Bin image cube (combine neighboring pixels)
 
-    Arguments
-    ---------
-    image: np.ndarray
+    Parameters
+    ----------
+    image : NDArray
         Image formatted as 3D NumPy array, with shape
-        (n_lines, n_samples, n_channels). If the original array
+        (n_lines, n_samples, n_bands). If the original array
         is only 2D, extend it t0 3D by inserting a singleton axis.
         For example, for a "single-line image" with shape (900,600),
         use image = np.expand_dims(image,axis=0), resulting in shape
         (1,900,600).
-
-    Keyword arguments:
-    ------------------
-    line_bin_size, sample_bin_size, channel_bin_size: int
-        Bin size, i.e. number of neighboring pixels to merge,
-        for line, sample and channel dimensions, respectively.
-    average: bool
+    line_bin_size : int, default 1
+        How many neighboring lines to combine (axis 0)
+    sample_bin_size : int, default 1
+        How many neighboring samples to combine (axis 1)
+    channel_bin_size : int, default 1
+        How many neighboring spectral channels to combine (axis 2)
+    average : bool, default True
         Whether to use averaging across neighboring pixels.
         If false, neighboring pixels are simply summed. Note that
         this shifts the statistical distribution of pixel values.
 
-    References:
-    -----------
-    Inspired by https://stackoverflow.com/a/36102436
-    See also https://en.wikipedia.org/wiki/Pixel_binning
+    Returns
+    -------
+    NDArray
+        Binned version of image. The shape in reduced along each axis
+        by a factor corresponding to the bin size.
 
+    References
+    ----------
+    - Inspired by https://stackoverflow.com/a/36102436
+    - See also https://en.wikipedia.org/wiki/Pixel_binning
     """
     assert image.ndim == 3
     n_lines, n_samples, n_channels = image.shape
@@ -194,40 +217,78 @@ def bin_image(
 
 
 def savitzky_golay_filter(
-    image, window_length: int = 13, polyorder: int = 3, axis: int = 2
-) -> np.ndarray:
-    """Filter hyperspectral image using Savitzky-Golay filter with default arguments"""
+    image: NDArray, window_length: int = 13, polyorder: int = 3, axis: int = 2
+) -> NDArray:
+    """Filter hyperspectral image using Savitzky-Golay filter
+
+    Parameters
+    ----------
+    image : NDArray
+        Image array, shape (n_lines, n_samples, n_bands)
+    window_length : int, default 13
+        Length of "local" window withing which a polynomial is fitted
+        to the data.
+    polyorder : int, default 3
+        Order of fitted polynomial.
+    axis : int, default 2
+        Axis along which filtering is applied.
+
+    Returns
+    -------
+    NDArray
+        Filtered version of image.
+    """
     return savgol_filter(
         image, window_length=window_length, polyorder=polyorder, axis=axis
     )
 
 
-def closest_wl_index(wl_array: np.ndarray, target_wl: Union[float, int]) -> int:
-    """Get index in sampled wavelength array closest to target wavelength"""
-    return np.argmin(abs(wl_array - target_wl))
+def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
+    """Get index in sampled wavelength array closest to target wavelength
+
+    Parameters
+    ----------
+    wl_array : ArrayLike
+        Array of wavelengths
+    target_wl : Union[float, int]
+        Single target wavelength
+
+    Returns
+    -------
+    int
+        Index of element in wl_array which is closest to target_wl.
+
+    Examples
+    --------
+    >>> closest_wl_index([420, 450, 470], 468)
+    2
+    """
+    return np.argmin(abs(np.array(wl_array) - target_wl))
 
 
 def rgb_subset_from_hsi(
-    hyspec_im: np.ndarray, hyspec_wl, rgb_target_wl=(650, 550, 450)
-) -> tuple[np.ndarray, np.ndarray]:
+    hyspec_im: NDArray, hyspec_wl: NDArray, rgb_target_wl: ArrayLike = (650, 550, 450)
+) -> tuple[NDArray, NDArray]:
     """Extract 3 bands from hyperspectral image representing red, green, blue
 
-    Arguments:
+    Parameters
     ----------
-    hyspec_im: np.ndarray
+    hyspec_im : NDArray
         Hyperspectral image, shape (n_lines, n_samples, n_bands)
-    hyspec_wl: np.ndarray
+    hyspec_wl : NDArray
         Wavelengths for each band of hyperspectral image, in nm.
         Shape (n_bands,)
+    rgb_target_wl : ArrayLike, default (650, 550, 450)
+        Wavelengths (in nm) representing red, green and blue.
 
-    Returns:
-    --------
-    rgb_im: np.ndarray
+    Returns
+    -------
+    rgb_im: NDArray
         3-band image representing red, green and blue color (in that order)
-    rgb_wl: np.ndarray
+    rgb_wl: NDArray
         3-element vector with wavelengths (in nm) corresponding to
-        each band of rgb_im.
-
+        each band of rgb_im. Values correspond to the wavelengths in
+        hyspec_wl that are closest to rgb_target_wl.
     """
     wl_ind = [closest_wl_index(hyspec_wl, wl) for wl in rgb_target_wl]
     rgb_im = hyspec_im[:, :, wl_ind]
@@ -236,22 +297,24 @@ def rgb_subset_from_hsi(
 
 
 def convert_long_lat_to_utm(
-    long: Union[float, np.ndarray], lat: Union[float, np.ndarray]
-) -> tuple[Union[float, np.ndarray], Union[float, np.ndarray], int]:
+    long: ArrayLike, lat: ArrayLike
+) -> tuple[NDArray, NDArray, int]:
     """Convert longitude and latitude coordinates (WGS84) to UTM
 
-    # Input parameters:
-    long:
-        Longitude coordinate(s), scalar or array
-    lat:
-        Latitude coordinate(s), scalar or array
+    Parameters
+    ----------
+    long : ArrayLike
+        Longitude coordinate(s)
+    lat : ArrayLike
+        Latitude coordinate(s)
 
-    Returns:
-    UTMx:
-        UTM x coordinate ("Easting"), scalar or array
-    UTMy:
-        UTM y coordinate ("Northing"), scalar or array
-    UTM_epsg :
+    Returns
+    -------
+    UTMx:NDArray
+        UTM x coordinate(s) ("Easting")
+    UTMy: NDArray
+        UTM y coordinate(s) ("Northing")
+    UTM_epsg : int
         EPSG code (integer) for UTM zone
     """
     utm_crs_list = pyproj.database.query_utm_crs_info(
