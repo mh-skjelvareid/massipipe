@@ -193,6 +193,10 @@ class RadianceCalibrationDataset:
             Vector of wavelengths for each spectral channel (nanometers)
         metadata: dict
             Metadata from ENVI header, formatted as dictionary
+        closest_gain: float
+            Gain value for closest match among available dark frames
+        closest_shutter: float
+            Shutter value for closest match among available dark frames
         """
         closest_file, closest_gain, closest_shutter = self._get_closest_dark_frame_path(
             gain=gain, shutter=shutter
