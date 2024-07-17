@@ -147,7 +147,7 @@ class RadianceCalibrationDataset:
 
     def _get_closest_dark_frame_path(
         self, gain: Union[int, float], shutter: Union[int, float]
-    ) -> Path:
+    ) -> tuple[Path, float, float]:
         """Search for dark frame with best matching gain and shutter values"""
         # First search for files with closest matching gain
         candidate_gains = np.unique(self._dark_frame_gains)
@@ -293,8 +293,8 @@ class RadianceConverter:
         self.rc_dataset = RadianceCalibrationDataset(
             calibration_file=radiance_calibration_file
         )
-        self.rad_conv_frame = None
-        self.rad_conv_metadata = None
+        self.rad_conv_frame = np.array([])
+        self.rad_conv_metadata = dict()
         self._get_rad_conv_frame()
 
     def _get_rad_conv_frame(self) -> None:
@@ -598,7 +598,7 @@ class IrradianceConverter:
         raw_metadata: dict,
         set_irradiance_outside_wl_limits_to_zero: bool = True,
         keep_original_dimensions: bool = True,
-    ) -> tuple[NDArray, NDArray]:
+    ) -> NDArray:
         """_summary_
 
         Parameters
@@ -619,8 +619,6 @@ class IrradianceConverter:
         -------
         irradiance_spectrum: NDArray, shape (n_wl,)
             Spectrom converted to spectral irradiance, unit W/(m2*nm)
-        wl: NDArray, shape (n_wl,)
-            Wavelengths for each element in irradiance spectrum
 
         Notes
         -----
@@ -767,9 +765,9 @@ class WavelengthCalibrator:
             The width of the search windows in units of nanometers.
 
         Returns
-        filtered_line_indices:
+        filtered_line_indices: NDArray
             Indices for absorption lines found close to Fraunhofer line
-        fraunhofer_wavelengths:
+        fraunhofer_wavelengths: NDArray
             Corresponding Fraunhofer line wavelengths for filtered absorption lines
 
         """
@@ -795,7 +793,7 @@ class WavelengthCalibrator:
                 filtered_line_indices.append(peaks_in_window[0])
                 fraunhofer_wavelengths.append(fh_line_wl)
 
-        return filtered_line_indices, fraunhofer_wavelengths
+        return np.array(filtered_line_indices), np.array(fraunhofer_wavelengths)
 
     def fit(self, spec: NDArray, wl_orig: NDArray):
         """_summary_
@@ -1076,7 +1074,9 @@ class ReflectanceConverter:
                 irrad_spec_paths
             )
         else:
-            irrad_spec_mean, irrad_wl, irrad_spectra = None, None, None
+            irrad_spec_mean = np.array([])
+            irrad_wl = np.array([])
+            irrad_spectra = np.array([])
         self.ref_irrad_spec_mean = irrad_spec_mean
         self.ref_irrad_spec_wl = irrad_wl
         self.ref_irrad_spectra = irrad_spectra
@@ -1362,7 +1362,7 @@ class ImageFlightMetadata:
     def __init__(
         self,
         imu_data: dict,
-        image_shape: tuple[int],
+        image_shape: tuple[int, ...],
         camera_opening_angle: float = 36.5,
         pitch_offset: float = 0.0,
         roll_offset: float = 0.0,
@@ -1510,7 +1510,7 @@ class ImageFlightMetadata:
         )
         return image_origin
 
-    def get_image_transform(self, ordering: str = "alphabetical") -> tuple[float]:
+    def get_image_transform(self, ordering: str = "alphabetical") -> tuple[float, ...]:
         """Get 6-element affine transform for image
 
         Parameters
@@ -1610,7 +1610,7 @@ class SimpleGeoreferencer:
         imudata_path: Union[Path, str],
         nodata_value: int = -9999,
         **kwargs,
-    ):
+    ) -> dict:
         """Create profile for writing image as geotiff using rasterio
 
         Parameters
@@ -1624,7 +1624,7 @@ class SimpleGeoreferencer:
 
         """
         imu_data = ImuDataParser.read_imu_json_file(imudata_path)
-        image_flight_meta = ImageFlightMetadata(imu_data, image.shape, **kwargs)
+        image_flight_meta = ImageFlightMetadata(imu_data, image.shape[:], **kwargs)
         transform = Affine(*image_flight_meta.get_image_transform())
         crs_epsg = image_flight_meta.utm_epsg
 
@@ -1639,7 +1639,7 @@ class SimpleGeoreferencer:
             nodata=nodata_value,
         )
 
-        return profile
+        return profile  # type: ignore
 
     def write_geotiff(
         self,
