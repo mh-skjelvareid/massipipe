@@ -34,20 +34,24 @@ class PipelineProcessor:
             No folder called "calibration" found
         """
         self.dataset_dir = Path(dataset_dir)
-        self.dataset_base_name = dataset_dir.name
-        self.raw_dir = dataset_dir / "0_raw"
-        self.radiance_dir = dataset_dir / "1_radiance"
-        self.reflectance_dir = dataset_dir / "2a_reflectance"
-        self.reflectance_gc_dir = dataset_dir / "2b_reflectance_gc"
-        self.reflectance_gc_rgb_dir = dataset_dir / "2b_reflectance_gc" / "rgb_geotiff"
-        self.mosaic_dir = dataset_dir / "mosaics"
-        self.calibration_dir = dataset_dir / "calibration"
-        self.logs_dir = dataset_dir / "logs"
+        self.dataset_base_name = self.dataset_dir.name
+        self.raw_dir = self.dataset_dir / "0_raw"
+        self.radiance_dir = self.dataset_dir / "1_radiance"
+        self.reflectance_dir = self.dataset_dir / "2a_reflectance"
+        self.reflectance_gc_dir = self.dataset_dir / "2b_reflectance_gc"
+        self.reflectance_gc_rgb_dir = (
+            self.dataset_dir / "2b_reflectance_gc" / "rgb_geotiff"
+        )
+        self.mosaic_dir = self.dataset_dir / "mosaics"
+        self.calibration_dir = self.dataset_dir / "calibration"
+        self.logs_dir = self.dataset_dir / "logs"
 
         if not self.raw_dir.exists():
-            raise FileNotFoundError(f'Folder "0_raw" not found in {dataset_dir}')
+            raise FileNotFoundError(f'Folder "0_raw" not found in {self.dataset_dir}')
         if not self.calibration_dir.exists():
-            raise FileNotFoundError(f'Folder "calibration" not found in {dataset_dir}')
+            raise FileNotFoundError(
+                f'Folder "calibration" not found in {self.dataset_dir}'
+            )
 
         # Get calibration file paths
         self.radiance_calibration_file = self._get_radiance_calibration_path()
@@ -424,6 +428,8 @@ class PipelineProcessor:
         self.mosaic_dir.mkdir(exist_ok=True)
         if mosaic_path is None:
             mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
+        else:
+            mosaic_path = Path(mosaic_path)
 
         # Explanation of gdalwarp options used:
         # -overwrite: Overwrite existing files without error / warning
