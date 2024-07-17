@@ -5,8 +5,11 @@ from typing import Union
 
 import numpy as np
 import pyproj
+import pyproj.aoi
+import pyproj.database
 import spectral
 from numpy.typing import ArrayLike, NDArray
+from pyproj import CRS, Proj
 from scipy.signal import savgol_filter
 
 # Get loggger
@@ -60,6 +63,7 @@ def read_envi(
                 logger.error(
                     f"Error writing to header file {header_path}", exc_info=True
                 )
+                raise
 
             try:
                 im_handle = spectral.io.envi.open(header_path, image_path)
@@ -68,16 +72,13 @@ def read_envi(
                     f"Unsucessful when reading modified header file {header_path}",
                     exc_info=True,
                 )
-                return
+                raise
 
     # Read wavelengths
-    if "wavelength" in im_handle.metadata:
-        wl = np.array([float(i) for i in im_handle.metadata["wavelength"]])
-    else:
-        wl = None
+    wl = np.array([float(i) for i in im_handle.metadata["wavelength"]])
 
     # Read data from disk
-    image = np.array(im_handle.load())
+    image = np.array(im_handle.load())  # type: ignore
 
     # Returns
     return (image, wl, im_handle.metadata)
@@ -106,12 +107,12 @@ def save_envi(
     )
 
 
-def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
+def wavelength_array_to_header_string(wavelengths: NDArray) -> str:
     """Convert wavelength array to ENVI header string
 
     Parameters
     ----------
-    wavelengths : ArrayLike
+    wavelengths : NDArray
         Array of wavelengths
 
     Returns
@@ -263,7 +264,7 @@ def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
     >>> closest_wl_index([420, 450, 470], 468)
     2
     """
-    return np.argmin(abs(np.array(wl_array) - target_wl))
+    return int(np.argmin(abs(np.array(wl_array) - target_wl)))
 
 
 def rgb_subset_from_hsi(
@@ -290,7 +291,7 @@ def rgb_subset_from_hsi(
         each band of rgb_im. Values correspond to the wavelengths in
         hyspec_wl that are closest to rgb_target_wl.
     """
-    wl_ind = [closest_wl_index(hyspec_wl, wl) for wl in rgb_target_wl]
+    wl_ind = [closest_wl_index(hyspec_wl, wl) for wl in rgb_target_wl]  # type: ignore
     rgb_im = hyspec_im[:, :, wl_ind]
     rgb_wl = hyspec_wl[wl_ind]
     return rgb_im, rgb_wl
@@ -298,7 +299,7 @@ def rgb_subset_from_hsi(
 
 def convert_long_lat_to_utm(
     long: ArrayLike, lat: ArrayLike
-) -> tuple[NDArray, NDArray, int]:
+) -> tuple[NDArray, NDArray, Union[int, None]]:
     """Convert longitude and latitude coordinates (WGS84) to UTM
 
     Parameters
@@ -320,14 +321,14 @@ def convert_long_lat_to_utm(
     utm_crs_list = pyproj.database.query_utm_crs_info(
         datum_name="WGS 84",
         area_of_interest=pyproj.aoi.AreaOfInterest(
-            west_lon_degree=min(long),
-            south_lat_degree=min(lat),
-            east_lon_degree=max(long),
-            north_lat_degree=max(lat),
+            west_lon_degree=np.min(long),
+            south_lat_degree=np.min(lat),
+            east_lon_degree=np.max(long),
+            north_lat_degree=np.max(lat),
         ),
     )
-    utm_crs = pyproj.CRS.from_epsg(utm_crs_list[0].code)
-    proj = pyproj.Proj(utm_crs)
+    utm_crs = CRS.from_epsg(utm_crs_list[0].code)
+    proj = Proj(utm_crs)
     UTMx, UTMy = proj(long, lat)
 
     return UTMx, UTMy, utm_crs.to_epsg()
@@ -335,16 +336,16 @@ def convert_long_lat_to_utm(
 
 def get_nir_ind(
     wl: NDArray,
-    nir_band: tuple[float] = (740.0, 805.0),
-    nir_ignore_band: tuple[float] = (753.0, 773.0),
+    nir_band: tuple[float, float] = (740.0, 805.0),
+    nir_ignore_band: tuple[float, float] = (753.0, 773.0),
 ) -> NDArray:
     """Get indices of NIR band
 
     Parameters
     ----------
-    nir_band: tuple[float], default (740.0, 805.0)
+    nir_band: tuple[float, float], default (740.0, 805.0)
         Lower and upper edge of near-infrared (NIR) band.
-    nir_ignore_band: tuple [float], default (753.0, 773.0)
+    nir_ignore_band: tuple [float, float], default (753.0, 773.0)
         Lower and upper edge of band to ignore (not include in indices)
         with nir_band. Default value corresponds to O2 absorption band
         around 760 nm.
