@@ -79,6 +79,9 @@ class PipelineProcessor:
         self.refl_gc_im_paths = proc_file_paths["reflectance_gc"]
         self.refl_gc_rgb_paths = proc_file_paths["reflectance_gc_rgb"]
 
+        # Create mosaic file path
+        self.mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
+
         # Configure logging
         self._configure_file_logging()
 
@@ -414,22 +417,10 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def mosaic_geotiffs(self, mosaic_path: Union[Path, str, None] = None):
-        """Convert set of rotated geotiffs into single mosaic with overviews
-
-        Parameters
-        ----------
-        mosaic_path: Union[Path,str,None]
-            Path to output mosaic. If None, default dataset folder and name
-            is used.
-
-        """
+    def mosaic_geotiffs(self):
+        """Convert set of rotated geotiffs into single mosaic with overviews"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
-        if mosaic_path is None:
-            mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
-        else:
-            mosaic_path = Path(mosaic_path)
 
         # Explanation of gdalwarp options used:
         # -overwrite: Overwrite existing files without error / warning
@@ -447,16 +438,16 @@ class PipelineProcessor:
             "-of",
             "GTiff",
             *[str(p) for p in self.refl_gc_rgb_paths if p.exists()],
-            str(mosaic_path),
+            str(self.mosaic_path),
         ]
         subprocess.run(gdalwarp_args)
 
         # Add image pyramids to file
-        logger.info(f"Adding image pyramids to mosaic {mosaic_path.name}")
+        logger.info(f"Adding image pyramids to mosaic {self.mosaic_path.name}")
         # Explanation of gdaladdo options used:
         # -r average: Use averaging when resampling to lower spatial resolution
         # -q: Suppress output (be quiet)
-        gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(mosaic_path)]
+        gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(self.mosaic_path)]
         subprocess.run(gdaladdo_args)
 
     def update_geotiff_transforms(self, **kwargs):

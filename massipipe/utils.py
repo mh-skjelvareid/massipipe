@@ -74,8 +74,12 @@ def read_envi(
                 )
                 raise
 
-    # Read wavelengths
-    wl = np.array([float(i) for i in im_handle.metadata["wavelength"]])
+    # Read wavelengths if listed in metadata, set as empty array if not
+    # NOTE: Calibration files ("gain"/"offset") don't include wavelength information
+    if "wavelength" in im_handle.metadata:
+        wl = np.array([float(i) for i in im_handle.metadata["wavelength"]])
+    else:
+        wl = np.array([])
 
     # Read data from disk
     image = np.array(im_handle.load())  # type: ignore
