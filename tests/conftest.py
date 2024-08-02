@@ -4,6 +4,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import massipipe.utils as mpu
+
 EXAMPLE_DATA_PATH = (
     Path(__file__).parent
     / "example_data"
@@ -19,3 +21,46 @@ def example_dataset_dir(tmp_path_factory):
         zip_file.extractall(path=tmp_dir)
     dataset_dir = tmp_dir.glob("*").__next__()  # Dataset "root" folder
     return dataset_dir
+
+
+@pytest.fixture
+def rad_cal_file_path(example_dataset_dir):
+    return example_dataset_dir / "calibration" / "RadiometricCal100121-278_081220.icp"
+
+
+@pytest.fixture
+def irrad_cal_file_path(example_dataset_dir):
+    return example_dataset_dir / "calibration" / "FLMS16638_Radiometric_Jan2021.dcp"
+
+
+@pytest.fixture
+def example_raw_image(example_dataset_dir):
+    """Image, wavelength vector and metadata for raw image"""
+    example_raw_image_path = (
+        example_dataset_dir
+        / "0_raw"
+        / "OlbergholmenS1-5"
+        / "OlbergholmenS1_Pika_L_5.bil.hdr"
+    )
+    return mpu.read_envi(example_raw_image_path)
+
+
+@pytest.fixture
+def example_raw_spec(example_dataset_dir):
+    """Spectrum, wavelength vector and metadata for raw spectrum"""
+    example_raw_spec_path = (
+        example_dataset_dir
+        / "0_raw"
+        / "OlbergholmenS1-5"
+        / "OlbergholmenS1_downwelling_5_pre.spec.hdr"
+    )
+    return mpu.read_envi(example_raw_spec_path)
+
+
+@pytest.fixture
+def example_times_lcf_path(example_dataset_dir):
+    """Paths to example *.times and *.lcf files (IMU data)"""
+    example_image_dir = example_dataset_dir / "0_raw" / "OlbergholmenS1-5"
+    example_times_path = example_image_dir / "OlbergholmenS1_Pika_L_5.bil.times"
+    example_lcf_path = example_image_dir / "OlbergholmenS1_Pika_L_5.lcf"
+    return (example_times_path, example_lcf_path)

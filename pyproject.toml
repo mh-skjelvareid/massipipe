@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "massipipe"
 version = "0.1.0"
 dependencies = [
-  "numpy<2.0",
+  "numpy",
   "pyproj",
   "rasterio",
   "spectral",
