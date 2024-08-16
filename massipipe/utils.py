@@ -7,9 +7,11 @@ import numpy as np
 import pyproj
 import pyproj.aoi
 import pyproj.database
+import rasterio
 import spectral
 from numpy.typing import ArrayLike, NDArray
 from pyproj import CRS, Proj
+from rasterio.plot import reshape_as_raster
 from scipy.signal import savgol_filter
 
 # Get loggger
@@ -371,3 +373,30 @@ def get_nir_ind(
     ignore_ind = (wl >= nir_ignore_band[0]) & (wl <= nir_ignore_band[1])
     nir_ind = nir_ind & ~ignore_ind
     return nir_ind
+
+
+def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
+    """Save RGB image as PNG using rasterio / GDAL
+
+    Parameters
+    ----------
+    rgb_image : NDArray, dtype uint8
+        Image, shape (n_lines, n_samples, n_bands=3)
+        Image bands must be ordered as RGB (band index 0 = red,
+        band index 1 = green, band index 2 = blue),
+        The image must already be scaled to uint8 values 0-255.
+    png_path : Union[Path, str]
+        Path to output PNG file.
+    """
+    assert (rgb_image.ndim == 3) and (rgb_image.shape[2] == 3)
+    with rasterio.Env():
+        with rasterio.open(
+            png_path,
+            "w",
+            driver="PNG",
+            height=rgb_image.shape[0],
+            width=rgb_image.shape[1],
+            count=3,
+            dtype="uint8",
+        ) as dst:
+            dst.write(reshape_as_raster(rgb_image))

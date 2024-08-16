@@ -11,6 +11,7 @@ import rasterio
 from numpy.polynomial import Polynomial
 from numpy.typing import ArrayLike, NDArray
 from rasterio.crs import CRS
+from rasterio.plot import reshape_as_raster
 from rasterio.profiles import DefaultGTiffProfile
 from rasterio.transform import Affine
 from scipy.ndimage import gaussian_filter1d
@@ -218,6 +219,68 @@ class RadianceCalibrationDataset:
 
         """
         return mpu.read_envi(self.gain_file_path)
+
+
+class QuickLookProcessor:
+    def __init__(
+        self,
+        rgb_wl: tuple[float, float, float] = (640.0, 550.0, 460.0),
+        percentiles: tuple[float, float] = (2, 98),
+        saturation_value: int = 2**12 - 1,
+    ):
+        """Initialize quicklook processor"""
+        self.rgb_wl = rgb_wl
+        self.percentiles = percentiles
+        self.saturation_value = saturation_value
+
+    def percentile_stretch_image(self, image: NDArray) -> NDArray:
+        """Scale array values within percentile limits to range 0-255
+
+        Parameters
+        ----------
+        image : NDArray
+            Image, shape (n_lines, n_samples, n_bands)
+
+        Returns
+        -------
+        image_stretched: NDArray, dtype = uint8
+            Image with same shape as input.
+            Image intensity values are stretched so that the lower
+            percentile corresponds to 0 and the higher percentile corresponds
+            to 255 (maximum value for unsigned 8-bit integer, typical for PNG/JPG).
+            Pixels for which one or more bands are saturated are set to zero.
+        """
+        assert image.ndim == 3
+        saturated = np.any(image >= self.saturation_value, axis=2)
+        image_stretched = np.zeros_like(image, dtype=np.float64)
+
+        for band_index in range(image.shape[2]):
+            image_band = image[:, :, band_index]
+            p_low, p_high = np.percentile(image_band[~saturated], self.percentiles)
+            image_band[image_band < p_low] = p_low
+            image_band[image_band > p_high] = p_high
+            p_range = p_high - p_low
+            image_stretched[:, :, band_index] = (image_band - p_low) * (255 / p_range)
+
+        image_stretched[saturated] = 0
+        return image_stretched.astype(np.uint8)
+
+    def quicklook_process_file(
+        self, raw_path: Union[Path, str], quicklook_path: Union[Path, str]
+    ):
+        """Create per-band percentile stretched RGB image file from raw hyspec image
+
+        Parameters
+        ----------
+        raw_path : Union[Path, str]
+            Path to raw hyperspectral image (header file)
+        quicklook_path : Union[Path, str]
+            Path to output PNG image file
+        """
+        image, wl, _ = mpu.read_envi(raw_path)
+        rgb_image, _ = mpu.rgb_subset_from_hsi(image, wl, rgb_target_wl=self.rgb_wl)
+        rgb_image = self.percentile_stretch_image(rgb_image)
+        mpu.save_png(rgb_image, quicklook_path)
 
 
 class RadianceConverter:
@@ -1583,10 +1646,10 @@ class SimpleGeoreferencer:
 
         self.write_geotiff(geotiff_path, image, wl, geotiff_profile)
 
-    @staticmethod
-    def _move_bands_axis_first(image):
-        """Move spectral bands axis from position 2 to 0"""
-        return np.moveaxis(image, 2, 0)
+    # @staticmethod
+    # def _move_bands_axis_first(image):
+    #     """Move spectral bands axis from position 2 to 0"""
+    #     return np.moveaxis(image, 2, 0)
 
     @staticmethod
     def _insert_image_nodata_value(image, nodata_value):
@@ -1671,7 +1734,7 @@ class SimpleGeoreferencer:
         should be used consistenly to avoid bugs. This function moves the band
         axis directly before writing.
         """
-        image = self._move_bands_axis_first(image)  # Band ordering requred by GeoTIFF
+        image = reshape_as_raster(image)  # Band ordering required by GeoTIFF
         band_names = [f"{wl:.3f}" for wl in wavelengths]
         with rasterio.Env():
             with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
