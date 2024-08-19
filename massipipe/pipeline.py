@@ -36,6 +36,7 @@ class PipelineProcessor:
         self.dataset_dir = Path(dataset_dir)
         self.dataset_base_name = self.dataset_dir.name
         self.raw_dir = self.dataset_dir / "0_raw"
+        self.quicklook_dir = self.dataset_dir / "0_quicklook"
         self.radiance_dir = self.dataset_dir / "1_radiance"
         self.reflectance_dir = self.dataset_dir / "2a_reflectance"
         self.reflectance_gc_dir = self.dataset_dir / "2b_reflectance_gc"
@@ -72,6 +73,7 @@ class PipelineProcessor:
 
         # Create lists of processed file paths
         proc_file_paths = self._create_processed_file_paths()
+        self.ql_im_paths = proc_file_paths["quicklook"]
         self.rad_im_paths = proc_file_paths["radiance"]
         self.irrad_spec_paths = proc_file_paths["irradiance"]
         self.imu_data_paths = proc_file_paths["imudata"]
@@ -177,6 +179,7 @@ class PipelineProcessor:
     def _create_processed_file_paths(self):
         """Define default subfolders for processed files"""
         file_paths = {
+            "quicklook": [],
             "radiance": [],
             "irradiance": [],
             "imudata": [],
@@ -186,6 +189,8 @@ class PipelineProcessor:
         }
 
         for base_file_name in self.base_file_names:
+            ql_path = self.quicklook_dir / (base_file_name + "_quicklook.png")
+            file_paths["quicklook"].append(ql_path)
             rad_path = self.radiance_dir / (base_file_name + "_radiance.bip.hdr")
             file_paths["radiance"].append(rad_path)
             irs_path = self.radiance_dir / (base_file_name + "_irradiance.spec.hdr")
@@ -251,6 +256,25 @@ class PipelineProcessor:
                 "More than one irradiance calibration file (*.dcp) found in "
                 + f"{self.calibration_dir}"
             )
+
+    def create_quicklook_images(self, **kwargs):
+        """Create quicklook versions of raw images"""
+        logger.info("---- QUICKLOOK IMAGE GENERATION ----")
+        self.quicklook_dir.mkdir(exist_ok=True)
+        quicklook_processor = mpp.QuickLookProcessor()
+        for raw_image_path, quicklook_image_path in zip(
+            self.raw_image_paths, self.ql_im_paths
+        ):
+            logger.info(f"Creating quicklook version of {raw_image_path.name}")
+            try:
+                quicklook_processor.create_quicklook_image_file(
+                    raw_image_path, quicklook_image_path
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Error occured while processing {raw_image_path}", exc_info=True
+                )
+                logger.warning("Skipping file")
 
     def convert_raw_images_to_radiance(self, **kwargs):
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
@@ -489,6 +513,7 @@ class PipelineProcessor:
 
     def run(
         self,
+        create_quicklook_images=True,
         convert_raw_images_to_radiance=True,
         convert_raw_spectra_to_irradiance=True,
         calibrate_irradiance_wavelengths=True,
@@ -503,6 +528,8 @@ class PipelineProcessor:
 
         Parameters
         ----------
+        create_quicklook_images : bool, default True
+            Whether to create "quicklook" images based on raw images
         convert_raw_images_to_radiance : bool, default True
             Whether to convert raw images to radiance
         convert_raw_spectra_to_irradiance : bool, default True
@@ -527,6 +554,11 @@ class PipelineProcessor:
         mosaic_geotiffs : bool, default True
             Whether to combine all GeoTIFFs in a single "mosaic" GeoTIFF
         """
+        if create_quicklook_images:
+            try:
+                self.create_quicklook_images(**kwargs)
+            except Exception:
+                logger.error("Error while creating quicklook images", exc_info=True)
         if convert_raw_images_to_radiance:
             try:
                 self.convert_raw_images_to_radiance(**kwargs)

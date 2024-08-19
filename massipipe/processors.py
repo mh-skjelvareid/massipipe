@@ -265,7 +265,7 @@ class QuickLookProcessor:
         image_stretched[saturated] = 0
         return image_stretched.astype(np.uint8)
 
-    def quicklook_process_file(
+    def create_quicklook_image_file(
         self, raw_path: Union[Path, str], quicklook_path: Union[Path, str]
     ):
         """Create per-band percentile stretched RGB image file from raw hyspec image
