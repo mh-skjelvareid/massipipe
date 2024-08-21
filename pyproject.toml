@@ -10,7 +10,8 @@ dependencies = [
   "pyproj",
   "rasterio",
   "spectral",
-  "scipy"
+  "scipy",
+  "schema"
 ]
 requires-python = ">=3.8"
 authors = [
