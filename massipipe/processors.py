@@ -1403,6 +1403,45 @@ class GlintCorrector:
         glint_corr_image = self.remove_glint_flat_spec(image, wl, **kwargs)
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
+    @staticmethod
+    def linear_regression_multiple_dependent_variables(
+        x: NDArray, Y: NDArray
+    ) -> NDArray:
+        """Compute linear regression slopes for multiple dependent variables
+
+        Parameters
+        ----------
+        x : NDArray
+            Single sampled variable, shape (n_samples,)
+        Y : NDArray
+            Set of sampled variables, shape (n_samples, n_x_variables)
+
+        Returns
+        -------
+        b: NDArray
+            Slopes for linear regression with y as independent variable
+            as each column of Y as dependent variable.
+            The name "b" follows the convention for linear functions, f(x) = a + b*x
+
+        Notes
+        -----
+        - Implementation inspired by https://stackoverflow.com/questions/
+        48105922/numpy-covariance-between-each-column-of-a-matrix-and-a-vector
+
+        """
+        assert Y.shape[0] == x.shape[0]
+
+        # Compute variance of y and covariance between each column of X and y
+        # NOTE: No need to scale each with N-1 as it will be cancelled when computing b
+        x_zero_mean = x - x.mean()
+        x_var = x_zero_mean.T @ x_zero_mean
+        x_Y_cov = x_zero_mean.T @ (Y - Y.mean(axis=0))
+
+        # Compute slopes of linear regression with y as independent variable
+        b = x_Y_cov / x_var
+
+        return b
+
 
 class ImageFlightMetadata:
     """
