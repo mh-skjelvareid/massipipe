@@ -1,0 +1,12 @@
+grouping: null                            # General identifier linking this flight to related flights
+area: null                                # Name of specific location
+datetime: null                            # Format 'yyyymmddHHMM'
+nfiles: null                              # Number of raw hyperspectral files
+organisation: UiT
+mosaic: true
+classify: false
+publish: false
+theme: Habitat
+spectrum_type: HSI
+creator_name: Martin H. Skjelvareid
+project: Massimal
