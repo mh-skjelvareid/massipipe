@@ -1322,22 +1322,16 @@ class ReflectanceConverter:
         mpu.save_envi(reflectance_image_header, refl_im, refl_meta)
 
 
-class GlintCorrector:
-    def __init__(
-        self, method: str = "flat_spec", smooth_with_savitsky_golay: bool = True
-    ):
+class FlatSpecGlintCorrector:
+    def __init__(self, smooth_with_savitsky_golay: bool = True):
         """Initialize glint corrector
 
         Parameters
         ----------
-        method : str, default "flat_spec"
-            Method for removing / correcting for sun/sky glint.
-            Currently, only 'flat_spec' is implemented.
         smooth_with_savitsky_golay : bool, default True
             Whether to smooth glint corrected images using a
             Savitsky-Golay filter.
         """
-        self.method = method
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
 
     def remove_glint_flat_spec(
@@ -1403,6 +1397,50 @@ class GlintCorrector:
         glint_corr_image = self.remove_glint_flat_spec(image, wl, **kwargs)
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
+
+class HedleyGlintCorrector:
+    def __init__(self, smooth_with_savitsky_golay: bool = True):
+        """Initialize glint corrector
+
+        Parameters
+        ----------
+        smooth_with_savitsky_golay : bool, default True
+            Whether to smooth glint corrected images using a
+            Savitsky-Golay filter.
+        """
+        self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
+        self.b = None
+        self.min_nir = None
+
+    def fit_to_reference_images(
+        self, reference_image_paths: list[Union[Path, str]]
+    ) -> None:
+        train_spec = []
+        for ref_im_path in reference_image_paths:
+            ref_im, wl, im_meta = mpu.read_envi(Path(ref_im_path))
+            sampled_spectra = mpu.random_sample_image(ref_im)
+            train_spec.append(sampled_spectra)
+        train_spec = np.concat(train_spec)
+        self.fit(train_spec, wl)
+
+    def fit(self, train_spec: NDArray, wl: NDArray) -> None:
+        """_summary_
+
+        Parameters
+        ----------
+        train_spec : NDArray
+            _description_
+        wl : NDArray
+            _description_
+        """
+        vis_ind = mpu.get_vis_ind(wl)
+        nir_ind = mpu.get_nir_ind(wl)
+
+        x = np.mean(train_spec[:, nir_ind], axis=1, keepdims=True)
+        Y = train_spec[:, vis_ind]
+        self.b = self.linear_regression_multiple_dependent_variables(x, Y)
+        self.min_nir = np.percentile(x, q=2, axis=None)  # Using 2nd percentile as min.
+
     @staticmethod
     def linear_regression_multiple_dependent_variables(
         x: NDArray, Y: NDArray
@@ -1441,6 +1479,63 @@ class GlintCorrector:
         b = x_Y_cov / x_var
 
         return b
+
+    def remove_glint(self, image: NDArray, wl: NDArray, **kwargs) -> NDArray:
+        """Remove sun and sky glint from image using fit linear model
+
+        Parameters
+        ----------
+        image: NDArray
+            Hyperspectral image, shape (n_lines, n_samples, n_bands)
+        wl: NDArray
+            Wavelengths (in nm) for each band in image
+
+        Returns
+        --------
+        refl_image_glint_corr: NDArray
+            Glint corrected reflectance image, same shape as refl_image.
+            The mean NIR value is subtracted from each spectrum in the input
+            image. Thus, only the spectral baseline / offset is changed -
+            the original spectral shape is maintained.
+
+        Notes
+        -----
+        - The glint correction is based on the assumption that there is
+        (approximately) no water-leaving radiance in the NIR spectral region.
+        This is often the case, since NIR light is very effectively
+        absorbed by water.
+        """
+        # nir_ind = mpu.get_nir_ind(refl_wl, **kwargs)
+        # nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
+        # refl_image_glint_corr = refl_image - nir_im
+
+        # if self.smooth_with_savitsky_golay:
+        #     refl_image_glint_corr = mpu.savitzky_golay_filter(
+        #         refl_image_glint_corr, **kwargs
+        #     )
+
+        # return refl_image_glint_corr
+        pass
+
+    def glint_correct_image_file(
+        self,
+        image_path: Union[Path, str],
+        glint_corr_image_path: Union[Path, str],
+        **kwargs,
+    ):
+        """Read reflectance file, apply glint correction, and save result
+
+        Parameters
+        ----------
+        image_path : Union[Path, str]
+            Path to hyperspectral image (ENVI header file)
+        glint_corr_image_path : Union[Path, str]
+            Path for saving output image (ENVI header file)
+
+        """
+        image, wl, metadata = mpu.read_envi(image_path)
+        glint_corr_image = self.remove_glint(image, wl, **kwargs)
+        mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
 
 class ImageFlightMetadata:
