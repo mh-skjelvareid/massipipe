@@ -400,3 +400,38 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
             dtype="uint8",
         ) as dst:
             dst.write(reshape_as_raster(rgb_image))
+
+
+def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
+    """_summary_
+
+    Parameters
+    ----------
+    image : NDArray
+        Hyperspectral image, shape (n_rows, n_lines, n_bands)
+    sample_frac : float, optional
+        Number of samples expressed as a fraction of the total
+        number of pixels in the image. Range: [0.0 - 1.0]
+    ignore_zeros : bool, optional
+        If True, ignore pixels which are zero across all channels
+
+    Returns
+    -------
+    X: NDArray
+        2D array of sampled spectra, shape (n_samples, n_bands)
+    """
+
+    # Create mask
+    if ignore_zeros:
+        mask = ~np.all(image == 0, axis=2)
+    else:
+        mask = np.ones(image.shape[0:2])
+
+    # Calculate number of samples
+    n_samp = np.int64(sample_frac * np.count_nonzero(mask))
+
+    # Create random number generator
+    rng = np.random.default_rng()
+    samp = rng.choice(image[mask], size=n_samp, axis=0, replace=False)
+
+    return samp
