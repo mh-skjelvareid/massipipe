@@ -340,6 +340,24 @@ def convert_long_lat_to_utm(
     return UTMx, UTMy, utm_crs.to_epsg()
 
 
+def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:
+    """Get indices of VIS band
+
+    Parameters
+    ----------
+    wl : NDArray
+        Array of wavelengths (monotonically increasing), in nm
+    vis_band : tuple[float, float], default (400.0, 730.0)
+        Lower and upper limit of visible light range, in nm
+
+    Returns
+    -------
+    vis_ind: NDArray, boolean
+        Boolean array, True where wl is within vis_band
+    """
+    return (wl >= vis_band[0]) & (wl <= vis_band[1])
+
+
 def get_nir_ind(
     wl: NDArray,
     nir_band: tuple[float, float] = (740.0, 805.0),
@@ -349,6 +367,8 @@ def get_nir_ind(
 
     Parameters
     ----------
+    wl : NDArray
+        Array of wavelengths (monotonically increasing)
     nir_band: tuple[float, float], default (740.0, 805.0)
         Lower and upper edge of near-infrared (NIR) band.
     nir_ignore_band: tuple [float, float], default (753.0, 773.0)
