@@ -10,3 +10,17 @@ theme: Habitat
 spectrum_type: HSI
 creator_name: Martin H. Skjelvareid
 project: Massimal
+massipipe_options:
+  create_products:
+    radiance: true
+    radiance_sgc: true
+    reflectance: true
+    reflectance_sgc: true
+  create_mosaics:
+    radiance: false
+    radiance_sgc: false
+    reflectance: false
+    reflectance_sgc: false
+  sgc:
+    reference_image_numbers: null
+    reflectance_sgc_method: flat_spec
