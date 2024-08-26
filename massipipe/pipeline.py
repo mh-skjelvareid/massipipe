@@ -446,7 +446,7 @@ class PipelineProcessor:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
-        glint_corrector = mpp.GlintCorrector()
+        glint_corrector = mpp.FlatSpecGlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_dir}")
@@ -674,7 +674,8 @@ class PipelineProcessor:
 if __name__ == "__main__":
     print(PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr"))
     # dataset_dir = Path(
-    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
+    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/"
+    #     + "20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
     # )
     # pl = PipelineProcessor(dataset_dir)
     # pl.run()
