@@ -1411,33 +1411,45 @@ class HedleyGlintCorrector:
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
         self.b = None
         self.min_nir = None
+        self.vis_ind = None
+        self.nir_nid = None
 
     def fit_to_reference_images(
-        self, reference_image_paths: list[Union[Path, str]]
+        self, reference_image_paths: list[Union[Path, str]], sample_frac: float = 0.5
     ) -> None:
+        """Fit glint model based on spectra from reference images
+
+        Parameters
+        ----------
+        reference_image_paths : list[Union[Path, str]]
+            List of paths to reference hyperspectral images (header files)
+        sample_frac: float
+            Fraction of total number of image pixels that is used for training.
+            Value in range [0.0, 1.0]. Pixels are randomly sampled.
+        """
         train_spec = []
         for ref_im_path in reference_image_paths:
             ref_im, wl, im_meta = mpu.read_envi(Path(ref_im_path))
-            sampled_spectra = mpu.random_sample_image(ref_im)
+            sampled_spectra = mpu.random_sample_image(ref_im, sample_frac=sample_frac)
             train_spec.append(sampled_spectra)
         train_spec = np.concat(train_spec)
         self.fit(train_spec, wl)
 
     def fit(self, train_spec: NDArray, wl: NDArray) -> None:
-        """_summary_
+        """Fit glint model to training spectra
 
         Parameters
         ----------
         train_spec : NDArray
-            _description_
+            Training spectra, shape (n_samples, n_bands)
         wl : NDArray
-            _description_
+            Wavelength vector (nanometers)
         """
-        vis_ind = mpu.get_vis_ind(wl)
-        nir_ind = mpu.get_nir_ind(wl)
+        self.vis_ind = mpu.get_vis_ind(wl)
+        self.nir_ind = mpu.get_nir_ind(wl)
 
-        x = np.mean(train_spec[:, nir_ind], axis=1, keepdims=True)
-        Y = train_spec[:, vis_ind]
+        x = np.mean(train_spec[:, self.nir_ind], axis=1, keepdims=True)
+        Y = train_spec[:, self.vis_ind]
         self.b = self.linear_regression_multiple_dependent_variables(x, Y)
         self.min_nir = np.percentile(x, q=2, axis=None)  # Using 2nd percentile as min.
 
@@ -1480,23 +1492,30 @@ class HedleyGlintCorrector:
 
         return b
 
-    def remove_glint(self, image: NDArray, wl: NDArray, **kwargs) -> NDArray:
+    def remove_glint(
+        self, image: NDArray, max_invalid_fraction: float = 0.05
+    ) -> NDArray:
         """Remove sun and sky glint from image using fit linear model
 
         Parameters
         ----------
         image: NDArray
             Hyperspectral image, shape (n_lines, n_samples, n_bands)
-        wl: NDArray
-            Wavelengths (in nm) for each band in image
+        max_invalid_frac: float
+            Glint is corrected by subtracting estimated glint from the
+            original image. The subtraction process may result in some spectral
+            bands getting negative values. These are set to zero.
+            max_invalid_frac is the fraction of spectral bands that is allowed
+            to be invalid (i.e. zero) before the whole pixel is declared
+            invalid and all bands are set to zero. Allowing some invalid bands
+            may keep useful information, but a high number of invalid bands
+            results in severe spectral distortion and indicates poor data
+            quality.
 
         Returns
         --------
-        refl_image_glint_corr: NDArray
-            Glint corrected reflectance image, same shape as refl_image.
-            The mean NIR value is subtracted from each spectrum in the input
-            image. Thus, only the spectral baseline / offset is changed -
-            the original spectral shape is maintained.
+        image_gc: NDArray
+            Glint corrected image, only containing visible light spectra.
 
         Notes
         -----
@@ -1505,17 +1524,37 @@ class HedleyGlintCorrector:
         This is often the case, since NIR light is very effectively
         absorbed by water.
         """
-        # nir_ind = mpu.get_nir_ind(refl_wl, **kwargs)
-        # nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
-        # refl_image_glint_corr = refl_image - nir_im
 
-        # if self.smooth_with_savitsky_golay:
-        #     refl_image_glint_corr = mpu.savitzky_golay_filter(
-        #         refl_image_glint_corr, **kwargs
-        #     )
+        # Shape into 2D array, save original shape for later
+        input_shape = image.shape
+        image = image.reshape((-1, image.shape[-1]))  # 2D, shape (n_samples, n_bands)
 
-        # return refl_image_glint_corr
-        pass
+        # Detect all-zero pixels (invalid)
+        invalid_mask = ~np.all(image == 0, axis=1)
+
+        # Extract VIS and NIR bands
+        vis = image[:, self.vis_ind]
+        nir = np.mean(image[:, self.nir_ind], axis=1, keepdims=True)
+
+        # Offset NIR, taking into account "ambient" (minimum) NIR
+        nir = nir - self.min_nir
+        nir[nir < 0] = 0  # Positivity constraint
+
+        # Estimate glint and subtract from visible spectrum
+        glint = nir @ self.b
+        vis = vis - glint
+        vis[vis < 0] = 0  # Positivity contraint
+
+        # Set invalid pixels (too many zeros) to all-zeros
+        zeros_fraction = np.count_nonzero(vis == 0, axis=2) / vis.shape[2]
+        invalid_mask = invalid_mask & (zeros_fraction > max_invalid_fraction)
+        vis[invalid_mask] = 0
+
+        # Reshape to fit original dimensions
+        output_shape = input_shape[:-1] + (vis.shape[-1],)
+        vis = np.reshape(vis, output_shape)
+
+        return vis
 
     def glint_correct_image_file(
         self,
@@ -1533,8 +1572,8 @@ class HedleyGlintCorrector:
             Path for saving output image (ENVI header file)
 
         """
-        image, wl, metadata = mpu.read_envi(image_path)
-        glint_corr_image = self.remove_glint(image, wl, **kwargs)
+        image, _, metadata = mpu.read_envi(image_path)
+        glint_corr_image = self.remove_glint(image)
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
 
