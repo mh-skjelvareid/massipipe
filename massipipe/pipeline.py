@@ -311,7 +311,7 @@ class PipelineProcessor:
                 + f"{self.calibration_dir}"
             )
 
-    def create_quicklook_images(self, **kwargs):
+    def create_quicklook_images(self, overwrite=False, **kwargs):
         """Create quicklook versions of raw images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
@@ -319,6 +319,9 @@ class PipelineProcessor:
         for raw_image_path, quicklook_image_path in zip(
             self.raw_image_paths, self.ql_im_paths
         ):
+            if quicklook_image_path.exists() and not overwrite:
+                logger.info(f"Image {quicklook_image_path.name} exists - skipping.")
+                continue
             logger.info(f"Creating quicklook version of {raw_image_path.name}")
             try:
                 quicklook_processor.create_quicklook_image_file(
@@ -330,7 +333,7 @@ class PipelineProcessor:
                 )
                 logger.warning("Skipping file")
 
-    def convert_raw_images_to_radiance(self, **kwargs):
+    def convert_raw_images_to_radiance(self, overwrite=False, **kwargs):
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
@@ -338,6 +341,9 @@ class PipelineProcessor:
         for raw_image_path, radiance_image_path in zip(
             self.raw_image_paths, self.rad_im_paths
         ):
+            if radiance_image_path.exists() and not overwrite:
+                logger.info(f"Image {radiance_image_path.name} exists - skipping.")
+                continue
             logger.info(f"Converting {raw_image_path.name} to radiance")
             try:
                 radiance_converter.convert_raw_file_to_radiance(
@@ -414,7 +420,7 @@ class PipelineProcessor:
                 )
                 logger.error("Skipping file")
 
-    def convert_radiance_images_to_reflectance(self, **kwargs):
+    def convert_radiance_images_to_reflectance(self, overwrite=False, **kwargs):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
@@ -430,6 +436,9 @@ class PipelineProcessor:
         for rad_path, irrad_path, refl_path in zip(
             self.rad_im_paths, self.irrad_spec_paths, self.refl_im_paths
         ):
+            if refl_path.exists() and not overwrite:
+                logger.info(f"Image {refl_path.name} exists - skipping.")
+                continue
             if rad_path.exists() and irrad_path.exists():
                 logger.info(f"Converting {rad_path.name} to reflectance.")
                 try:
@@ -442,7 +451,7 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def glint_correct_reflectance_images(self, **kwargs):
+    def glint_correct_reflectance_images(self, overwrite=False, **kwargs):
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
@@ -452,6 +461,9 @@ class PipelineProcessor:
             warnings.warn(f"No reflectance images found in {self.reflectance_dir}")
 
         for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
+            if refl_gc_path.exists() and not overwrite:
+                logger.info(f"Image {refl_gc_path.name} exists - skipping.")
+                continue
             if refl_path.exists():
                 logger.info(f"Applying glint correction to {refl_path.name}.")
                 try:
