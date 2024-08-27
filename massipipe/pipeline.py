@@ -398,7 +398,7 @@ class PipelineProcessor:
     def parse_and_save_imu_data(self, **kwargs):
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
         logger.info("---- IMU DATA PROCESSING ----")
-        self.radiance_dir.mkdir(exist_ok=True)
+        self.imudata_dir.mkdir(exist_ok=True)
         imu_data_parser = mpp.ImuDataParser()
         for lcf_path, times_path, imu_data_path in zip(
             self.lcf_paths, self.times_paths, self.imu_data_paths
