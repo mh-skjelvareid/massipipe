@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "massipipe"
 version = "0.1.0"
 dependencies = [
-  "matplotlib",
+  "ipykernel",
   "numpy",
   "pyproj",
   "pyyaml",
