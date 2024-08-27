@@ -6,14 +6,27 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+import yaml
+
 import massipipe.processors as mpp
 
 # Get logger
 logger = logging.getLogger(__name__)
 
 
+def parse_config(yaml_path):
+    """Parse YAML config file, accepting only basic YAML tags"""
+    with open(yaml_path, "r") as stream:
+        config = yaml.safe_load(stream)
+    return config
+
+
 class PipelineProcessor:
-    def __init__(self, dataset_dir: Union[Path, str]):
+    def __init__(
+        self,
+        dataset_dir: Union[Path, str],
+        config_file_name: str = "config.seabee.yaml",
+    ):
         """Create a pipeline for processing all data in a dataset
 
         Parameters
@@ -34,15 +47,26 @@ class PipelineProcessor:
             No folder called "calibration" found
         """
         self.dataset_dir = Path(dataset_dir)
+
+        # Read config
+        config_file_path = self.dataset_dir / config_file_name
+        try:
+            self.config = parse_config(self.dataset_dir / config_file_name)
+        except IOError as e:
+            logger.error(f"Error parsing config file {config_file_path}")
+            raise e
+
+        # Define dataset folder structure
         self.dataset_base_name = self.dataset_dir.name
         self.raw_dir = self.dataset_dir / "0_raw"
-        self.quicklook_dir = self.dataset_dir / "0_quicklook"
-        self.radiance_dir = self.dataset_dir / "1_radiance"
+        self.quicklook_dir = self.dataset_dir / "0b_quicklook"
+        self.radiance_dir = self.dataset_dir / "1a_radiance"
+        self.radiance_gc_dir = self.dataset_dir / "1b_radiance_gc"
+        self.radiance_gc_rgb_dir = self.radiance_gc_dir / "rgb"
         self.reflectance_dir = self.dataset_dir / "2a_reflectance"
         self.reflectance_gc_dir = self.dataset_dir / "2b_reflectance_gc"
-        self.reflectance_gc_rgb_dir = (
-            self.dataset_dir / "2b_reflectance_gc" / "rgb_geotiff"
-        )
+        self.reflectance_gc_rgb_dir = self.reflectance_gc_dir / "rgb"
+        self.imudata_dir = self.dataset_dir / "imudata"
         self.mosaic_dir = self.dataset_dir / "mosaics"
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
@@ -75,6 +99,8 @@ class PipelineProcessor:
         proc_file_paths = self._create_processed_file_paths()
         self.ql_im_paths = proc_file_paths["quicklook"]
         self.rad_im_paths = proc_file_paths["radiance"]
+        self.rad_gc_im_paths = proc_file_paths["radiance_gc"]
+        self.rad_gc_rgb_im_paths = proc_file_paths["radiance_gc_rgb"]
         self.irrad_spec_paths = proc_file_paths["irradiance"]
         self.imu_data_paths = proc_file_paths["imudata"]
         self.refl_im_paths = proc_file_paths["reflectance"]
@@ -181,6 +207,8 @@ class PipelineProcessor:
         file_paths = {
             "quicklook": [],
             "radiance": [],
+            "radiance_gc": [],
+            "radiance_gc_rgb": [],
             "irradiance": [],
             "imudata": [],
             "reflectance": [],
@@ -189,24 +217,50 @@ class PipelineProcessor:
         }
 
         for base_file_name in self.base_file_names:
+            # Quicklook
             ql_path = self.quicklook_dir / (base_file_name + "_quicklook.png")
             file_paths["quicklook"].append(ql_path)
+
+            # Radiance
             rad_path = self.radiance_dir / (base_file_name + "_radiance.bip.hdr")
             file_paths["radiance"].append(rad_path)
+
+            # Radiance, glint corrected
+            rad_gc_path = self.radiance_gc_dir / (
+                base_file_name + "_radiance_gc.bip.hdr"
+            )
+            file_paths["radiance_gc"].append(rad_gc_path)
+
+            # Radiance, glint corrected, RGB version
+            rad_gc_rgb_path = self.radiance_gc_rgb_dir / (
+                base_file_name + "_radiance_gc_rgb.tiff"
+            )
+            file_paths["radiance_gc_rgb"].append(rad_gc_rgb_path)
+
+            # Irradiance
             irs_path = self.radiance_dir / (base_file_name + "_irradiance.spec.hdr")
             file_paths["irradiance"].append(irs_path)
-            imu_path = self.radiance_dir / (base_file_name + "_imudata.json")
+
+            # IMU data
+            imu_path = self.imudata_dir / (base_file_name + "_imudata.json")
             file_paths["imudata"].append(imu_path)
+
+            # Reflectance
             refl_path = self.reflectance_dir / (base_file_name + "_reflectance.bip.hdr")
             file_paths["reflectance"].append(refl_path)
+
+            # Reflectance, glint corrected
             rgc_path = self.reflectance_gc_dir / (
                 base_file_name + "_reflectance_gc.bip.hdr"
             )
             file_paths["reflectance_gc"].append(rgc_path)
+
+            # Reflectance, glint corrected, RGB version
             rgc_rgb_path = self.reflectance_gc_rgb_dir / (
                 base_file_name + "_reflectance_gc_rgb.tiff"
             )
             file_paths["reflectance_gc_rgb"].append(rgc_rgb_path)
+
         return file_paths
 
     def _get_raw_spectrum_paths(self):
@@ -392,7 +446,7 @@ class PipelineProcessor:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
-        glint_corrector = mpp.GlintCorrector()
+        glint_corrector = mpp.FlatSpecGlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_dir}")
@@ -620,7 +674,8 @@ class PipelineProcessor:
 if __name__ == "__main__":
     print(PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr"))
     # dataset_dir = Path(
-    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
+    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/"
+    #     + "20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
     # )
     # pl = PipelineProcessor(dataset_dir)
     # pl.run()
@@ -628,4 +683,5 @@ if __name__ == "__main__":
     # pl.glint_correct_reflectance_images()
     # pl.georeference_glint_corrected_reflectance(
     #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0
+    # )
     # )
