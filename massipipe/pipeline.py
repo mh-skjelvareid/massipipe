@@ -460,7 +460,9 @@ class PipelineProcessor:
         glint_corrector = mpp.FlatSpecGlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
-            warnings.warn(f"No reflectance images found in {self.reflectance_dir}")
+            raise FileNotFoundError(
+                f"No reflectance images found in {self.reflectance_dir}"
+            )
 
         for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
             if refl_gc_path.exists() and not overwrite:
@@ -657,6 +659,11 @@ class PipelineProcessor:
         if convert_radiance_to_reflectance:
             try:
                 self.convert_radiance_images_to_reflectance(**kwargs)
+            except FileNotFoundError:
+                logger.warning(
+                    "Missing input radiance / irradiance files, "
+                    "skipping reflectance conversion."
+                )
             except Exception:
                 logger.error(
                     "Error while converting from radiance to reflectance", exc_info=True
@@ -665,6 +672,10 @@ class PipelineProcessor:
         if glint_correct_reflectance:
             try:
                 self.glint_correct_reflectance_images(**kwargs)
+            except FileNotFoundError:
+                logger.warning(
+                    "Missing input reflectance files, skipping glint correction."
+                )
             except Exception:
                 logger.error(
                     "Error while glint correcting reflectance images", exc_info=True
