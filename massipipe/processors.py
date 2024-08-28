@@ -1152,6 +1152,8 @@ class ReflectanceConverter:
             if irrad_spec_path.exists():
                 irrad_spec, irrad_wl, _ = mpu.read_envi(irrad_spec_path)
                 irrad_spectra.append(irrad_spec.squeeze())
+        if not irrad_spectra:
+            raise FileNotFoundError(f"No valid irradiance spectra found.")
         irrad_spectra = np.array(irrad_spectra)
         irrad_spec_mean = np.mean(irrad_spectra, axis=0)
         return irrad_spec_mean, irrad_wl, irrad_spectra

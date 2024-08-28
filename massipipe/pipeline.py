@@ -429,9 +429,11 @@ class PipelineProcessor:
         )
 
         if all([not rp.exists() for rp in self.rad_im_paths]):
-            warnings.warn(f"No radiance images found in {self.radiance_dir}")
+            raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
         if all([not irp.exists() for irp in self.irrad_spec_paths]):
-            warnings.warn(f"No irradiance spectra found in {self.radiance_dir}")
+            raise FileNotFoundError(
+                f"No irradiance spectra found in {self.radiance_dir}"
+            )
 
         for rad_path, irrad_path, refl_path in zip(
             self.rad_im_paths, self.irrad_spec_paths, self.refl_im_paths
