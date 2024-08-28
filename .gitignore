@@ -163,3 +163,4 @@ cython_debug/
 
 # Specific files and folders to ignore
 tests/example_data/massimal_larvik_olbergholmen_202308301001-test_hsi/
+notebooks/debugging/
