@@ -1494,7 +1494,7 @@ class HedleyGlintCorrector:
 
         return b
 
-    def remove_glint(
+    def glint_correct_image(
         self, image: NDArray, max_invalid_fraction: float = 0.05
     ) -> NDArray:
         """Remove sun and sky glint from image using fit linear model
@@ -1548,7 +1548,7 @@ class HedleyGlintCorrector:
         vis[vis < 0] = 0  # Positivity contraint
 
         # Set invalid pixels (too many zeros) to all-zeros
-        zeros_fraction = np.count_nonzero(vis == 0, axis=2) / vis.shape[2]
+        zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
         invalid_mask = invalid_mask & (zeros_fraction > max_invalid_fraction)
         vis[invalid_mask] = 0
 
