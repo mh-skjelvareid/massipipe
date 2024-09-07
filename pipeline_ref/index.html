@@ -261,6 +261,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#massipipe.pipeline.parse_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse_config
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -371,6 +380,15 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#massipipe.pipeline.parse_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse_config
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -440,7 +458,7 @@
 
 
 <h3 id="massipipe.pipeline.PipelineProcessor.__init__" class="doc doc-heading">
-            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">dataset_dir</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">dataset_dir</span><span class="p">,</span> <span class="n">config_file_name</span><span class="o">=</span><span class="s1">&#39;config.seabee.yaml&#39;</span><span class="p">)</span></code>
 
 </h3>
 
@@ -522,8 +540,25 @@ camera (<em>.icp) and downwelling irradiance sensor (</em>.dcp)</p>
 <div class="doc doc-object doc-function">
 
 
+<h3 id="massipipe.pipeline.PipelineProcessor.create_quicklook_images" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_quicklook_images</span><span class="p">(</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Create quicklook versions of raw images</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h3 id="massipipe.pipeline.PipelineProcessor.convert_raw_images_to_radiance" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">convert_raw_images_to_radiance</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">convert_raw_images_to_radiance</span><span class="p">(</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 </h3>
 
@@ -591,7 +626,7 @@ camera (<em>.icp) and downwelling irradiance sensor (</em>.dcp)</p>
 
 
 <h3 id="massipipe.pipeline.PipelineProcessor.convert_radiance_images_to_reflectance" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">convert_radiance_images_to_reflectance</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">convert_radiance_images_to_reflectance</span><span class="p">(</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 </h3>
 
@@ -608,7 +643,7 @@ camera (<em>.icp) and downwelling irradiance sensor (</em>.dcp)</p>
 
 
 <h3 id="massipipe.pipeline.PipelineProcessor.glint_correct_reflectance_images" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">glint_correct_reflectance_images</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">glint_correct_reflectance_images</span><span class="p">(</span><span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 </h3>
 
@@ -642,7 +677,7 @@ camera (<em>.icp) and downwelling irradiance sensor (</em>.dcp)</p>
 
 
 <h3 id="massipipe.pipeline.PipelineProcessor.mosaic_geotiffs" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">mosaic_geotiffs</span><span class="p">(</span><span class="n">mosaic_path</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">mosaic_geotiffs</span><span class="p">()</span></code>
 
 </h3>
 
@@ -650,36 +685,6 @@ camera (<em>.icp) and downwelling irradiance sensor (</em>.dcp)</p>
     <div class="doc doc-contents ">
 
       <p>Convert set of rotated geotiffs into single mosaic with overviews</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Type</th>
-          <th>Description</th>
-          <th>Default</th>
-        </tr>
-      </thead>
-      <tbody>
-          <tr class="doc-section-item">
-            <td><code>mosaic_path</code></td>
-            <td>
-                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str, None]</code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>Path to output mosaic. If None, default dataset folder and name
-is used.</p>
-              </div>
-            </td>
-            <td>
-                  <code>None</code>
-            </td>
-          </tr>
-      </tbody>
-    </table>
 
     </div>
 
@@ -715,7 +720,7 @@ is used.</p>
 
 
 <h3 id="massipipe.pipeline.PipelineProcessor.run" class="doc doc-heading">
-            <code class="highlight language-python"><span class="n">run</span><span class="p">(</span><span class="n">convert_raw_images_to_radiance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convert_raw_spectra_to_irradiance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">calibrate_irradiance_wavelengths</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parse_imu_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convert_radiance_to_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">glint_correct_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">geotiff_from_glint_corrected_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mosaic_geotiffs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
+            <code class="highlight language-python"><span class="n">run</span><span class="p">(</span><span class="n">create_quicklook_images</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convert_raw_images_to_radiance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convert_raw_spectra_to_irradiance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">calibrate_irradiance_wavelengths</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">parse_imu_data</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convert_radiance_to_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">glint_correct_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">geotiff_from_glint_corrected_reflectance</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mosaic_geotiffs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></code>
 
 </h3>
 
@@ -736,6 +741,20 @@ is used.</p>
         </tr>
       </thead>
       <tbody>
+          <tr class="doc-section-item">
+            <td><code>create_quicklook_images</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Whether to create "quicklook" images based on raw images</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
           <tr class="doc-section-item">
             <td><code>convert_raw_images_to_radiance</code></td>
             <td>
@@ -870,6 +889,23 @@ glint corrected reflectance images.</p>
 
 </div>
 
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.pipeline.parse_config" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse_config</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Parse YAML config file, accepting only basic YAML tags</p>
+
+    </div>
+
+</div>
 
 
 

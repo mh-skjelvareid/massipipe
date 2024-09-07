@@ -374,9 +374,36 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#massipipe.utils.get_vis_ind" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_vis_ind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#massipipe.utils.get_nir_ind" class="md-nav__link">
     <span class="md-ellipsis">
       get_nir_ind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.utils.save_png" class="md-nav__link">
+    <span class="md-ellipsis">
+      save_png
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.utils.random_sample_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      random_sample_image
     </span>
   </a>
   
@@ -525,9 +552,36 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#massipipe.utils.get_vis_ind" class="md-nav__link">
+    <span class="md-ellipsis">
+      get_vis_ind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#massipipe.utils.get_nir_ind" class="md-nav__link">
     <span class="md-ellipsis">
       get_nir_ind
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.utils.save_png" class="md-nav__link">
+    <span class="md-ellipsis">
+      save_png
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.utils.random_sample_image" class="md-nav__link">
+    <span class="md-ellipsis">
+      random_sample_image
     </span>
   </a>
   
@@ -797,7 +851,7 @@ See read_envi()</p>
           <tr class="doc-section-item">
             <td><code>wavelengths</code></td>
             <td>
-                  <code><span title="numpy.typing.ArrayLike">ArrayLike</span></code>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1463,6 +1517,89 @@ hyspec_wl that are closest to rgb_target_wl.</p>
 <div class="doc doc-object doc-function">
 
 
+<h2 id="massipipe.utils.get_vis_ind" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_vis_ind</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">vis_band</span><span class="o">=</span><span class="p">(</span><span class="mf">400.0</span><span class="p">,</span> <span class="mf">730.0</span><span class="p">))</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Get indices of VIS band</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>wl</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Array of wavelengths (monotonically increasing), in nm</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>vis_band</code></td>
+            <td>
+                  <code>tuple[float, float]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Lower and upper limit of visible light range, in nm</p>
+              </div>
+            </td>
+            <td>
+                  <code>(400.0, 730.0)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>vis_ind</code></td>            <td>
+                  <code>(<span title="numpy.typing.NDArray">NDArray</span>, boolean)</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Boolean array, True where wl is within vis_band</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
 <h2 id="massipipe.utils.get_nir_ind" class="doc doc-heading">
             <code class="highlight language-python"><span class="n">get_nir_ind</span><span class="p">(</span><span class="n">wl</span><span class="p">,</span> <span class="n">nir_band</span><span class="o">=</span><span class="p">(</span><span class="mf">740.0</span><span class="p">,</span> <span class="mf">805.0</span><span class="p">),</span> <span class="n">nir_ignore_band</span><span class="o">=</span><span class="p">(</span><span class="mf">753.0</span><span class="p">,</span> <span class="mf">773.0</span><span class="p">))</span></code>
 
@@ -1486,9 +1623,23 @@ hyspec_wl that are closest to rgb_target_wl.</p>
       </thead>
       <tbody>
           <tr class="doc-section-item">
+            <td><code>wl</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Array of wavelengths (monotonically increasing)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
             <td><code>nir_band</code></td>
             <td>
-                  <code>tuple[float]</code>
+                  <code>tuple[float, float]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1502,7 +1653,7 @@ hyspec_wl that are closest to rgb_target_wl.</p>
           <tr class="doc-section-item">
             <td><code>nir_ignore_band</code></td>
             <td>
-                  <code>tuple[float]</code>
+                  <code>tuple[float, float]</code>
             </td>
             <td>
               <div class="doc-md-description">
@@ -1551,6 +1702,167 @@ The default nir_ignore_band is used to exclude the "A" Fraunhofer
 line (around 759 nm).</li>
 </ul>
 </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.utils.save_png" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">save_png</span><span class="p">(</span><span class="n">rgb_image</span><span class="p">,</span> <span class="n">png_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Save RGB image as PNG using rasterio / GDAL</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>rgb_image</code></td>
+            <td>
+                  <code>NDArray, dtype uint8</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Image, shape (n_lines, n_samples, n_bands=3)
+Image bands must be ordered as RGB (band index 0 = red,
+band index 1 = green, band index 2 = blue),
+The image must already be scaled to uint8 values 0-255.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>png_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to output PNG file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.utils.random_sample_image" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">random_sample_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">sample_frac</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">ignore_zeros</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p><em>summary</em></p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image</code></td>
+            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Hyperspectral image, shape (n_rows, n_lines, n_bands)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>sample_frac</code></td>
+            <td>
+                  <code>float</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of samples expressed as a fraction of the total
+number of pixels in the image. Range: [0.0 - 1.0]</p>
+              </div>
+            </td>
+            <td>
+                  <code>0.5</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>ignore_zeros</code></td>
+            <td>
+                  <code>bool</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, ignore pixels which are zero across all channels</p>
+              </div>
+            </td>
+            <td>
+                  <code>True</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>X</code></td>            <td>
+                  <code><span title="numpy.typing.NDArray">NDArray</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>2D array of sampled spectra, shape (n_samples, n_bands)</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
     </div>
 
 </div>
