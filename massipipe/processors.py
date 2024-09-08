@@ -1499,6 +1499,7 @@ class HedleyGlintCorrector:
     def glint_correct_image(
         self,
         image: NDArray,
+        require_positivity=False,
         max_invalid_fraction: float = 0.05,
         subtract_dark_spec=True,
     ) -> NDArray:
@@ -1518,6 +1519,11 @@ class HedleyGlintCorrector:
             may keep useful information, but a high number of invalid bands
             results in severe spectral distortion and indicates poor data
             quality.
+        subtrack_dark_spec: bool
+            Whether to subtract estimated minimum value in training data
+            (for each wavelength) from glint corrected image. This
+            has the effect of removing "background" spectrum caused by
+            e.g. reflection of the sky and water column scattering.
 
         Returns
         --------
