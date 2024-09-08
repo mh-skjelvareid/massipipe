@@ -1412,12 +1412,17 @@ class HedleyGlintCorrector:
         """
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
         self.b = None
+        self.wl = None
         self.min_nir = None
         self.vis_ind = None
         self.nir_nid = None
+        self.dark_spec = None
 
     def fit_to_reference_images(
-        self, reference_image_paths: list[Union[Path, str]], sample_frac: float = 0.5
+        self,
+        reference_image_paths: list[Union[Path, str]],
+        reference_image_ranges: Union[None, list[Union[None, list[int]]]] = None,
+        sample_frac: float = 0.5,
     ) -> None:
         """Fit glint model based on spectra from reference images
 
@@ -1425,13 +1430,35 @@ class HedleyGlintCorrector:
         ----------
         reference_image_paths : list[Union[Path, str]]
             List of paths to reference hyperspectral images (header files)
+
+        reference_image_ranges: Union[None, list[Union[None, list[int]]]]
+            List of ranges for pixels to use as reference.
+            If reference_image_ranges == None, all images are used in full.
+            Pixels should preferrably be from a homogenous, deep water area
+            with some visible sun/sky glint. Using ranges enables using part of
+            an image fulfilling these requirements.
+            Setting the range for a single image to None indicates that the
+            whole image should be used.
+            Ranges are specified as
+            [line_start, line_end, sample_start, sample_end]
+            A subset of the 3D image cube is extracted as
+            image[line_start:line_end,sample_start:sample_end,:]
         sample_frac: float
             Fraction of total number of image pixels that is used for training.
             Value in range [0.0, 1.0]. Pixels are randomly sampled.
         """
+        if reference_image_ranges is None:
+            reference_image_ranges = [None for _ in range(len(reference_image_paths))]
+
         train_spec = []
-        for ref_im_path in reference_image_paths:
-            ref_im, wl, im_meta = mpu.read_envi(Path(ref_im_path))
+        for ref_im_path, ref_im_range in zip(
+            reference_image_paths, reference_image_ranges
+        ):
+            ref_im, wl, _ = mpu.read_envi(Path(ref_im_path))
+            if ref_im_range is not None:
+                assert len(ref_im_range) == 4
+                line_start, line_end, sample_start, sample_end = ref_im_range
+                ref_im = ref_im[line_start:line_end, sample_start:sample_end, :]
             sampled_spectra = mpu.random_sample_image(ref_im, sample_frac=sample_frac)
             train_spec.append(sampled_spectra)
         train_spec = np.concat(train_spec)
@@ -1447,6 +1474,7 @@ class HedleyGlintCorrector:
         wl : NDArray
             Wavelength vector (nanometers)
         """
+        self.wl = wl
         self.vis_ind = mpu.get_vis_ind(wl)
         self.nir_ind = mpu.get_nir_ind(wl)
 
