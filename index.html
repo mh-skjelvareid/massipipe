@@ -231,6 +231,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       Quick start
@@ -361,6 +370,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#quick-start" class="md-nav__link">
     <span class="md-ellipsis">
       Quick start
@@ -401,42 +419,61 @@
 <li>Simplified georeferencing procedure using affine transform (faster iteration when parameters are changed)</li>
 <li>Combining GeoTIFFs into single large "mosaic", with "pyramids" allowing fast image viewing at different resolutions. </li>
 </ul>
+<h2 id="installation">Installation</h2>
+<p>MassiPipe uses a number of external libraries. Some of these are easily installed using pip, but GDAL (the <a href="https://gdal.org/en/latest/">Geospatial Data Abstraction Library</a>) and <a href="https://rasterio.readthedocs.io/en/stable/index.html">rasterio</a> (which builds on GDAL) can be more difficult to install. We recommend using conda for creating a virtual environment and installing GDAL and rasterio, and then installing the MassiPipe package with pip.</p>
+<p>Create environment with GDAL and rasterio, installing from conda-forge channel (change "massipipe" environment name and python version to your preference):</p>
+<div class="language-text highlight"><pre><span></span><code>conda create -n massipipe -c conda-forge python=3.10 gdal rasterio
+</code></pre></div>
+<p>Download massipipe from the <a href="https://github.com/mh-skjelvareid/massipipe">massipipe GitHub repository</a> (download as zip or use git clone). Navigate to the root folder of the repo and install using pip ("." indicates installation of package in current directory):</p>
+<div class="language-text highlight"><pre><span></span><code>conda activate massipipe
+pip install .
+</code></pre></div>
+<p>If you're a developer, you may want to install massipipe in "editable" mode instead, and also install optional dependencies that are used in development:</p>
+<div class="language-text highlight"><pre><span></span><code>pip install -e .[dev]
+</code></pre></div>
 <h2 id="quick-start">Quick start</h2>
-<p>The dataset shold be organized as follows:</p>
-<pre><code>├── 0_raw
-│   ├── &lt;Raw data folder 1&gt;
-│   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec
-│   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec.hdr
-│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil
-│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.hdr
-│   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.times
-│   │   └── &lt;ImageSetName&gt;_Pika_L_1.lcf
-│   ├── &lt;Raw data folder 2&gt;
-│   └── ...
-└── calibration
-    ├── &lt;downwelling_calibration_file&gt;.dcp
-    └── &lt;radiance_calibration_file&gt;.icp
-</code></pre>
-<p>Create a pipeline processor for a dataset at path <code>dataset_dir</code>, and run all default processing steps:</p>
-<pre><code>from massipipe.pipeline import PipelineProcessor
-processor = PipelineProcessor(dataset_dir)
-processor.run()
-</code></pre>
-<p>After processing, the dataset has the following structure (files not shown), with processed files in folders <code>1_radiance</code>, <code>2_reflectance</code>, <code>2b_reflectance_gc</code>, and <code>mosaics</code>:</p>
-<pre><code>├── 0_raw
-│   ├── OlbergholmenS1-5
-│   ├── OlbergholmenS1-7
-│   └── OlbergholmenS1-8
-├── 1_radiance
-├── 2a_reflectance
-├── 2b_reflectance_gc
-│   └── rgb_geotiff
-├── calibration
-│   ├── downwelling_calibration_spectra
-│   └── radiance_calibration_frames
-├── logs
-└── mosaics
-</code></pre>
+<p>The dataset shold be organized as follows:
+<div class="language-text no-copy highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>    ├── 0_raw
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    │   ├── &lt;Raw data folder 1&gt;
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    │   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    │   │   ├── &lt;ImageSetName&gt;_downwelling_1_pre.spec.hdr
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    │   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    │   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.hdr
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    │   │   ├── &lt;ImageSetName&gt;_Pika_L_1.bil.times
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    │   │   └── &lt;ImageSetName&gt;_Pika_L_1.lcf
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    │   ├── &lt;Raw data folder 2&gt;
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    │   └── ...
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    └── calibration
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    │   ├── &lt;downwelling_calibration_file&gt;.dcp
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    │   └── &lt;radiance_calibration_file&gt;.icp
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>    └── config.yaml
+</span></code></pre></div></p>
+<p>Note that the structure of the 0_raw folder is the structure created directly by the Pika L camera. The config.yaml file will be used to modify the processing of the specific dataset. This is work in progress, and the details and syntax of the config file have not been established yet. Most processing steps do not depend on the config file, and will run even if an empty config file is used.</p>
+<p>Create a pipeline processor for a dataset at path <code>dataset_dir</code>, and run all default processing steps:
+<div class="language-python no-copy highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>    <span class="kn">from</span> <span class="nn">massipipe.pipeline</span> <span class="kn">import</span> <span class="n">PipelineProcessor</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">processor</span> <span class="o">=</span> <span class="n">PipelineProcessor</span><span class="p">(</span><span class="n">dataset_dir</span><span class="p">,</span><span class="n">config_file_name</span><span class="o">=</span><span class="s1">&#39;config.yaml&#39;</span><span class="p">)</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">processor</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</span></code></pre></div></p>
+<p>After processing, the dataset has the following structure (files not shown), with processed files in folders <code>0b_quicklook</code>, <code>1a_radiance</code>, <code>1b_radiance_gc</code>, <code>2a_reflectance</code>, <code>2b_reflectance_gc</code>, <code>imudata</code>, and <code>mosaics</code>:
+<div class="language-text no-copy highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>    ├── 0_raw
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    │   ├── &lt;Raw data folder 1&gt;
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    │   ├── &lt;Raw data folder 2&gt;
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    │   └── ...
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    ├── 0b_quicklook
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    ├── 1a_radiance
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    ├── 1b_radiance_gc
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>    │   └── rgb
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>    ├── 2a_reflectance
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>    ├── 2b_reflectance_gc
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    │   └── rgb
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    ├── calibration
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>    │   ├── downwelling_calibration_spectra
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    │   └── radiance_calibration_frames
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>    ├── imudata
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>    ├── logs
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>    └── mosaics
+</span></code></pre></div></p>
+<p>Note that if some data is missing (e.g. downwelling irradiance), some of the data products will not be created. </p>
 
 
 
@@ -483,7 +520,7 @@ processor.run()
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": [], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": ".", "features": ["content.code.copy"], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="assets/javascripts/bundle.fe8b6f2b.min.js"></script>
