@@ -1453,7 +1453,9 @@ class HedleyGlintCorrector:
         x = np.mean(train_spec[:, self.nir_ind], axis=1, keepdims=True)
         Y = train_spec[:, self.vis_ind]
         self.b = self.linear_regression_multiple_dependent_variables(x, Y)
-        self.min_nir = np.percentile(x, q=2, axis=None)  # Using 2nd percentile as min.
+        self.min_nir = np.percentile(x, q=1, axis=None)  # Using 1st percentile as min.
+
+        self.dark_spec = np.percentile(train_spec, q=1, axis=0)
 
     @staticmethod
     def linear_regression_multiple_dependent_variables(
@@ -1495,7 +1497,10 @@ class HedleyGlintCorrector:
         return b
 
     def glint_correct_image(
-        self, image: NDArray, max_invalid_fraction: float = 0.05
+        self,
+        image: NDArray,
+        max_invalid_fraction: float = 0.05,
+        subtract_dark_spec=True,
     ) -> NDArray:
         """Remove sun and sky glint from image using fit linear model
 
@@ -1546,6 +1551,9 @@ class HedleyGlintCorrector:
         glint = nir @ self.b
         vis = vis - glint
         vis[vis < 0] = 0  # Positivity contraint
+
+        if subtract_dark_spec:
+            vis = vis - self.dark_spec[self.vis_ind]
 
         # Set invalid pixels (too many zeros) to all-zeros
         zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
