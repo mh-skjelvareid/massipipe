@@ -50,6 +50,7 @@ class PipelineProcessor:
 
         # Read config
         config_file_path = self.dataset_dir / config_file_name
+        self.config_file_path = config_file_path
         try:
             self.config = parse_config(self.dataset_dir / config_file_name)
         except IOError as e:
@@ -420,6 +421,30 @@ class PipelineProcessor:
                 )
                 logger.error("Skipping file")
 
+    def glint_correct_radiance_images(self, overwrite=False):
+        """Remove water surface reflections of sun and sky light"""
+        logger.info("---- RADIANCE GLINT CORRECTION ----")
+        self.reflectance_dir.mkdir(exist_ok=True)
+
+        # Read glint correction reference information from config
+        try:
+            ref_im_nums = (self.config["massipipe_options"]
+                          ["glint_correction"]["reference_image_numbers"])  # fmt: skip
+            ref_im_ranges = (self.config["massipipe_options"]
+                            ["glint_correction"]["reference_image_ranges"])  # fmt: skip
+        except KeyError as ke:
+            logger.error(
+                "Missing glint correction reference image numbers / ranges "
+                + f"in YAML config file {self.config_file_path}."
+            )
+            raise
+        assert len(ref_im_nums) == len(ref_im_ranges)
+        ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
+
+        # Fit glint corrector
+        glint_corrector = mpp.HedleyGlintCorrector()
+        glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
+
     def convert_radiance_images_to_reflectance(self, overwrite=False, **kwargs):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
@@ -455,7 +480,7 @@ class PipelineProcessor:
 
     def glint_correct_reflectance_images(self, overwrite=False, **kwargs):
         """Correct for sun and sky glint in reflectance images"""
-        logger.info("---- GLINT CORRECTION ----")
+        logger.info("---- REFLECTANCE GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
         glint_corrector = mpp.FlatSpecGlintCorrector()
 
