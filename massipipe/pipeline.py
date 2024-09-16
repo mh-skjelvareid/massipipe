@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+import rasterio
+import rasterio.merge
 import yaml
 
 import massipipe.processors as mpp
@@ -536,8 +538,40 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def mosaic_geotiffs(self):
-        """Convert set of rotated geotiffs into single mosaic with overviews"""
+    def mosaic_geotiffs(self, overview_factors=(2, 4, 6, 8, 16)):
+        """Merge non-rotated geotiffs into mosaic with overviews (rasterio)"""
+        logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
+        self.mosaic_dir.mkdir(exist_ok=True)
+
+        # Open images
+        images_to_merge = []
+        for image_path in self.refl_gc_rgb_paths:
+            try:
+                images_to_merge.append(rasterio.open(image_path, "r"))
+            except IOError as e:
+                logger.warning(f"Error while reading {image_path} - skipping. ")
+
+        # Merge
+        try:
+            rasterio.merge.merge(images_to_merge, dst_path=self.mosaic_path)
+        except Exception:
+            logger.error("Error while mosaicing geotiffs", exc_info=True)
+            raise
+        finally:
+            for opened_image in images_to_merge:
+                opened_image.close()
+
+        # Add overviews
+        logger.info(f"Adding overviews to mosaic {self.mosaic_path.name}")
+        try:
+            with rasterio.open(self.mosaic_path, "r+") as mosaic_dataset:
+                mosaic_dataset.build_overviews(overview_factors)
+        except Exception:
+            logger.error("Error while adding overviews to mosaic", exc_info=True)
+            raise
+
+    def mosaic_geotiffs_gdal_cli(self):
+        """Merge rotated geotiffs into single mosaic with overviews (GDAL CLI)"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
 
