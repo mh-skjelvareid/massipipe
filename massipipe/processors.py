@@ -11,9 +11,11 @@ import rasterio
 from numpy.polynomial import Polynomial
 from numpy.typing import ArrayLike, NDArray
 from rasterio.crs import CRS
+from rasterio.io import MemoryFile
 from rasterio.plot import reshape_as_raster
 from rasterio.profiles import DefaultGTiffProfile
 from rasterio.transform import Affine
+from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.ndimage import gaussian_filter1d
 from scipy.signal import find_peaks
 
@@ -1587,12 +1589,16 @@ class HedleyGlintCorrector:
         vis[vis < 0] = 0  # Positivity contraint
 
         if subtract_dark_spec:
-            vis = vis - self.dark_spec[self.vis_ind]
+            if self.dark_spec is not None:
+                vis = vis - self.dark_spec[self.vis_ind]
+            else:
+                raise ValueError("Dark spectrum not calculated - run fit() first")
 
         # Set invalid pixels (too many zeros) to all-zeros
-        zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
-        invalid_mask = invalid_mask & (zeros_fraction > max_invalid_fraction)
-        vis[invalid_mask] = 0
+        if require_positivity:
+            zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
+            invalid_mask = invalid_mask & (zeros_fraction > max_invalid_fraction)
+            vis[invalid_mask] = 0
 
         # Reshape to fit original dimensions
         output_shape = input_shape[:-1] + (vis.shape[-1],)
@@ -1617,7 +1623,7 @@ class HedleyGlintCorrector:
 
         """
         image, _, metadata = mpu.read_envi(image_path)
-        glint_corr_image = self.remove_glint(image)
+        glint_corr_image = self.glint_correct_image(image)
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
 
@@ -1832,6 +1838,7 @@ class SimpleGeoreferencer:
         geotiff_path: Union[Path, str],
         rgb_only: bool = True,
         nodata_value: int = -9999,
+        reproject_to_nonrotated_transform: bool = True,
         **kwargs,
     ):
         """Georeference hyperspectral image and save as GeoTIFF
@@ -1852,6 +1859,14 @@ class SimpleGeoreferencer:
         nodata_value:
             Value to insert in place of invalid pixels.
             Pixels which contain "all zeros" are considered invalid.
+        reproject_to_nonrotated_transform: bool
+            The simplest way to georeference a raster image is to apply an affine
+            transform, which scales and rotates the raster to "place it on the map".
+            However, raster images with rotated transforms ("a" and "d" are nonzero)
+            cannot be merged into a single mosaic using rasterio / GDAL merge.
+            Reprojecting the raster to a non-rotated transform (using the same CRS)
+            allows images to be saved later. Note that with this operation, the original
+            shape of the raster image is lost.
         """
         image, wl, _ = mpu.read_envi(image_path)
         if rgb_only:
@@ -1861,15 +1876,16 @@ class SimpleGeoreferencer:
             image, imudata_path, nodata_value=nodata_value, **kwargs
         )
 
-        self.write_geotiff(geotiff_path, image, wl, geotiff_profile)
-
-    # @staticmethod
-    # def _move_bands_axis_first(image):
-    #     """Move spectral bands axis from position 2 to 0"""
-    #     return np.moveaxis(image, 2, 0)
+        self.write_geotiff(
+            geotiff_path,
+            image,
+            wl,
+            geotiff_profile,
+            reproject_to_nonrotated_transform=reproject_to_nonrotated_transform,
+        )
 
     @staticmethod
-    def _insert_image_nodata_value(image, nodata_value):
+    def _insert_image_nodata_value(image: NDArray, nodata_value: float):
         """Insert nodata values in image (in-place)
 
         Parameters
@@ -1884,8 +1900,8 @@ class SimpleGeoreferencer:
         nodata_mask = np.all(image == 0, axis=2)
         image[nodata_mask] = nodata_value
 
-    @staticmethod
     def create_geotiff_profile(
+        self,
         image: NDArray,
         imudata_path: Union[Path, str],
         nodata_value: int = -9999,
@@ -1903,8 +1919,11 @@ class SimpleGeoreferencer:
             Nodata value to insert for invalid pixels
 
         """
+        # Get flight metadata (swath size, ground sampling distance etc.)
         imu_data = ImuDataParser.read_imu_json_file(imudata_path)
         image_flight_meta = ImageFlightMetadata(imu_data, image.shape[:], **kwargs)
+
+        # Calculate affine transform and CRS     for image
         transform = Affine(*image_flight_meta.get_image_transform())
         crs_epsg = image_flight_meta.utm_epsg
 
@@ -1921,12 +1940,54 @@ class SimpleGeoreferencer:
 
         return profile  # type: ignore
 
+    def calculate_non_rotated_geotiff_profile(
+        self, src: rasterio.DatasetReader, resolution_decimals: int = 2
+    ) -> dict:
+        """Create rasterio geotiff profile to reproject raster to non-rotated transform
+
+        Parameters
+        ----------
+        src : rasterio.DatasetReader
+            "Source" dataset opened in rasterio with rotated geotransform,
+            i.e. "b" and "d" in geotransform are non-zero.
+        resolution_decimals : int
+            Number of decimals in calculated resolution for non-rotated geotiff
+            Default is 2, corresponding to setting the resolution for UTM
+            coordinates to an integer number of centimeters.
+
+        Returns
+        -------
+        dst_profile: dict
+            GeoTIFF profile for reprojection to non-rotated transform
+
+        """
+        gsd_mean = np.mean(np.array(src.res))
+        resolution = np.round(gsd_mean, decimals=resolution_decimals)
+
+        non_rotated_transform, width, height = calculate_default_transform(
+            src_crs=src.crs,
+            dst_crs=src.crs,
+            height=src.height,
+            width=src.width,
+            left=src.bounds.left,
+            bottom=src.bounds.bottom,
+            right=src.bounds.right,
+            top=src.bounds.top,
+            resolution=resolution,
+        )
+        dst_profile = src.meta.copy()
+        dst_profile.update(
+            {"transform": non_rotated_transform, "width": width, "height": height}
+        )
+        return dst_profile
+
     def write_geotiff(
         self,
         geotiff_path: Union[Path, str],
         image: NDArray,
         wavelengths: NDArray,
         geotiff_profile: dict,
+        reproject_to_nonrotated_transform: bool = True,
     ):
         """Write image as GeoTIFF
 
@@ -1941,24 +2002,61 @@ class SimpleGeoreferencer:
             The wavelengths are used to set the descption of each band
             in the GeoTIFF file.
         geotiff_profile : dict
-            Dict with GeoTIFF parameters ("profile")
+            Dict with GeoTIFF parameters ("profile"), typically created using
+            create_geotiff_profile()
+        reproject_to_nonrotated_transform: bool, default True
+            Whether to reproject raster image to a non-rotated transform
+            before saving as GeoTIFF.
 
         Notes
         -----
-        Rasterio / GDAL requires the image to be ordered "bands first",
-        e.g. shape (bands, lines, samples). However, the default used by e.g.
-        the 'spectral' library is (lines, samples, bands), and this convention
-        should be used consistenly to avoid bugs. This function moves the band
-        axis directly before writing.
+        Rasterio / GDAL requires the image to be ordered "bands first", e.g. shape
+        (bands, lines, samples). However, the default used by e.g. the 'spectral'
+        library is (lines, samples, bands), and this convention should be used
+        consistenly to avoid bugs. This function moves the band axis directly before
+        writing.
         """
         image = reshape_as_raster(image)  # Band ordering required by GeoTIFF
         band_names = [f"{wl:.3f}" for wl in wavelengths]
-        with rasterio.Env():
-            with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
-                if band_names is not None:
-                    for i in range(dataset.count):
-                        dataset.set_band_description(i + 1, band_names[i])
-                dataset.write(image)
+
+        if reproject_to_nonrotated_transform:
+            # Use GDAL env. var. GDAL_PAM_ENABLED=False to hide false errors
+            # See https://github.com/rasterio/rasterio/discussions/2825 for details
+            with rasterio.Env(GDAL_PAM_ENABLED=False):
+                with MemoryFile() as memfile:
+                    # Write rotated raster to in-memory file to open it as DatasetReader
+                    with rasterio.open(memfile, "w", **geotiff_profile) as dataset:
+                        for i in range(dataset.count):
+                            dataset.set_band_description(i + 1, band_names[i])
+                        dataset.write(image)
+
+                    # Open in-memory rotated dataset as DatasetReader ("source")
+                    with rasterio.open(memfile, "r") as src:
+                        # Calculate transform and shape of non-rotated raster
+                        dst_profile = self.calculate_non_rotated_geotiff_profile(src)
+
+                        # Open output file as non-rotated destination raster dataset
+                        with rasterio.open(geotiff_path, "w", **dst_profile) as dst:
+                            # Loop over bands and reproject to non-rotated transform
+                            for i in range(1, src.count + 1):
+                                dst.set_band_description(i, src.descriptions[i - 1])
+                                reproject(
+                                    source=rasterio.band(src, i),
+                                    destination=rasterio.band(dst, i),
+                                    src_transform=src.transform,
+                                    src_crs=src.crs,
+                                    dst_transform=dst.transform,
+                                    dst_crs=dst.crs,
+                                    resampling=Resampling.nearest,
+                                )
+
+        else:  # Use rotated geotransform (no reprojection needed)
+            with rasterio.Env():
+                with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
+                    if band_names is not None:
+                        for i in range(dataset.count):
+                            dataset.set_band_description(i + 1, band_names[i])
+                    dataset.write(image)
 
     @staticmethod
     def update_image_file_transform(
