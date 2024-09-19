@@ -547,7 +547,8 @@ class PipelineProcessor:
         images_to_merge = []
         for image_path in self.refl_gc_rgb_paths:
             try:
-                images_to_merge.append(rasterio.open(image_path, "r"))
+                if image_path.exists():
+                    images_to_merge.append(rasterio.open(image_path, "r"))
             except IOError as e:
                 logger.warning(f"Error while reading {image_path} - skipping. ")
 
