@@ -455,3 +455,65 @@ def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = Tr
     samp = rng.choice(image[mask], size=n_samp, axis=0, replace=False)
 
     return samp
+
+
+# GPS - UNIX time conversion code adapted from
+# https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+
+
+def unix2gps(unix_time):
+    """Convert UNIX time to GPS time (both in seconds)"""
+    gps_time = unix_time - 315964800
+    nleaps = _count_leaps(gps_time, "unix2gps")
+    gps_time += nleaps + (1 if unix_time % 1 != 0 else 0)
+    return gps_time
+
+
+def gps2unix(gps_time):
+    """Convert GPS time to UNIX time (both in seconds)"""
+    unix_time = gps_time + 315964800
+    nleaps = _count_leaps(gps_time, "gps2unix")
+    unix_time -= nleaps
+    if gps_time in _get_leaps():
+        unix_time += 0.5
+    return unix_time
+
+
+def _get_leaps():
+    """List of leap seconds in GPS time"""
+    return [
+        46828800,
+        78364801,
+        109900802,
+        173059203,
+        252028804,
+        315187205,
+        346723206,
+        393984007,
+        425520008,
+        457056009,
+        504489610,
+        551750411,
+        599184012,
+        820108813,
+        914803214,
+        1025136015,
+        1119744016,
+        1167264017,
+    ]
+
+
+def _count_leaps(gps_time, dir_flag):
+    """Count number of leap seconds passed for given GPS time"""
+    leaps = _get_leaps()
+    nleaps = 0
+    for leap in leaps:
+        if dir_flag == "unix2gps":
+            if gps_time >= leap - nleaps:
+                nleaps += 1
+        elif dir_flag == "gps2unix":
+            if gps_time >= leap:
+                nleaps += 1
+        else:
+            raise ValueError("Invalid Flag!")
+    return nleaps
