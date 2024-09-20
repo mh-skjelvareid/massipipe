@@ -113,7 +113,7 @@ def save_envi(
     )
 
 
-def wavelength_array_to_header_string(wavelengths: NDArray) -> str:
+def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
     """Convert wavelength array to ENVI header string
 
     Parameters
