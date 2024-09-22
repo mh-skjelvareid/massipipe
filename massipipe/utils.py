@@ -118,8 +118,8 @@ def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
 
     Parameters
     ----------
-    wavelengths : NDArray
-        Array of wavelengths
+    wavelengths : ArrayLike
+        Array or iterable (list, tuple, ...) of wavelengths
 
     Returns
     -------
@@ -133,6 +133,7 @@ def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
     '{420.320, 500.000, 581.288}'
 
     """
+    wavelengths = np.atleast_1d(wavelengths)  # Ensure array format
     wl_str = [f"{wl:.3f}" for wl in wavelengths]  # Convert each number to string
     wl_str = "{" + ", ".join(wl_str) + "}"  # Join into single string
     return wl_str
@@ -301,6 +302,43 @@ def rgb_subset_from_hsi(
     rgb_im = hyspec_im[:, :, wl_ind]
     rgb_wl = hyspec_wl[wl_ind]
     return rgb_im, rgb_wl
+
+
+def percentile_stretch_image(
+    image: NDArray,
+    percentiles: tuple[float, float] = (2, 98),
+    saturation_value: int = 2**12 - 1,
+) -> NDArray:
+    """Scale array values within percentile limits to range 0-255
+
+    Parameters
+    ----------
+    image : NDArray
+        Image, shape (n_lines, n_samples, n_bands)
+
+    Returns
+    -------
+    image_stretched: NDArray, dtype = uint8
+        Image with same shape as input.
+        Image intensity values are stretched so that the lower
+        percentile corresponds to 0 and the higher percentile corresponds
+        to 255 (maximum value for unsigned 8-bit integer, typical for PNG/JPG).
+        Pixels for which one or more bands are saturated are set to zero.
+    """
+    assert image.ndim == 3
+    saturated = np.any(image >= saturation_value, axis=2)
+    image_stretched = np.zeros_like(image, dtype=np.float64)
+
+    for band_index in range(image.shape[2]):
+        image_band = image[:, :, band_index]
+        p_low, p_high = np.percentile(image_band[~saturated], percentiles)
+        image_band[image_band < p_low] = p_low
+        image_band[image_band > p_high] = p_high
+        p_range = p_high - p_low
+        image_stretched[:, :, band_index] = (image_band - p_low) * (255 / p_range)
+
+    image_stretched[saturated] = 0
+    return image_stretched.astype(np.uint8)
 
 
 def convert_long_lat_to_utm(

@@ -10,7 +10,15 @@ import rasterio
 import rasterio.merge
 import yaml
 
-import massipipe.processors as mpp
+from massipipe.georeferencing import ImuDataParser, SimpleGeoreferencer
+from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
+from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
+from massipipe.mosaic import add_geotiff_overviews, mosaic_geotiffs
+from massipipe.quicklook import QuickLookProcessor
+from massipipe.radiance import RadianceConverter
+from massipipe.reflectance import ReflectanceConverter
+
+# import massipipe.processors as mpp
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -318,7 +326,7 @@ class PipelineProcessor:
         """Create quicklook versions of raw images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
-        quicklook_processor = mpp.QuickLookProcessor()
+        quicklook_processor = QuickLookProcessor()
         for raw_image_path, quicklook_image_path in zip(
             self.raw_image_paths, self.ql_im_paths
         ):
@@ -340,7 +348,7 @@ class PipelineProcessor:
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        radiance_converter = mpp.RadianceConverter(self.radiance_calibration_file)
+        radiance_converter = RadianceConverter(self.radiance_calibration_file)
         for raw_image_path, radiance_image_path in zip(
             self.raw_image_paths, self.rad_im_paths
         ):
@@ -362,7 +370,7 @@ class PipelineProcessor:
         """Convert raw spectra (DN) to irradiance (W/(m2*nm))"""
         logger.info("---- IRRADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        irradiance_converter = mpp.IrradianceConverter(self.irradiance_calibration_file)
+        irradiance_converter = IrradianceConverter(self.irradiance_calibration_file)
         for raw_spec_path, irrad_spec_path in zip(
             self.raw_spec_paths, self.irrad_spec_paths
         ):
@@ -387,7 +395,7 @@ class PipelineProcessor:
             raise FileNotFoundError(
                 "Radiance folder with irradiance spectra does not exist"
             )
-        wavelength_calibrator = mpp.WavelengthCalibrator()
+        wavelength_calibrator = WavelengthCalibrator()
         irradiance_spec_paths = list(self.radiance_dir.glob("*.spec.hdr"))
         if irradiance_spec_paths:
             wavelength_calibrator.fit_batch(irradiance_spec_paths)
@@ -408,7 +416,7 @@ class PipelineProcessor:
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
         logger.info("---- IMU DATA PROCESSING ----")
         self.imudata_dir.mkdir(exist_ok=True)
-        imu_data_parser = mpp.ImuDataParser()
+        imu_data_parser = ImuDataParser()
         for lcf_path, times_path, imu_data_path in zip(
             self.lcf_paths, self.times_paths, self.imu_data_paths
         ):
@@ -444,14 +452,14 @@ class PipelineProcessor:
         ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
 
         # Fit glint corrector
-        glint_corrector = mpp.HedleyGlintCorrector()
+        glint_corrector = HedleyGlintCorrector()
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
 
     def convert_radiance_images_to_reflectance(self, overwrite=False, **kwargs):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
-        reflectance_converter = mpp.ReflectanceConverter(
+        reflectance_converter = ReflectanceConverter(
             irrad_spec_paths=self.irrad_spec_paths
         )
 
@@ -484,7 +492,7 @@ class PipelineProcessor:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- REFLECTANCE GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
-        glint_corrector = mpp.FlatSpecGlintCorrector()
+        glint_corrector = FlatSpecGlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
             raise FileNotFoundError(
@@ -510,7 +518,7 @@ class PipelineProcessor:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
-        georeferencer = mpp.SimpleGeoreferencer()
+        georeferencer = SimpleGeoreferencer()
 
         if all([not rp.exists() for rp in self.refl_gc_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_gc_dir}")
@@ -604,42 +612,42 @@ class PipelineProcessor:
         gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(self.mosaic_path)]
         subprocess.run(gdaladdo_args)
 
-    def update_geotiff_transforms(self, **kwargs):
-        """Batch update GeoTIFF transforms
+    # def update_geotiff_transforms(self, **kwargs):
+    #     """Batch update GeoTIFF transforms
 
-        Image affine transforms are re-calculated based on IMU data and
-        (optional) keyword arguments.
+    #     Image affine transforms are re-calculated based on IMU data and
+    #     (optional) keyword arguments.
 
-        Keyword arguments:
-        ------------------
-        **kwargs:
-            keyword arguments accepted by ImageFlightSegment, e.g.
-            "altitude_offset".
+    #     Keyword arguments:
+    #     ------------------
+    #     **kwargs:
+    #         keyword arguments accepted by ImageFlightSegment, e.g.
+    #         "altitude_offset".
 
-        """
-        logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
-        georeferencer = mpp.SimpleGeoreferencer()
+    #     """
+    #     logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
+    #     georeferencer = SimpleGeoreferencer()
 
-        if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
-            warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
+    #     if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
+    #         warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
 
-        for imu_data_path, geotiff_path in zip(
-            self.imu_data_paths, self.refl_gc_rgb_paths
-        ):
-            if imu_data_path.exists() and geotiff_path.exists():
-                logger.info(f"Updating transform for {geotiff_path.name}.")
-                try:
-                    georeferencer.update_image_file_transform(
-                        geotiff_path,
-                        imu_data_path,
-                        **kwargs,
-                    )
-                except Exception:
-                    logger.error(
-                        f"Error occured while updating transform for {geotiff_path}",
-                        exc_info=True,
-                    )
-                    logger.error("Skipping file")
+    #     for imu_data_path, geotiff_path in zip(
+    #         self.imu_data_paths, self.refl_gc_rgb_paths
+    #     ):
+    #         if imu_data_path.exists() and geotiff_path.exists():
+    #             logger.info(f"Updating transform for {geotiff_path.name}.")
+    #             try:
+    #                 georeferencer.update_image_file_transform(
+    #                     geotiff_path,
+    #                     imu_data_path,
+    #                     **kwargs,
+    #                 )
+    #             except Exception:
+    #                 logger.error(
+    #                     f"Error occured while updating transform for {geotiff_path}",
+    #                     exc_info=True,
+    #                 )
+    #                 logger.error("Skipping file")
 
     def run(
         self,
