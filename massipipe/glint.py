@@ -24,9 +24,7 @@ class FlatSpecGlintCorrector:
         """
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
 
-    def remove_glint_flat_spec(
-        self, refl_image: NDArray, refl_wl: NDArray, **kwargs
-    ) -> NDArray:
+    def glint_correct_image(self, refl_image: NDArray, refl_wl: NDArray) -> NDArray:
         """Remove sun and sky glint from image assuming flat glint spectrum
 
         Parameters
@@ -56,14 +54,12 @@ class FlatSpecGlintCorrector:
         NIR region. This is usually _not_ exactly true, but the assumption
         can be "close enough" to still produce useful results.
         """
-        nir_ind = mpu.get_nir_ind(refl_wl, **kwargs)
+        nir_ind = mpu.get_nir_ind(refl_wl)
         nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
         refl_image_glint_corr = refl_image - nir_im
 
         if self.smooth_with_savitsky_golay:
-            refl_image_glint_corr = mpu.savitzky_golay_filter(
-                refl_image_glint_corr, **kwargs
-            )
+            refl_image_glint_corr = mpu.savitzky_golay_filter(refl_image_glint_corr)
 
         return refl_image_glint_corr
 
@@ -84,7 +80,7 @@ class FlatSpecGlintCorrector:
 
         """
         image, wl, metadata = mpu.read_envi(image_path)
-        glint_corr_image = self.remove_glint_flat_spec(image, wl, **kwargs)
+        glint_corr_image = self.glint_correct_image(image, wl, **kwargs)
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
 
 
@@ -289,6 +285,10 @@ class HedleyGlintCorrector:
         # Reshape to fit original dimensions
         output_shape = input_shape[:-1] + (vis.shape[-1],)
         vis = np.reshape(vis, output_shape)
+
+        # Smooth spectra (optional)
+        if self.smooth_with_savitsky_golay:
+            vis = mpu.savitzky_golay_filter(vis)
 
         return vis
 

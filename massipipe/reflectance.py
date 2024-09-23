@@ -198,7 +198,6 @@ class ReflectanceConverter:
         irradiance_header: Union[Path, str],
         reflectance_image_header: Union[Path, str],
         use_mean_ref_irrad_spec: bool = False,
-        **kwargs,
     ):
         """Read radiance image from file, convert to reflectance and save
 
