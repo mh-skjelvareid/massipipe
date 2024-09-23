@@ -1,11 +1,13 @@
 # Imports
 import json
 import logging
+import math
 import subprocess
 from pathlib import Path
 from typing import Union
 
 import numpy as np
+import pyproj
 import rasterio
 from numpy.typing import NDArray
 from rasterio.crs import CRS
@@ -209,7 +211,7 @@ class ImageFlightMetadata:
     ----------
     u_alongtrack:
         Unit vector (easting, northing) pointing along flight direction
-    u_crosstrack:
+    u_acrosstrack:
         Unit vector (easting, northing) pointing left relative to
         flight direction. The direction is chosen to match that of
         the image coordinate system: Origin in upper left corner,
@@ -294,13 +296,27 @@ class ImageFlightMetadata:
         self.mean_altitude = self._calc_mean_altitude(assume_square_pixels)
 
         # Cross-track properties
-        u_ct, sw, gsd_ct = self._calc_crosstrack_properties()
-        self.u_crosstrack = u_ct
+        u_ct, sw, gsd_ct = self._calc_acrosstrack_properties()
+        self.u_acrosstrack = u_ct
         self.swath_width = sw
-        self.gsd_crosstrack = gsd_ct
+        self.gsd_acrosstrack = gsd_ct
 
         # Image origin (image transform offset)
         self.image_origin = self._calc_image_origin()
+
+        # Affine transform
+        self.geotransform = self.get_image_transform(ordering="alphabetical")
+
+        # Image rotation (degrees)
+        self.rotation_deg = self._calc_image_rotation()
+
+        # UTM zone
+        utm_zone_number, utm_zone_hemi = self._get_utm_zone()
+        self.utm_zone_number = utm_zone_number
+        self.utm_zone_hemi = utm_zone_hemi
+
+        # ENVI map info
+        self.envi_map_info = self.get_envi_map_info()
 
     def _calc_time_attributes(self):
         """Calculate time duration and sampling interval of IMU data"""
@@ -341,35 +357,55 @@ class ImageFlightMetadata:
             altitude = np.mean(self.imu_data["altitude"])
         return altitude + self.altitude_offset
 
-    def _calc_crosstrack_properties(self):
+    def _calc_acrosstrack_properties(self):
         """Calculate cross-track unit vector, swath width and sampling distance"""
-        u_crosstrack = np.array(
+        u_acrosstrack = np.array(
             [-self.u_alongtrack[1], self.u_alongtrack[0]]
         )  # Rotate 90 CCW
         swath_width = 2 * self.mean_altitude * np.tan(self.camera_opening_angle / 2)
-        gsd_crosstrack = swath_width / self.image_shape[1]
-        return u_crosstrack, swath_width, gsd_crosstrack
+        gsd_acrosstrack = swath_width / self.image_shape[1]
+        return u_acrosstrack, swath_width, gsd_acrosstrack
 
     def _calc_image_origin(self):
-        """Calculate location of image pixel (0,0) in georeferenced coordinates"""
+        """Calculate location of image pixel (0,0) in georeferenced coordinates (x,y)"""
         alongtrack_offset = (
             self.mean_altitude * np.tan(self.pitch_offset) * self.u_alongtrack
         )
-        crosstrack_offset = (
-            self.mean_altitude * np.tan(self.roll_offset) * self.u_crosstrack
+        acrosstrack_offset = (
+            self.mean_altitude * np.tan(self.roll_offset) * self.u_acrosstrack
         )
         # NOTE: Signs of cross-track elements in equation below are "flipped"
         # because UTM coordinate system is right-handed and image coordinate
         # system is left-handed. If the camera_origin is in the middle of the
-        # top line of the image, u_crosstrack points away from the image
+        # top line of the image, u_acrosstrack points away from the image
         # origin (line 0, sample 0).
         image_origin = (
             self.camera_origin
-            - 0.5 * self.swath_width * self.u_crosstrack  # Edge of swath
-            + crosstrack_offset
+            - 0.5 * self.swath_width * self.u_acrosstrack  # Edge of swath
+            + acrosstrack_offset
             - alongtrack_offset
         )
         return image_origin
+
+    def _calc_image_rotation(self):
+        """Calculate image rotation in degrees (zero for image origin i NW corner)"""
+        rotation_rad = math.atan2(self.u_alongtrack[0], -self.u_alongtrack[1])
+        rotation_deg = rotation_rad * (180.0 / math.pi)
+        return rotation_deg
+
+    def _get_utm_zone(self):
+        """Get UTM zone and hemishpere (North or South)"""
+        if self.utm_epsg is not None:
+            utm_zone = pyproj.CRS.from_epsg(self.utm_epsg).utm_zone
+            assert utm_zone is not None
+        else:
+            raise ValueError("EPSG value not set - UTM zone undefined.")
+        utm_zone_number = utm_zone[:-1]
+        if utm_zone[-1] == "N":
+            utm_zone_hemi = "North"
+        else:
+            utm_zone_hemi = "South"
+        return utm_zone_number, utm_zone_hemi
 
     def get_image_transform(self, ordering: str = "alphabetical") -> tuple[float, ...]:
         """Get 6-element affine transform for image
@@ -391,7 +427,7 @@ class ImageFlightMetadata:
         ValueError
             If invalid ordering parameter is used
         """
-        A, D = self.gsd_crosstrack * self.u_crosstrack
+        A, D = self.gsd_acrosstrack * self.u_acrosstrack
         B, E = self.gsd_alongtrack * self.u_alongtrack
         C, F = self.image_origin
 
@@ -403,6 +439,110 @@ class ImageFlightMetadata:
             error_msg = f"Invalid ordering argument {ordering}"
             logger.error(error_msg)
             raise ValueError(error_msg)
+
+    def get_envi_map_info(self) -> str:
+        """Create ENVI "map info" string, including image rotation
+
+        ENVI header files support a "map info" field which describes the geotransform
+        for the image. The field has up to 11 parameters:
+
+        1.  Projection name
+        2.  Reference (tie point) pixel x location (in file coordinates)
+        3.  Reference (tie point) pixel y location (in file coordinates)
+        4.  Pixel easting
+        5.  Pixel northing
+        6.  x pixel size
+        7.  y pixel size
+        8.  Projection zone (UTM only)
+        9.  North or South (UTM only)
+        10. Datum
+        11. Units
+
+        NV5 / ENVI does not natively support geotransforms that are rotated. However,
+        GDAL supports the use of specifying a rotation argument ("rotation=<degrees>")
+        as the 11th argument (Units). This method creates a map_info string with this
+        rotation syntax.
+
+        Returns:
+        map_info: str
+            String with map info formatted in ENVI header style.
+            Example: "{UTM, 1, 1, 581226.666764, 7916192.56364, 5.2, 5.2,
+                     4, North, WGS-84, rotation=42}"
+
+        References
+        ----------
+        https://www.nv5geospatialsoftware.com/docs/ENVIHeaderFiles.html
+        https://github.com/ornldaac/AVIRIS-NG_ENVI-rotatedgrid
+        https://gis.stackexchange.com/questions/229952/rotate-envi-hyperspectral-imagery-with-gdal
+        https://trac.osgeo.org/gdal/ticket/1778#comment:8
+        """
+
+        # Get image transform parameters
+        A, _, C, D, _, F = self.geotransform
+        image_origin_easting = C
+        image_origin_northing = F
+        x_pixel_size = A
+        y_pixel_size = D
+
+        # fmt: off
+        map_info = [
+            "UTM",                              # Projection name
+            "1",                                # Ref. x pixel sample number, 1-based
+            "1",                                # Ref. y pixel sample number, 1-based
+            f"{image_origin_easting}",          # Ref. pixel easting
+            f"{image_origin_northing}",         # Ref. pixel northing
+            f"{x_pixel_size}",                  # Pixel size in x-direction
+            f"{y_pixel_size}",                  # Pixel size in y-direction
+            f"{self.utm_zone_number}",          # UTM zone number
+            f"{self.utm_zone_hemi}",            # UTM hemisphere (North or South)
+            "WGS-84",                           # Datum
+            f"rotation={self.rotation_deg}",    # "Units" (accepts rotation arg.)
+        ]
+        map_info = "{" + ", ".join(map_info) + "}"
+        # fmt: on
+        return map_info
+
+    def save_image_geotransform(self, geotransform_json_path: Union[Path, str]) -> None:
+        """Save geotransform and related parameters as JSON file
+
+        Parameters
+        ----------
+        geotransform_json_path : Union[Path, str]
+            Path to JSON file
+
+        The following parameters are saved to file:
+        utm_epsg: int
+            Integer EPSG code describing UTM zone (CRS)
+        geotransform: tuple
+            6-element tuple (a,b,c,d,e,f) with affine transform
+        map_info: str
+            "map info" string in ENVI header format
+        gsd_alongtrack: float
+            Ground sampling distance (resolution) along flight track, in meters
+        gsd_acrosstrack: float
+            Ground sampling distance (resolution) across flight track, in meters
+        swath_length: float
+            Length of image swath (along track), in meters
+        swath_width: float
+            Width of image swath (across track), in meters
+        rotation_deg: float
+            Rotation of image in degrees, clockwise, +/- 180 degrees
+
+        """
+        geotransform_data = {
+            "utm_epsg": self.utm_epsg,
+            "geotransform": self.geotransform,
+            "envi_map_info": self.envi_map_info,
+            "image_origin": {"x": self.image_origin[0], "y": self.image_origin[1]},
+            "gsd_alongtrack": self.gsd_alongtrack,
+            "gsd_acrosstrack": self.gsd_acrosstrack,
+            "swath_length": self.swath_length,
+            "swath_width": self.swath_width,
+            "rotation_deg": self.rotation_deg,
+        }
+
+        with open(geotransform_json_path, "w", encoding="utf-8") as write_file:
+            json.dump(geotransform_data, write_file, ensure_ascii=False, indent=4)
 
 
 class SimpleGeoreferencer:
