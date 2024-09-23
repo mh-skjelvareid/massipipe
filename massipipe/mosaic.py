@@ -8,8 +8,6 @@ from typing import Iterable, Union
 import rasterio
 import rasterio.merge
 
-import massipipe.processors as mpp
-
 # Get logger
 logger = logging.getLogger(__name__)
 

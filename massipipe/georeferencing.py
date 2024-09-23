@@ -451,8 +451,8 @@ class ImageFlightMetadata:
         3.  Reference (tie point) pixel y location (in file coordinates)
         4.  Pixel easting
         5.  Pixel northing
-        6.  x pixel size
-        7.  y pixel size
+        6.  x pixel size (on ground)
+        7.  y pixel size (on ground)
         8.  Projection zone (UTM only)
         9.  North or South (UTM only)
         10. Datum
@@ -475,24 +475,18 @@ class ImageFlightMetadata:
         https://github.com/ornldaac/AVIRIS-NG_ENVI-rotatedgrid
         https://gis.stackexchange.com/questions/229952/rotate-envi-hyperspectral-imagery-with-gdal
         https://trac.osgeo.org/gdal/ticket/1778#comment:8
+        https://github.com/OSGeo/gdal/blob/master/frmts/raw/envidataset.cpp#L1393
         """
-
-        # Get image transform parameters
-        A, _, C, D, _, F = self.geotransform
-        image_origin_easting = C
-        image_origin_northing = F
-        x_pixel_size = A
-        y_pixel_size = D
 
         # fmt: off
         map_info = [
             "UTM",                              # Projection name
             "1",                                # Ref. x pixel sample number, 1-based
             "1",                                # Ref. y pixel sample number, 1-based
-            f"{image_origin_easting}",          # Ref. pixel easting
-            f"{image_origin_northing}",         # Ref. pixel northing
-            f"{x_pixel_size}",                  # Pixel size in x-direction
-            f"{y_pixel_size}",                  # Pixel size in y-direction
+            f"{self.image_origin[0]}",          # Ref. pixel easting
+            f"{self.image_origin[1]}",          # Ref. pixel northing
+            f"{self.gsd_acrosstrack}",          # X pixel size (across-track GSD)
+            f"{self.gsd_alongtrack}",           # Y pixel size (along-track GSD)
             f"{self.utm_zone_number}",          # UTM zone number
             f"{self.utm_zone_hemi}",            # UTM hemisphere (North or South)
             "WGS-84",                           # Datum
