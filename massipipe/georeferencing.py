@@ -2,7 +2,6 @@
 import json
 import logging
 import math
-import subprocess
 from pathlib import Path
 from typing import Union
 
@@ -185,26 +184,8 @@ class ImuDataParser:
         with open(json_path, "w", encoding="utf-8") as write_file:
             json.dump(lcf_data_interp, write_file, ensure_ascii=False, indent=4)
 
-    @staticmethod
-    def read_imu_json_file(imu_json_path: Union[Path, str]) -> dict:
-        """Read IMU data saved in JSON file
 
-        Parameters
-        ----------
-        imu_json_path : Union[Path,str]
-            Path to JSON file with IMU data
-
-        Returns
-        -------
-        imu_data: dict
-            IMU data
-        """
-        with open(imu_json_path, "r") as imu_file:
-            imu_data = json.load(imu_file)
-        return imu_data
-
-
-class ImageFlightMetadata:
+class GeoTransformer:
     """
 
     Attributes
@@ -224,8 +205,8 @@ class ImageFlightMetadata:
 
     def __init__(
         self,
-        imu_data: dict,
-        image_shape: tuple[int, ...],
+        imu_data_path: Union[Path, str],
+        image_header_path: Union[Path, str],
         camera_opening_angle: float = 36.5,
         pitch_offset: float = 0.0,
         roll_offset: float = 0.0,
@@ -259,21 +240,23 @@ class ImageFlightMetadata:
             measurement of the camera IMU is not very accurate.
         altitude_offset : float, default 0.0
             Offset added to the estimated altitude. If the UAV was higher
-            in reality than that estimated by the ImageFlightMetadata
+            in reality than that estimated by the GeoTransformer
             object, add a positive altitude_offset.
         """
 
         # Set input attributes
-        self.imu_data = imu_data
-        self.image_shape = image_shape[0:2]
         self.camera_opening_angle = camera_opening_angle * (np.pi / 180)
         self.pitch_offset = pitch_offset * (np.pi / 180)
         self.roll_offset = roll_offset * (np.pi / 180)
         self.altitude_offset = altitude_offset
 
+        # Get imu data and image shape from files
+        self.imu_data = mpu.read_json(imu_data_path)
+        self.image_shape = mpu.get_image_shape(image_header_path)
+
         # Get UTM coordinates and CRS code
         utm_x, utm_y, utm_epsg = mpu.convert_long_lat_to_utm(
-            imu_data["longitude"], imu_data["latitude"]
+            self.imu_data["longitude"], self.imu_data["latitude"]
         )
         self.utm_x = utm_x
         self.utm_y = utm_y
@@ -543,7 +526,7 @@ class SimpleGeoreferencer:
     def georeference_hyspec_save_geotiff(
         self,
         image_path: Union[Path, str],
-        imudata_path: Union[Path, str],
+        geotransform_path: Union[Path, str],
         geotiff_path: Union[Path, str],
         rgb_only: bool = True,
         nodata_value: int = -9999,
@@ -556,8 +539,8 @@ class SimpleGeoreferencer:
         ----------
         image_path:
             Path to hyperspectral image header.
-        imudata_path:
-            Path to JSON file containing IMU data.
+        geotransform_path:
+            Path to JSON file containing geotransform information.
         geotiff_path:
             Path to (output) GeoTIFF file.
         rgb_only: bool
@@ -577,14 +560,25 @@ class SimpleGeoreferencer:
             allows images to be saved later. Note that with this operation, the original
             shape of the raster image is lost.
         """
+        # Read image, and (optional) create RGB subset
         image, wl, _ = mpu.read_envi(image_path)
         if rgb_only:
             image, wl = mpu.rgb_subset_from_hsi(image, wl)
+
+        # Insert nodata value in invalid pixels
         self._insert_image_nodata_value(image, nodata_value)
+
+        # Read geotransform info and create GeoTIFF profile
+        geotransform_data = mpu.read_json(geotransform_path)
         geotiff_profile = self.create_geotiff_profile(
-            image, imudata_path, nodata_value=nodata_value, **kwargs
+            image,
+            geotransform_parameters=geotransform_data["geotransform"],
+            crs_epsg=geotransform_data["utm_epsg"],
+            nodata_value=nodata_value,
+            **kwargs,
         )
 
+        # Write GeoTIFF file
         self.write_geotiff(
             geotiff_path,
             image,
@@ -612,30 +606,33 @@ class SimpleGeoreferencer:
     def create_geotiff_profile(
         self,
         image: NDArray,
-        imudata_path: Union[Path, str],
+        geotransform_parameters: Union[list, tuple],
+        crs_epsg: int,
         nodata_value: int = -9999,
-        **kwargs,
     ) -> dict:
         """Create profile for writing image as geotiff using rasterio
 
         Parameters
         ----------
-        image:
-            3D image array ordered, shape (n_lines,n_samples,n_bands).
-        imudata_path:
-            Path to JSON file containing IMU data for image
+        image: NDArray
+            Path to image header (used to get image shape)
+        geotransform_parameters: tuple
+            6-element tuple describing affine transform from pixel coordinates
+            to geographic coordinates. Ordered (A,B,C,D,E,F).
+            See rasterio.transform.Affine
+        crs_epsg: int
+            EPSG code for CRS used.
         nodata_value: int, default -9999
             Nodata value to insert for invalid pixels
 
+        Returns
+        -------
+        profile: dict
+            GeoTIFF profile to be used when saving GeoTIFF image.
+
         """
-        # Get flight metadata (swath size, ground sampling distance etc.)
-        imu_data = ImuDataParser.read_imu_json_file(imudata_path)
-        image_flight_meta = ImageFlightMetadata(imu_data, image.shape[:], **kwargs)
 
-        # Calculate affine transform and CRS     for image
-        transform = Affine(*image_flight_meta.get_image_transform())
-        crs_epsg = image_flight_meta.utm_epsg
-
+        transform = Affine(*geotransform_parameters)
         profile = DefaultGTiffProfile()
         profile.update(
             height=image.shape[0],
@@ -650,7 +647,10 @@ class SimpleGeoreferencer:
         return profile  # type: ignore
 
     def calculate_non_rotated_geotiff_profile(
-        self, src: rasterio.DatasetReader, resolution_decimals: int = 2
+        self,
+        src: rasterio.DatasetReader,
+        resolution: Union[float, None] = None,
+        resolution_decimals: int = 2,
     ) -> dict:
         """Create rasterio geotiff profile to reproject raster to non-rotated transform
 
@@ -659,6 +659,10 @@ class SimpleGeoreferencer:
         src : rasterio.DatasetReader
             "Source" dataset opened in rasterio with rotated geotransform,
             i.e. "b" and "d" in geotransform are non-zero.
+        resolution: Union[float, None]
+            Resolution for reprojected raster with non-rotated transform
+            If None, the mean of the along-track and across-track resolutions
+            in the rotated raster is used.
         resolution_decimals : int
             Number of decimals in calculated resolution for non-rotated geotiff
             Default is 2, corresponding to setting the resolution for UTM
@@ -670,8 +674,9 @@ class SimpleGeoreferencer:
             GeoTIFF profile for reprojection to non-rotated transform
 
         """
-        gsd_mean = np.mean(np.array(src.res))
-        resolution = np.round(gsd_mean, decimals=resolution_decimals)
+        # Calculate resolution
+        if resolution is None:
+            resolution = np.round(np.mean(src.res), decimals=resolution_decimals)
 
         non_rotated_transform, width, height = calculate_default_transform(
             src_crs=src.crs,
@@ -780,11 +785,11 @@ class SimpleGeoreferencer:
     #     imu_data_path:
     #         Path to JSON file with IMU data.
     #     **kwargs:
-    #         Keyword arguments are passed along to create an ImageFlightMetadata object
+    #         Keyword arguments are passed along to create an GeoTransformer object
     #         Options include e.g. 'altitude_offset'. This can be useful in case
     #         the shape of the existing GeoTIFF indicates that some adjustments
     #         should be made to the image transform (which can be re-generated using
-    #         an ImageFlightMetadata object).
+    #         an GeoTransformer object).
 
     #     References:
     #     -----------
@@ -794,7 +799,7 @@ class SimpleGeoreferencer:
     #     with rasterio.open(geotiff_path, "r") as dataset:
     #         im_width = dataset.width
     #         im_height = dataset.height
-    #     image_flight_meta = ImageFlightMetadata(
+    #     image_flight_meta = GeoTransformer(
     #         imu_data, image_shape=(im_height, im_width), **kwargs
     #     )
     #     new_transform = image_flight_meta.get_image_transform()

@@ -1,4 +1,5 @@
 # Imports
+import json
 import logging
 from pathlib import Path
 from typing import Union
@@ -156,6 +157,13 @@ def update_header_wavelengths(
     wl_str = wavelength_array_to_header_string(wavelengths)
     header_dict["wavelength"] = wl_str
     spectral.io.envi.write_envi_header(header_path, header_dict)
+
+
+def get_image_shape(image_path: Union[Path, str]) -> tuple[int, int, int]:
+    """Get shape of image cube (lines, samples, bands)"""
+    header = spectral.envi.read_envi_header(image_path)
+    shape = (int(header["lines"]), int(header["samples"]), int(header["bands"]))
+    return shape
 
 
 def bin_image(
@@ -458,6 +466,24 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
             dtype="uint8",
         ) as dst:
             dst.write(reshape_as_raster(rgb_image))
+
+
+def read_json(json_path: Union[Path, str]) -> dict:
+    """Read data saved in JSON file
+
+    Parameters
+    ----------
+    json_path : Union[Path,str]
+        Path to JSON file
+
+    Returns
+    -------
+    data: dict
+        Data from JSON file
+    """
+    with open(json_path, "r") as file:
+        imu_data = json.load(file)
+    return imu_data
 
 
 def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
