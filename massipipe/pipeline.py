@@ -2,6 +2,7 @@
 import logging
 import subprocess
 import warnings
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Union
@@ -29,6 +30,22 @@ def parse_config(yaml_path):
     with open(yaml_path, "r") as stream:
         config = yaml.safe_load(stream)
     return config
+
+
+@dataclass
+class ProcessedFilePaths:
+    """Data class for simple management of lists of processed files"""
+
+    quicklook: list[Path] = []
+    radiance: list[Path] = []
+    radiance_gc: list[Path] = []
+    radiance_gc_rgb: list[Path] = []
+    irradiance: list[Path] = []
+    imudata: list[Path] = []
+    geotransform: list[Path] = []
+    reflectance: list[Path] = []
+    reflectance_gc: list[Path] = []
+    reflectance_gc_rgb: list[Path] = []
 
 
 class PipelineProcessor:
@@ -78,6 +95,7 @@ class PipelineProcessor:
         self.reflectance_gc_dir = self.dataset_dir / "2b_reflectance_gc"
         self.reflectance_gc_rgb_dir = self.reflectance_gc_dir / "rgb"
         self.imudata_dir = self.dataset_dir / "imudata"
+        self.geotransform_dir = self.dataset_dir / "geotransform"
         self.mosaic_dir = self.dataset_dir / "mosaics"
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
@@ -108,15 +126,15 @@ class PipelineProcessor:
 
         # Create lists of processed file paths
         proc_file_paths = self._create_processed_file_paths()
-        self.ql_im_paths = proc_file_paths["quicklook"]
-        self.rad_im_paths = proc_file_paths["radiance"]
-        self.rad_gc_im_paths = proc_file_paths["radiance_gc"]
-        self.rad_gc_rgb_im_paths = proc_file_paths["radiance_gc_rgb"]
-        self.irrad_spec_paths = proc_file_paths["irradiance"]
-        self.imu_data_paths = proc_file_paths["imudata"]
-        self.refl_im_paths = proc_file_paths["reflectance"]
-        self.refl_gc_im_paths = proc_file_paths["reflectance_gc"]
-        self.refl_gc_rgb_paths = proc_file_paths["reflectance_gc_rgb"]
+        self.ql_im_paths = proc_file_paths.quicklook
+        self.rad_im_paths = proc_file_paths.radiance
+        self.rad_gc_im_paths = proc_file_paths.radiance_gc
+        self.rad_gc_rgb_im_paths = proc_file_paths.radiance_gc_rgb
+        self.irrad_spec_paths = proc_file_paths.irradiance
+        self.imu_data_paths = proc_file_paths.imudata
+        self.refl_im_paths = proc_file_paths.reflectance
+        self.refl_gc_im_paths = proc_file_paths.reflectance_gc
+        self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
         # Create mosaic file path
         self.mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
@@ -215,64 +233,58 @@ class PipelineProcessor:
 
     def _create_processed_file_paths(self):
         """Define default subfolders for processed files"""
-        file_paths = {
-            "quicklook": [],
-            "radiance": [],
-            "radiance_gc": [],
-            "radiance_gc_rgb": [],
-            "irradiance": [],
-            "imudata": [],
-            "reflectance": [],
-            "reflectance_gc": [],
-            "reflectance_gc_rgb": [],
-        }
+        proc_file_paths = ProcessedFilePaths()
 
         for base_file_name in self.base_file_names:
             # Quicklook
             ql_path = self.quicklook_dir / (base_file_name + "_quicklook.png")
-            file_paths["quicklook"].append(ql_path)
+            proc_file_paths.quicklook.append(ql_path)
 
             # Radiance
             rad_path = self.radiance_dir / (base_file_name + "_radiance.bip.hdr")
-            file_paths["radiance"].append(rad_path)
+            proc_file_paths.radiance.append(rad_path)
 
             # Radiance, glint corrected
             rad_gc_path = self.radiance_gc_dir / (
                 base_file_name + "_radiance_gc.bip.hdr"
             )
-            file_paths["radiance_gc"].append(rad_gc_path)
+            proc_file_paths.radiance_gc.append(rad_gc_path)
 
             # Radiance, glint corrected, RGB version
             rad_gc_rgb_path = self.radiance_gc_rgb_dir / (
                 base_file_name + "_radiance_gc_rgb.tiff"
             )
-            file_paths["radiance_gc_rgb"].append(rad_gc_rgb_path)
+            proc_file_paths.radiance_gc_rgb.append(rad_gc_rgb_path)
 
             # Irradiance
             irs_path = self.radiance_dir / (base_file_name + "_irradiance.spec.hdr")
-            file_paths["irradiance"].append(irs_path)
+            proc_file_paths.irradiance.append(irs_path)
 
             # IMU data
             imu_path = self.imudata_dir / (base_file_name + "_imudata.json")
-            file_paths["imudata"].append(imu_path)
+            proc_file_paths.imudata.append(imu_path)
+
+            # Geotransform
+            gt_path = self.imudata_dir / (base_file_name + "_geotransform.json")
+            proc_file_paths.geotransform.append(gt_path)
 
             # Reflectance
             refl_path = self.reflectance_dir / (base_file_name + "_reflectance.bip.hdr")
-            file_paths["reflectance"].append(refl_path)
+            proc_file_paths.reflectance.append(refl_path)
 
             # Reflectance, glint corrected
             rgc_path = self.reflectance_gc_dir / (
                 base_file_name + "_reflectance_gc.bip.hdr"
             )
-            file_paths["reflectance_gc"].append(rgc_path)
+            proc_file_paths.reflectance_gc.append(rgc_path)
 
             # Reflectance, glint corrected, RGB version
             rgc_rgb_path = self.reflectance_gc_rgb_dir / (
                 base_file_name + "_reflectance_gc_rgb.tiff"
             )
-            file_paths["reflectance_gc_rgb"].append(rgc_rgb_path)
+            proc_file_paths.reflectance_gc_rgb.append(rgc_rgb_path)
 
-        return file_paths
+        return proc_file_paths
 
     def _get_raw_spectrum_paths(self):
         """Search for raw files matching Resonon default naming"""
@@ -430,6 +442,9 @@ class PipelineProcessor:
                     f"Error occured while processing {lcf_path}", exc_info=True
                 )
                 logger.error("Skipping file")
+
+    def create_and_save_geotransform(self):
+        logger.info("---- GEOTRANSFORM CALCULATION ----")
 
     def glint_correct_radiance_images(self, overwrite=False):
         """Remove water surface reflections of sun and sky light"""
