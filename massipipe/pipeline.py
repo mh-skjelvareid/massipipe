@@ -2,7 +2,7 @@
 import logging
 import subprocess
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Union
@@ -11,7 +11,7 @@ import rasterio
 import rasterio.merge
 import yaml
 
-from massipipe.georeferencing import ImuDataParser, SimpleGeoreferencer
+from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
 from massipipe.mosaic import add_geotiff_overviews, mosaic_geotiffs
@@ -36,16 +36,16 @@ def parse_config(yaml_path):
 class ProcessedFilePaths:
     """Data class for simple management of lists of processed files"""
 
-    quicklook: list[Path] = []
-    radiance: list[Path] = []
-    radiance_gc: list[Path] = []
-    radiance_gc_rgb: list[Path] = []
-    irradiance: list[Path] = []
-    imudata: list[Path] = []
-    geotransform: list[Path] = []
-    reflectance: list[Path] = []
-    reflectance_gc: list[Path] = []
-    reflectance_gc_rgb: list[Path] = []
+    quicklook: list[Path] = field(default_factory=list)
+    radiance: list[Path] = field(default_factory=list)
+    radiance_gc: list[Path] = field(default_factory=list)
+    radiance_gc_rgb: list[Path] = field(default_factory=list)
+    irradiance: list[Path] = field(default_factory=list)
+    imudata: list[Path] = field(default_factory=list)
+    geotransform: list[Path] = field(default_factory=list)
+    reflectance: list[Path] = field(default_factory=list)
+    reflectance_gc: list[Path] = field(default_factory=list)
+    reflectance_gc_rgb: list[Path] = field(default_factory=list)
 
 
 class PipelineProcessor:
@@ -445,6 +445,11 @@ class PipelineProcessor:
 
     def create_and_save_geotransform(self):
         logger.info("---- GEOTRANSFORM CALCULATION ----")
+        self.geotransform_dir.mkdir(exist_ok=True)
+        for raw_im_path, imu_data_path in zip(
+            self.raw_image_paths, self.imu_data_paths
+        ):
+            image_flight_meta = GeoTransformer(imu_data_path, raw_im_path)
 
     def glint_correct_radiance_images(self, overwrite=False):
         """Remove water surface reflections of sun and sky light"""
