@@ -132,6 +132,7 @@ class PipelineProcessor:
         self.rad_gc_rgb_im_paths = proc_file_paths.radiance_gc_rgb
         self.irrad_spec_paths = proc_file_paths.irradiance
         self.imu_data_paths = proc_file_paths.imudata
+        self.geotransform_paths = proc_file_paths.geotransform
         self.refl_im_paths = proc_file_paths.reflectance
         self.refl_gc_im_paths = proc_file_paths.reflectance_gc
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
@@ -265,7 +266,7 @@ class PipelineProcessor:
             proc_file_paths.imudata.append(imu_path)
 
             # Geotransform
-            gt_path = self.imudata_dir / (base_file_name + "_geotransform.json")
+            gt_path = self.geotransform_dir / (base_file_name + "_geotransform.json")
             proc_file_paths.geotransform.append(gt_path)
 
             # Reflectance
@@ -446,10 +447,19 @@ class PipelineProcessor:
     def create_and_save_geotransform(self):
         logger.info("---- GEOTRANSFORM CALCULATION ----")
         self.geotransform_dir.mkdir(exist_ok=True)
-        for raw_im_path, imu_data_path in zip(
-            self.raw_image_paths, self.imu_data_paths
+        for raw_im_path, imu_data_path, geotrans_path in zip(
+            self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
         ):
-            image_flight_meta = GeoTransformer(imu_data_path, raw_im_path)
+            logger.info(f"Creating and saving geotransform for {raw_im_path.name}")
+            try:
+                if imu_data_path.exists() and raw_im_path.exists():
+                    geotransformer = GeoTransformer(imu_data_path, raw_im_path)
+                    geotransformer.save_image_geotransform(geotrans_path)
+            except Exception:
+                logger.error(
+                    f"Error occured while processing {raw_im_path}", exc_info=True
+                )
+                logger.error("Skipping file")
 
     def glint_correct_radiance_images(self, overwrite=False):
         """Remove water surface reflections of sun and sky light"""
@@ -543,17 +553,17 @@ class PipelineProcessor:
         if all([not rp.exists() for rp in self.refl_gc_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_gc_dir}")
 
-        for refl_gc_path, imu_data_path, geotiff_path in zip(
-            self.refl_gc_im_paths, self.imu_data_paths, self.refl_gc_rgb_paths
+        for refl_gc_path, geotrans_path, geotiff_path in zip(
+            self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
         ):
-            if refl_gc_path.exists() and imu_data_path.exists():
+            if refl_gc_path.exists() and geotrans_path.exists():
                 logger.info(
                     f"Georeferencing and exporting RGB version of {refl_gc_path.name}."
                 )
                 try:
                     georeferencer.georeference_hyspec_save_geotiff(
                         refl_gc_path,
-                        imu_data_path,
+                        geotrans_path,
                         geotiff_path,
                         rgb_only=True,
                         **kwargs,
@@ -676,6 +686,7 @@ class PipelineProcessor:
         convert_raw_spectra_to_irradiance=True,
         calibrate_irradiance_wavelengths=True,
         parse_imu_data=True,
+        create_geotransform_json=True,
         convert_radiance_to_reflectance=True,
         glint_correct_reflectance=True,
         geotiff_from_glint_corrected_reflectance=True,
@@ -744,6 +755,13 @@ class PipelineProcessor:
                 self.parse_and_save_imu_data(**kwargs)
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
+
+        if create_geotransform_json:
+            try:
+                self.create_and_save_geotransform()
+            except Exception:
+                logger.error("Error while parsing and saving IMU data", exc_info=True)
+
         if convert_radiance_to_reflectance:
             try:
                 self.convert_radiance_images_to_reflectance(**kwargs)
