@@ -212,7 +212,6 @@ class GeoTransformer:
         roll_offset: float = 0.0,
         assume_square_pixels: bool = True,
         altitude_offset: float = 0.0,
-        **kwargs,
     ):
         """Initialize image flight metadata object
 
@@ -523,26 +522,17 @@ class GeoTransformer:
 
 
 class SimpleGeoreferencer:
-    def georeference_hyspec_save_geotiff(
+    def __init__(
         self,
-        image_path: Union[Path, str],
-        geotransform_path: Union[Path, str],
-        geotiff_path: Union[Path, str],
         rgb_only: bool = True,
         nodata_value: int = -9999,
         reproject_to_nonrotated_transform: bool = True,
-        **kwargs,
+        resolution: Union[float, None] = None,
     ):
-        """Georeference hyperspectral image and save as GeoTIFF
+        """Initialize simple georeferencer
 
         Parameters
         ----------
-        image_path:
-            Path to hyperspectral image header.
-        geotransform_path:
-            Path to JSON file containing geotransform information.
-        geotiff_path:
-            Path to (output) GeoTIFF file.
         rgb_only: bool
             Whether to only output an RGB version of the hyperspectral image.
             If false, the entire hyperspectral image is used. Note that
@@ -559,14 +549,41 @@ class SimpleGeoreferencer:
             Reprojecting the raster to a non-rotated transform (using the same CRS)
             allows images to be saved later. Note that with this operation, the original
             shape of the raster image is lost.
+        resolution: Union[float, None]
+            Resolution for reprojected raster with non-rotated transform
+            If None, the mean of the along-track and across-track resolutions
+            in the rotated raster is used.
+
+        """
+        self.rgb_only = rgb_only
+        self.nodata_value = nodata_value
+        self.reproject_to_nonrotated_transform = reproject_to_nonrotated_transform
+        self.resolution = resolution
+
+    def georeference_hyspec_save_geotiff(
+        self,
+        image_path: Union[Path, str],
+        geotransform_path: Union[Path, str],
+        geotiff_path: Union[Path, str],
+    ):
+        """Georeference hyperspectral image and save as GeoTIFF
+
+        Parameters
+        ----------
+        image_path:
+            Path to hyperspectral image header.
+        geotransform_path:
+            Path to JSON file containing geotransform information.
+        geotiff_path:
+            Path to (output) GeoTIFF file.
         """
         # Read image, and (optional) create RGB subset
         image, wl, _ = mpu.read_envi(image_path)
-        if rgb_only:
+        if self.rgb_only:
             image, wl = mpu.rgb_subset_from_hsi(image, wl)
 
         # Insert nodata value in invalid pixels
-        self._insert_image_nodata_value(image, nodata_value)
+        self._insert_image_nodata_value(image)
 
         # Read geotransform info and create GeoTIFF profile
         geotransform_data = mpu.read_json(geotransform_path)
@@ -574,8 +591,6 @@ class SimpleGeoreferencer:
             image,
             geotransform_parameters=geotransform_data["geotransform"],
             crs_epsg=geotransform_data["utm_epsg"],
-            nodata_value=nodata_value,
-            **kwargs,
         )
 
         # Write GeoTIFF file
@@ -584,11 +599,9 @@ class SimpleGeoreferencer:
             image,
             wl,
             geotiff_profile,
-            reproject_to_nonrotated_transform=reproject_to_nonrotated_transform,
         )
 
-    @staticmethod
-    def _insert_image_nodata_value(image: NDArray, nodata_value: float):
+    def _insert_image_nodata_value(self, image: NDArray):
         """Insert nodata values in image (in-place)
 
         Parameters
@@ -597,18 +610,15 @@ class SimpleGeoreferencer:
             3D image array ordered as (lines, samples, bands)
             Pixels where every band value is equal to zero
             are interpreted as invalid (no data).
-        nodata_value:
-            Value to insert in place of invalid data.
         """
         nodata_mask = np.all(image == 0, axis=2)
-        image[nodata_mask] = nodata_value
+        image[nodata_mask] = self.nodata_value
 
     def create_geotiff_profile(
         self,
         image: NDArray,
         geotransform_parameters: Union[list, tuple],
         crs_epsg: int,
-        nodata_value: int = -9999,
     ) -> dict:
         """Create profile for writing image as geotiff using rasterio
 
@@ -622,8 +632,6 @@ class SimpleGeoreferencer:
             See rasterio.transform.Affine
         crs_epsg: int
             EPSG code for CRS used.
-        nodata_value: int, default -9999
-            Nodata value to insert for invalid pixels
 
         Returns
         -------
@@ -641,7 +649,7 @@ class SimpleGeoreferencer:
             dtype=str(image.dtype),
             crs=CRS.from_epsg(crs_epsg),
             transform=transform,
-            nodata=nodata_value,
+            nodata=self.nodata_value,
         )
 
         return profile  # type: ignore
@@ -649,7 +657,6 @@ class SimpleGeoreferencer:
     def calculate_non_rotated_geotiff_profile(
         self,
         src: rasterio.DatasetReader,
-        resolution: Union[float, None] = None,
         resolution_decimals: int = 2,
     ) -> dict:
         """Create rasterio geotiff profile to reproject raster to non-rotated transform
@@ -659,10 +666,6 @@ class SimpleGeoreferencer:
         src : rasterio.DatasetReader
             "Source" dataset opened in rasterio with rotated geotransform,
             i.e. "b" and "d" in geotransform are non-zero.
-        resolution: Union[float, None]
-            Resolution for reprojected raster with non-rotated transform
-            If None, the mean of the along-track and across-track resolutions
-            in the rotated raster is used.
         resolution_decimals : int
             Number of decimals in calculated resolution for non-rotated geotiff
             Default is 2, corresponding to setting the resolution for UTM
@@ -675,9 +678,12 @@ class SimpleGeoreferencer:
 
         """
         # Calculate resolution
-        if resolution is None:
+        if self.resolution is None:
             resolution = np.round(np.mean(src.res), decimals=resolution_decimals)
+        else:
+            resolution = self.resolution
 
+        # Calculate transform and size of non-rotated raster
         non_rotated_transform, width, height = calculate_default_transform(
             src_crs=src.crs,
             dst_crs=src.crs,
@@ -701,7 +707,6 @@ class SimpleGeoreferencer:
         image: NDArray,
         wavelengths: NDArray,
         geotiff_profile: dict,
-        reproject_to_nonrotated_transform: bool = True,
     ):
         """Write image as GeoTIFF
 
@@ -733,7 +738,7 @@ class SimpleGeoreferencer:
         image = reshape_as_raster(image)  # Band ordering required by GeoTIFF
         band_names = [f"{wl:.3f}" for wl in wavelengths]
 
-        if reproject_to_nonrotated_transform:
+        if self.reproject_to_nonrotated_transform:
             # Use GDAL env. var. GDAL_PAM_ENABLED=False to hide false errors
             # See https://github.com/rasterio/rasterio/discussions/2825 for details
             with rasterio.Env(GDAL_PAM_ENABLED=False):
