@@ -1,5 +1,6 @@
 # Imports
 import logging
+import shutil
 import subprocess
 import warnings
 from dataclasses import dataclass, field
@@ -640,42 +641,54 @@ class PipelineProcessor:
         gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(self.mosaic_path)]
         subprocess.run(gdaladdo_args)
 
-    # def update_geotiff_transforms(self, **kwargs):
-    #     """Batch update GeoTIFF transforms
+    def delete_existing_products(
+        self,
+        delete_quicklook: bool = True,
+        delete_radiance: bool = True,
+        delete_radiance_gc: bool = True,
+        delete_reflectance: bool = True,
+        delete_reflectance_gc: bool = True,
+        delete_geotransform: bool = True,
+        delete_imudata: bool = True,
+        delete_mosaics: bool = True,
+    ):
+        """Delete existing image products ("reset" after previous processing)
 
-    #     Image affine transforms are re-calculated based on IMU data and
-    #     (optional) keyword arguments.
-
-    #     Keyword arguments:
-    #     ------------------
-    #     **kwargs:
-    #         keyword arguments accepted by ImageFlightSegment, e.g.
-    #         "altitude_offset".
-
-    #     """
-    #     logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
-    #     georeferencer = SimpleGeoreferencer()
-
-    #     if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
-    #         warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
-
-    #     for imu_data_path, geotiff_path in zip(
-    #         self.imu_data_paths, self.refl_gc_rgb_paths
-    #     ):
-    #         if imu_data_path.exists() and geotiff_path.exists():
-    #             logger.info(f"Updating transform for {geotiff_path.name}.")
-    #             try:
-    #                 georeferencer.update_image_file_transform(
-    #                     geotiff_path,
-    #                     imu_data_path,
-    #                     **kwargs,
-    #                 )
-    #             except Exception:
-    #                 logger.error(
-    #                     f"Error occured while updating transform for {geotiff_path}",
-    #                     exc_info=True,
-    #                 )
-    #                 logger.error("Skipping file")
+        Parameters
+        ----------
+        delete_quicklook : bool, optional
+            If true, delete 0b_quicklook folder (if it exists)
+        delete_radiance : bool, optional
+            If true, delete 1a_radiance folder (if it exists)
+        delete_radiance_gc : bool, optional
+            If true, delete 1b_radiance folder (if it exists)
+        delete_reflectance : bool, optional
+            If true, delete 2a_reflectance folder (if it exists)
+        delete_reflectance_gc : bool, optional
+            If true, delete 2b_reflectance folder (if it exists)
+        delete_geotransform : bool, optional
+            If true, delete geotransform folder (if it exists)
+        delete_imudata : bool, optional
+            If true, delete imudata folder (if it exists)
+        delete_mosaics : bool, optional
+            If true, delete mosaics folder (if it exists)
+        """
+        if self.quicklook_dir.exists() and delete_quicklook:
+            shutil.rmtree(self.quicklook_dir)
+        if self.radiance_dir.exists() and delete_radiance:
+            shutil.rmtree(self.radiance_dir)
+        if self.radiance_gc_dir.exists() and delete_radiance_gc:
+            shutil.rmtree(self.radiance_gc_dir)
+        if self.reflectance_dir.exists() and delete_reflectance:
+            shutil.rmtree(self.reflectance_dir)
+        if self.reflectance_gc_dir.exists() and delete_reflectance_gc:
+            shutil.rmtree(self.reflectance_gc_dir)
+        if self.geotransform_dir.exists() and delete_geotransform:
+            shutil.rmtree(self.geotransform_dir)
+        if self.imudata_dir.exists() and delete_imudata:
+            shutil.rmtree(self.imudata_dir)
+        if self.mosaic_dir.exists() and delete_mosaics:
+            shutil.rmtree(self.mosaic_dir)
 
     def run(
         self,
@@ -814,3 +827,40 @@ if __name__ == "__main__":
     #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0
     # )
     # )
+
+    # def update_geotiff_transforms(self, **kwargs):
+    #     """Batch update GeoTIFF transforms
+
+    #     Image affine transforms are re-calculated based on IMU data and
+    #     (optional) keyword arguments.
+
+    #     Keyword arguments:
+    #     ------------------
+    #     **kwargs:
+    #         keyword arguments accepted by ImageFlightSegment, e.g.
+    #         "altitude_offset".
+
+    #     """
+    #     logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
+    #     georeferencer = SimpleGeoreferencer()
+
+    #     if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
+    #         warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
+
+    #     for imu_data_path, geotiff_path in zip(
+    #         self.imu_data_paths, self.refl_gc_rgb_paths
+    #     ):
+    #         if imu_data_path.exists() and geotiff_path.exists():
+    #             logger.info(f"Updating transform for {geotiff_path.name}.")
+    #             try:
+    #                 georeferencer.update_image_file_transform(
+    #                     geotiff_path,
+    #                     imu_data_path,
+    #                     **kwargs,
+    #                 )
+    #             except Exception:
+    #                 logger.error(
+    #                     f"Error occured while updating transform for {geotiff_path}",
+    #                     exc_info=True,
+    #                 )
+    #                 logger.error("Skipping file")
