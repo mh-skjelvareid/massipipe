@@ -210,13 +210,15 @@ class WavelengthCalibrator:
     def _detect_absorption_lines(
         spec: NDArray,
         wl: NDArray,
+        reference_wl: int = 550,
         distance: int = 20,
         width: int = 5,
         rel_prominence: float = 0.1,
     ):
         """Detect absorption lines using local peak detection"""
-        wl_550_ind = mpu.closest_wl_index(wl, 550)
-        prominence = spec[wl_550_ind] * rel_prominence
+        # TODO: Use wavelength units for distance / width rather than # samples
+        ref_wl_ind = mpu.closest_wl_index(wl, reference_wl)
+        prominence = spec[ref_wl_ind] * rel_prominence
         peak_indices, peak_properties = find_peaks(
             -spec, distance=distance, width=width, prominence=prominence
         )
