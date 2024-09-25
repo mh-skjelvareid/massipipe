@@ -14,12 +14,10 @@ class QuickLookProcessor:
         self,
         rgb_wl: tuple[float, float, float] = (640.0, 550.0, 460.0),
         percentiles: tuple[float, float] = (2, 98),
-        saturation_value: int = 2**12 - 1,
     ):
         """Initialize quicklook processor"""
         self.rgb_wl = rgb_wl
         self.percentiles = percentiles
-        self.saturation_value = saturation_value
 
     def create_quicklook_image_file(
         self, raw_path: Union[Path, str], quicklook_path: Union[Path, str]
