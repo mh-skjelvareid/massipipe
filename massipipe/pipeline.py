@@ -565,8 +565,6 @@ class PipelineProcessor:
                         refl_gc_path,
                         geotrans_path,
                         geotiff_path,
-                        rgb_only=True,
-                        **kwargs,
                     )
                 except Exception:
                     logger.error(
