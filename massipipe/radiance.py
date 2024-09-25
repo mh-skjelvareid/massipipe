@@ -476,7 +476,7 @@ class RadianceConverter:
             The name of the header file should match the 'interleave' argument
             (default: bip), e.g. 'radiance_image.bip.hdr'
         interleave: str, {'bip','bil','bsq'}, default 'bip'
-            String inticating how binary image file is organized.
+            String indicating how binary image file is organized.
             See spectral.io.envi.save_image()
 
         Notes
