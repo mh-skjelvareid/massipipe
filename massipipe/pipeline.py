@@ -101,9 +101,7 @@ class PipelineProcessor:
         if not self.raw_dir.exists():
             raise FileNotFoundError(f'Folder "0_raw" not found in {self.dataset_dir}')
         if not self.calibration_dir.exists():
-            raise FileNotFoundError(
-                f'Folder "calibration" not found in {self.dataset_dir}'
-            )
+            raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
 
         # Get calibration file paths
         self.radiance_calibration_file = self._get_radiance_calibration_path()
@@ -187,9 +185,7 @@ class PipelineProcessor:
                 or not (times_path.exists())
                 or not (lcf_path.exists())
             ):
-                warnings.warn(
-                    f"Set of raw files for image {raw_image_path} is incomplete."
-                )
+                warnings.warn(f"Set of raw files for image {raw_image_path} is incomplete.")
                 self.raw_image_paths.remove(raw_image_path)
             else:
                 times_paths.append(times_path)
@@ -232,8 +228,7 @@ class PipelineProcessor:
     def _create_base_file_names(self):
         """Create numbered base names for processed files"""
         base_file_names = [
-            f"{self.dataset_base_name}_{i:03d}"
-            for i in range(len(self.raw_image_paths))
+            f"{self.dataset_base_name}_{i:03d}" for i in range(len(self.raw_image_paths))
         ]
         return base_file_names
 
@@ -251,15 +246,11 @@ class PipelineProcessor:
             proc_file_paths.radiance.append(rad_path)
 
             # Radiance, glint corrected
-            rad_gc_path = self.radiance_gc_dir / (
-                base_file_name + "_radiance_gc.bip.hdr"
-            )
+            rad_gc_path = self.radiance_gc_dir / (base_file_name + "_radiance_gc.bip.hdr")
             proc_file_paths.radiance_gc.append(rad_gc_path)
 
             # Radiance, glint corrected, RGB version
-            rad_gc_rgb_path = self.radiance_gc_rgb_dir / (
-                base_file_name + "_radiance_gc_rgb.tiff"
-            )
+            rad_gc_rgb_path = self.radiance_gc_rgb_dir / (base_file_name + "_radiance_gc_rgb.tiff")
             proc_file_paths.radiance_gc_rgb.append(rad_gc_rgb_path)
 
             # Irradiance
@@ -279,9 +270,7 @@ class PipelineProcessor:
             proc_file_paths.reflectance.append(refl_path)
 
             # Reflectance, glint corrected
-            rgc_path = self.reflectance_gc_dir / (
-                base_file_name + "_reflectance_gc.bip.hdr"
-            )
+            rgc_path = self.reflectance_gc_dir / (base_file_name + "_reflectance_gc.bip.hdr")
             proc_file_paths.reflectance_gc.append(rgc_path)
 
             # Reflectance, glint corrected, RGB version
@@ -299,8 +288,7 @@ class PipelineProcessor:
             spec_base_name = raw_image_path.name.split("_Pika_L")[0]
             image_number = self._get_image_number(raw_image_path)
             spec_binary = (
-                raw_image_path.parent
-                / f"{spec_base_name}_downwelling_{image_number}_pre.spec"
+                raw_image_path.parent / f"{spec_base_name}_downwelling_{image_number}_pre.spec"
             )
             spec_header = raw_image_path.parent / (spec_binary.name + ".hdr")
             if spec_binary.exists() and spec_header.exists():
@@ -331,8 +319,7 @@ class PipelineProcessor:
             return dcp_files[0]
         elif len(dcp_files) == 0:
             raise FileNotFoundError(
-                "No irradiance calibration file (*.dcp) found in "
-                + f"{self.calibration_dir}"
+                "No irradiance calibration file (*.dcp) found in " + f"{self.calibration_dir}"
             )
         else:
             raise ValueError(
@@ -348,45 +335,44 @@ class PipelineProcessor:
             percentiles=self._get_config("quicklook", "percentiles")
         )
 
-        for raw_image_path, quicklook_image_path in zip(
-            self.raw_image_paths, self.ql_im_paths
-        ):
-            if quicklook_image_path.exists() and not self._get_config(
-                "quicklook", "overwrite"
-            ):
+        for raw_image_path, quicklook_image_path in zip(self.raw_image_paths, self.ql_im_paths):
+            if quicklook_image_path.exists() and not self._get_config("quicklook", "overwrite"):
                 logger.info(f"Image {quicklook_image_path.name} exists - skipping.")
                 continue
+
             logger.info(f"Creating quicklook version of {raw_image_path.name}")
             try:
                 quicklook_processor.create_quicklook_image_file(
                     raw_image_path, quicklook_image_path
                 )
             except Exception as e:
-                logger.warning(
-                    f"Error occured while processing {raw_image_path}", exc_info=True
-                )
+                logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
-    def convert_raw_images_to_radiance(self, overwrite=False, **kwargs):
+    def convert_raw_images_to_radiance(self):
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
-        radiance_converter = RadianceConverter(self.radiance_calibration_file)
-        for raw_image_path, radiance_image_path in zip(
-            self.raw_image_paths, self.rad_im_paths
+        radiance_converter = RadianceConverter(
+            self.radiance_calibration_file,
+            set_saturated_pixels_to_zero=self._get_config(
+                "radiance", "set_saturated_pixels_to_zero"
+            ),
+        )
+        for raw_image_path, radiance_image_path, geotransform_path in zip(
+            self.raw_image_paths, self.rad_im_paths, self.geotransform_paths
         ):
-            if radiance_image_path.exists() and not overwrite:
+            if radiance_image_path.exists() and not self._get_config("radiance", "overwrite"):
                 logger.info(f"Image {radiance_image_path.name} exists - skipping.")
                 continue
+
             logger.info(f"Converting {raw_image_path.name} to radiance")
             try:
                 radiance_converter.convert_raw_file_to_radiance(
-                    raw_image_path, radiance_image_path
+                    raw_image_path, radiance_image_path, geotransform_path=geotransform_path
                 )
             except Exception as e:
-                logger.warning(
-                    f"Error occured while processing {raw_image_path}", exc_info=True
-                )
+                logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
     def convert_raw_spectra_to_irradiance(self, **kwargs):
@@ -394,30 +380,22 @@ class PipelineProcessor:
         logger.info("---- IRRADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
         irradiance_converter = IrradianceConverter(self.irradiance_calibration_file)
-        for raw_spec_path, irrad_spec_path in zip(
-            self.raw_spec_paths, self.irrad_spec_paths
-        ):
+        for raw_spec_path, irrad_spec_path in zip(self.raw_spec_paths, self.irrad_spec_paths):
             if raw_spec_path is not None:
-                logger.info(
-                    f"Converting {raw_spec_path.name} to downwelling irradiance"
-                )
+                logger.info(f"Converting {raw_spec_path.name} to downwelling irradiance")
                 try:
                     irradiance_converter.convert_raw_file_to_irradiance(
                         raw_spec_path, irrad_spec_path
                     )
                 except Exception:
-                    logger.error(
-                        f"Error occured while processing {raw_spec_path}", exc_info=True
-                    )
+                    logger.error(f"Error occured while processing {raw_spec_path}", exc_info=True)
                     logger.error("Skipping file")
 
     def calibrate_irradiance_wavelengths(self, **kwargs):
         """Calibrate irradiance wavelengths using Fraunhofer absorption lines"""
         logger.info("---- IRRADIANCE WAVELENGTH CALIBRATION ----")
         if not (self.radiance_dir.exists()):
-            raise FileNotFoundError(
-                "Radiance folder with irradiance spectra does not exist"
-            )
+            raise FileNotFoundError("Radiance folder with irradiance spectra does not exist")
         wavelength_calibrator = WavelengthCalibrator()
         irradiance_spec_paths = list(self.radiance_dir.glob("*.spec.hdr"))
         if irradiance_spec_paths:
@@ -425,9 +403,7 @@ class PipelineProcessor:
             for irradiance_spec_path in irradiance_spec_paths:
                 logger.info(f"Calibrating wavelengths for {irradiance_spec_path.name}")
                 try:
-                    wavelength_calibrator.update_header_wavelengths(
-                        irradiance_spec_path
-                    )
+                    wavelength_calibrator.update_header_wavelengths(irradiance_spec_path)
                 except Exception:
                     logger.error(
                         f"Error occured while processing {irradiance_spec_path}",
@@ -445,13 +421,9 @@ class PipelineProcessor:
         ):
             logger.info(f"Processing IMU data from {lcf_path.name}")
             try:
-                imu_data_parser.read_and_save_imu_data(
-                    lcf_path, times_path, imu_data_path
-                )
+                imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
             except Exception:
-                logger.error(
-                    f"Error occured while processing {lcf_path}", exc_info=True
-                )
+                logger.error(f"Error occured while processing {lcf_path}", exc_info=True)
                 logger.error("Skipping file")
 
     def create_and_save_geotransform(self):
@@ -466,9 +438,7 @@ class PipelineProcessor:
                     geotransformer = GeoTransformer(imu_data_path, raw_im_path)
                     geotransformer.save_image_geotransform(geotrans_path)
             except Exception:
-                logger.error(
-                    f"Error occured while processing {raw_im_path}", exc_info=True
-                )
+                logger.error(f"Error occured while processing {raw_im_path}", exc_info=True)
                 logger.error("Skipping file")
 
     def glint_correct_radiance_images(self, overwrite=False):
@@ -499,16 +469,12 @@ class PipelineProcessor:
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
-        reflectance_converter = ReflectanceConverter(
-            irrad_spec_paths=self.irrad_spec_paths
-        )
+        reflectance_converter = ReflectanceConverter(irrad_spec_paths=self.irrad_spec_paths)
 
         if all([not rp.exists() for rp in self.rad_im_paths]):
             raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
         if all([not irp.exists() for irp in self.irrad_spec_paths]):
-            raise FileNotFoundError(
-                f"No irradiance spectra found in {self.radiance_dir}"
-            )
+            raise FileNotFoundError(f"No irradiance spectra found in {self.radiance_dir}")
 
         for rad_path, irrad_path, refl_path in zip(
             self.rad_im_paths, self.irrad_spec_paths, self.refl_im_paths
@@ -523,9 +489,7 @@ class PipelineProcessor:
                         rad_path, irrad_path, refl_path, **kwargs
                     )
                 except Exception as e:
-                    logger.error(
-                        f"Error occured while processing {rad_path}", exc_info=True
-                    )
+                    logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
 
     def glint_correct_reflectance_images(self, overwrite=False, **kwargs):
@@ -535,9 +499,7 @@ class PipelineProcessor:
         glint_corrector = FlatSpecGlintCorrector()
 
         if all([not rp.exists() for rp in self.refl_im_paths]):
-            raise FileNotFoundError(
-                f"No reflectance images found in {self.reflectance_dir}"
-            )
+            raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")
 
         for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
             if refl_gc_path.exists() and not overwrite:
@@ -567,9 +529,7 @@ class PipelineProcessor:
             self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
         ):
             if refl_gc_path.exists() and geotrans_path.exists():
-                logger.info(
-                    f"Georeferencing and exporting RGB version of {refl_gc_path.name}."
-                )
+                logger.info(f"Georeferencing and exporting RGB version of {refl_gc_path.name}.")
                 try:
                     georeferencer.georeference_hyspec_save_geotiff(
                         refl_gc_path,
@@ -578,8 +538,7 @@ class PipelineProcessor:
                     )
                 except Exception:
                     logger.error(
-                        "Error occured while georeferencing RGB version of "
-                        f"{refl_gc_path}",
+                        "Error occured while georeferencing RGB version of " f"{refl_gc_path}",
                         exc_info=True,
                     )
                     logger.error("Skipping file")
@@ -773,13 +732,26 @@ class PipelineProcessor:
                 self.create_quicklook_images()
             except Exception:
                 logger.error("Error while creating quicklook images", exc_info=True)
-        # if convert_raw_images_to_radiance:
-        #     try:
-        #         self.convert_raw_images_to_radiance()
-        #     except Exception:
-        #         logger.error(
-        #             "Error while converting raw images to radiance", exc_info=True
-        #         )
+
+        # FIXME: Fix if
+        if True:  # parse_imu_data:
+            try:
+                self.parse_and_save_imu_data()
+            except Exception:
+                logger.error("Error while parsing and saving IMU data", exc_info=True)
+
+        # FIXME: Fix if
+        if True:  # create_geotransform_json:
+            try:
+                self.create_and_save_geotransform()
+            except Exception:
+                logger.error("Error while parsing and saving IMU data", exc_info=True)
+
+        if self._get_config("radiance", "create"):
+            try:
+                self.convert_raw_images_to_radiance()
+            except Exception:
+                logger.error("Error while converting raw images to radiance", exc_info=True)
         # if convert_raw_spectra_to_irradiance:
         #     try:
         #         self.convert_raw_spectra_to_irradiance()
@@ -794,18 +766,6 @@ class PipelineProcessor:
         #         logger.error(
         #             "Error while calibrating irradiance wavelengths", exc_info=True
         #         )
-
-        # if parse_imu_data:
-        #     try:
-        #         self.parse_and_save_imu_data()
-        #     except Exception:
-        #         logger.error("Error while parsing and saving IMU data", exc_info=True)
-
-        # if create_geotransform_json:
-        #     try:
-        #         self.create_and_save_geotransform()
-        #     except Exception:
-        #         logger.error("Error while parsing and saving IMU data", exc_info=True)
 
         # if convert_radiance_to_reflectance:
         #     try:
