@@ -521,12 +521,11 @@ def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = Tr
     return samp
 
 
-# GPS - UNIX time conversion code adapted from
-# https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
-
-
 def unix2gps(unix_time):
-    """Convert UNIX time to GPS time (both in seconds)"""
+    """Convert UNIX time to GPS time (both in seconds)
+    UNIX-GPS time conversion code adapted from
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    """
     gps_time = unix_time - 315964800
     nleaps = _count_leaps(gps_time, "unix2gps")
     gps_time += nleaps + (1 if unix_time % 1 != 0 else 0)
@@ -534,7 +533,10 @@ def unix2gps(unix_time):
 
 
 def gps2unix(gps_time):
-    """Convert GPS time to UNIX time (both in seconds)"""
+    """Convert GPS time to UNIX time (both in seconds)
+    GPS-UNIX time conversion code adapted from
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    """
     unix_time = gps_time + 315964800
     nleaps = _count_leaps(gps_time, "gps2unix")
     unix_time -= nleaps
