@@ -12,12 +12,22 @@ logger = logging.getLogger(__name__)
 class QuickLookProcessor:
     def __init__(
         self,
-        rgb_wl: tuple[float, float, float] = (640.0, 550.0, 460.0),
-        percentiles: tuple[float, float] = (2, 98),
+        rgb_wl: Union[tuple[float, float, float], None] = None,
+        percentiles: Union[tuple[float, float], None] = None,
     ):
-        """Initialize quicklook processor"""
-        self.rgb_wl = rgb_wl
-        self.percentiles = percentiles
+        """Initialize quicklook processor
+
+        Parameters
+        ----------
+        rgb_wl : Union[tuple[float, float, float], None], optional
+            Wavelengths (in nm) for generating RGB images
+            If None, uses default (640.0, 550.0, 460.0)
+        percentiles : Union[tuple[float, float], None], optional
+            Percentile limits for percentile stretching of images.
+            If None, uses default (2, 98)
+        """
+        self.rgb_wl = rgb_wl if rgb_wl else (640.0, 550.0, 460.0)
+        self.percentiles = percentiles if percentiles else (2, 98)
 
     def create_quicklook_image_file(
         self, raw_path: Union[Path, str], quicklook_path: Union[Path, str]
