@@ -46,7 +46,7 @@ dev = [
 Repository = "https://github.com/mh-skjelvareid/massipipe"
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "I"]
