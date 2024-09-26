@@ -26,13 +26,6 @@ from massipipe.reflectance import ReflectanceConverter
 logger = logging.getLogger(__name__)
 
 
-def parse_config(yaml_path):
-    """Parse YAML config file, accepting only basic YAML tags"""
-    with open(yaml_path, "r") as stream:
-        config = yaml.safe_load(stream)
-    return config
-
-
 @dataclass
 class ProcessedFilePaths:
     """Data class for simple management of lists of processed files"""
@@ -80,10 +73,14 @@ class PipelineProcessor:
         config_file_path = self.dataset_dir / config_file_name
         self.config_file_path = config_file_path
         try:
-            self.config = parse_config(self.dataset_dir / config_file_name)
-        except IOError as e:
+            full_config = self.parse_config(self.dataset_dir / config_file_name)
+            self.config = full_config["massipipe_options"]
+        except IOError:
             logger.error(f"Error parsing config file {config_file_path}")
-            raise e
+            raise
+        except KeyError:
+            logger.error(f"Config file lacks massipipe_options key")
+            raise
 
         # Define dataset folder structure
         self.dataset_base_name = self.dataset_dir.name
@@ -162,6 +159,13 @@ class PipelineProcessor:
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
         logger.info("File logging initialized.")
+
+    @staticmethod
+    def parse_config(yaml_path):
+        """Parse YAML config file, accepting only basic YAML tags"""
+        with open(yaml_path, "r") as stream:
+            config = yaml.safe_load(stream)
+        return config
 
     def _validate_raw_files(self):
         """Check that all expected raw files exist
@@ -336,15 +340,20 @@ class PipelineProcessor:
                 + f"{self.calibration_dir}"
             )
 
-    def create_quicklook_images(self, overwrite=False, **kwargs):
+    def create_quicklook_images(self):
         """Create quicklook versions of raw images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
-        quicklook_processor = QuickLookProcessor()
+        quicklook_processor = QuickLookProcessor(
+            percentiles=self._get_config("quicklook", "percentiles")
+        )
+
         for raw_image_path, quicklook_image_path in zip(
             self.raw_image_paths, self.ql_im_paths
         ):
-            if quicklook_image_path.exists() and not overwrite:
+            if quicklook_image_path.exists() and not self._get_config(
+                "quicklook", "overwrite"
+            ):
                 logger.info(f"Image {quicklook_image_path.name} exists - skipping.")
                 continue
             logger.info(f"Creating quicklook version of {raw_image_path.name}")
@@ -690,19 +699,42 @@ class PipelineProcessor:
         if self.mosaic_dir.exists() and delete_mosaics:
             shutil.rmtree(self.mosaic_dir)
 
+    def _get_config(self, *keys):
+        """Get (nested) configuration value if it exists
+
+        Parameters
+        ----------
+        *keys
+            One or multiple keys needed to access value in nested dict generated from
+            YAML configuration file.
+
+        Returns
+        -------
+        configuration_value
+            Value if value is defined in dictionary, None if not.
+            Note that "null" values in YAML also correspond to None (not defined)
+        """
+        config = self.config
+        for key in keys:
+            if key in config:
+                config = config[key]
+            else:
+                return None
+        return config
+
     def run(
         self,
-        create_quicklook_images=True,
-        convert_raw_images_to_radiance=True,
-        convert_raw_spectra_to_irradiance=True,
-        calibrate_irradiance_wavelengths=True,
-        parse_imu_data=True,
-        create_geotransform_json=True,
-        convert_radiance_to_reflectance=True,
-        glint_correct_reflectance=True,
-        geotiff_from_glint_corrected_reflectance=True,
-        mosaic_geotiffs=True,
-        **kwargs,
+        # create_quicklook_images=True,
+        # convert_raw_images_to_radiance=True,
+        # convert_raw_spectra_to_irradiance=True,
+        # calibrate_irradiance_wavelengths=True,
+        # parse_imu_data=True,
+        # create_geotransform_json=True,
+        # convert_radiance_to_reflectance=True,
+        # glint_correct_reflectance=True,
+        # geotiff_from_glint_corrected_reflectance=True,
+        # mosaic_geotiffs=True,
+        # **kwargs,
     ):
         """_summary_
 
@@ -734,83 +766,85 @@ class PipelineProcessor:
         mosaic_geotiffs : bool, default True
             Whether to combine all GeoTIFFs in a single "mosaic" GeoTIFF
         """
-        if create_quicklook_images:
+        # TODO: Update docstring (using config file instead)
+
+        if self._get_config("quicklook", "create"):
             try:
-                self.create_quicklook_images(**kwargs)
+                self.create_quicklook_images()
             except Exception:
                 logger.error("Error while creating quicklook images", exc_info=True)
-        if convert_raw_images_to_radiance:
-            try:
-                self.convert_raw_images_to_radiance(**kwargs)
-            except Exception:
-                logger.error(
-                    "Error while converting raw images to radiance", exc_info=True
-                )
-        if convert_raw_spectra_to_irradiance:
-            try:
-                self.convert_raw_spectra_to_irradiance(**kwargs)
-            except Exception:
-                logger.error(
-                    "Error while converting raw spectra to irradiance", exc_info=True
-                )
-        if calibrate_irradiance_wavelengths:
-            try:
-                self.calibrate_irradiance_wavelengths(**kwargs)
-            except Exception:
-                logger.error(
-                    "Error while calibrating irradiance wavelengths", exc_info=True
-                )
+        # if convert_raw_images_to_radiance:
+        #     try:
+        #         self.convert_raw_images_to_radiance()
+        #     except Exception:
+        #         logger.error(
+        #             "Error while converting raw images to radiance", exc_info=True
+        #         )
+        # if convert_raw_spectra_to_irradiance:
+        #     try:
+        #         self.convert_raw_spectra_to_irradiance()
+        #     except Exception:
+        #         logger.error(
+        #             "Error while converting raw spectra to irradiance", exc_info=True
+        #         )
+        # if calibrate_irradiance_wavelengths:
+        #     try:
+        #         self.calibrate_irradiance_wavelengths()
+        #     except Exception:
+        #         logger.error(
+        #             "Error while calibrating irradiance wavelengths", exc_info=True
+        #         )
 
-        if parse_imu_data:
-            try:
-                self.parse_and_save_imu_data(**kwargs)
-            except Exception:
-                logger.error("Error while parsing and saving IMU data", exc_info=True)
+        # if parse_imu_data:
+        #     try:
+        #         self.parse_and_save_imu_data()
+        #     except Exception:
+        #         logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-        if create_geotransform_json:
-            try:
-                self.create_and_save_geotransform()
-            except Exception:
-                logger.error("Error while parsing and saving IMU data", exc_info=True)
+        # if create_geotransform_json:
+        #     try:
+        #         self.create_and_save_geotransform()
+        #     except Exception:
+        #         logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-        if convert_radiance_to_reflectance:
-            try:
-                self.convert_radiance_images_to_reflectance(**kwargs)
-            except FileNotFoundError:
-                logger.warning(
-                    "Missing input radiance / irradiance files, "
-                    "skipping reflectance conversion."
-                )
-            except Exception:
-                logger.error(
-                    "Error while converting from radiance to reflectance", exc_info=True
-                )
+        # if convert_radiance_to_reflectance:
+        #     try:
+        #         self.convert_radiance_images_to_reflectance()
+        #     except FileNotFoundError:
+        #         logger.warning(
+        #             "Missing input radiance / irradiance files, "
+        #             "skipping reflectance conversion."
+        #         )
+        #     except Exception:
+        #         logger.error(
+        #             "Error while converting from radiance to reflectance", exc_info=True
+        #         )
 
-        if glint_correct_reflectance:
-            try:
-                self.glint_correct_reflectance_images(**kwargs)
-            except FileNotFoundError:
-                logger.warning(
-                    "Missing input reflectance files, skipping glint correction."
-                )
-            except Exception:
-                logger.error(
-                    "Error while glint correcting reflectance images", exc_info=True
-                )
+        # if glint_correct_reflectance:
+        #     try:
+        #         self.glint_correct_reflectance_images()
+        #     except FileNotFoundError:
+        #         logger.warning(
+        #             "Missing input reflectance files, skipping glint correction."
+        #         )
+        #     except Exception:
+        #         logger.error(
+        #             "Error while glint correcting reflectance images", exc_info=True
+        #         )
 
-        if geotiff_from_glint_corrected_reflectance:
-            try:
-                self.georeference_glint_corrected_reflectance(**kwargs)
-            except Exception:
-                logger.error(
-                    "Error while georeferencing glint corrected images ", exc_info=True
-                )
+        # if geotiff_from_glint_corrected_reflectance:
+        #     try:
+        #         self.georeference_glint_corrected_reflectance()
+        #     except Exception:
+        #         logger.error(
+        #             "Error while georeferencing glint corrected images ", exc_info=True
+        #         )
 
-        if mosaic_geotiffs:
-            try:
-                self.mosaic_geotiffs()
-            except Exception:
-                logger.error("Error while mosaicing geotiffs ", exc_info=True)
+        # if mosaic_geotiffs:
+        #     try:
+        #         self.mosaic_geotiffs()
+        #     except Exception:
+        #         logger.error("Error while mosaicing geotiffs ", exc_info=True)
 
 
 if __name__ == "__main__":
