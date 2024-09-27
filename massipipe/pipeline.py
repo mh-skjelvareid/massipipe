@@ -436,13 +436,31 @@ class PipelineProcessor:
         for raw_im_path, imu_data_path, geotrans_path in zip(
             self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
         ):
-            logger.info(f"Creating and saving geotransform for {raw_im_path.name}")
+            if geotrans_path.exists() and not self._get_config("geotransform", "overwrite"):
+                logger.info(f"Image {geotrans_path.name} exists - skipping.")
+                continue
+
+            logger.info(f"Creating and saving geotransform based on {imu_data_path.name}")
             try:
                 if imu_data_path.exists() and raw_im_path.exists():
-                    geotransformer = GeoTransformer(imu_data_path, raw_im_path)
+                    geotransformer = GeoTransformer(
+                        imu_data_path,
+                        raw_im_path,
+                        camera_opening_angle=self._get_config(
+                            "geotransform", "camera_opening_angle_deg"
+                        ),
+                        pitch_offset=self._get_config("geotransform", "pitch_offset_deg"),
+                        roll_offset=self._get_config("geotransform", "roll_offset_deg"),
+                        altitude_offset=self._get_config("geotransform", "altitude_offset_m"),
+                        utm_x_offset=self._get_config("geotransform", "utm_x_offset_m"),
+                        utm_y_offset=self._get_config("geotransform", "utm_y_offset_m"),
+                        assume_square_pixels=self._get_config(
+                            "geotransform", "assume_square_pixels"
+                        ),
+                    )
                     geotransformer.save_image_geotransform(geotrans_path)
             except Exception:
-                logger.error(f"Error occured while processing {raw_im_path}", exc_info=True)
+                logger.error(f"Error occured while processing {imu_data_path}", exc_info=True)
                 logger.error("Skipping file")
 
     def glint_correct_radiance_images(self, overwrite=False):
@@ -743,8 +761,7 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-        # FIXME: Fix if
-        if True:  # create_geotransform_json:
+        if self._get_config("geotransform", "create"):
             try:
                 self.create_and_save_geotransform()
             except Exception:

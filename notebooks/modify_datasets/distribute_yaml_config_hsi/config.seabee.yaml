@@ -29,6 +29,7 @@ massipipe_options:
     altitude_offset_m: null
     utm_x_offset_m: null
     utm_y_offset_m: null
+    assume_square_pixels: true
   radiance:
     create: true
     overwrite: false

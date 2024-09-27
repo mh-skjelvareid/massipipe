@@ -54,18 +54,14 @@ def read_envi(
         im_handle = spectral.io.envi.open(header_path, image_path)
     except spectral.io.envi.MissingEnviHeaderParameter as e:
         logging.debug(f"Header file has missing parameter: {header_path}")
-        byte_order_missing_str = (
-            'Mandatory parameter "byte order" missing from header file.'
-        )
+        byte_order_missing_str = 'Mandatory parameter "byte order" missing from header file.'
         if str(e) == byte_order_missing_str and write_byte_order_if_missing:
             logging.debug('Writing "byte order = 0" to header file and retrying')
             try:
                 with open(header_path, "a") as file:
                     file.write("byte order = 0\n")
             except OSError:
-                logger.error(
-                    f"Error writing to header file {header_path}", exc_info=True
-                )
+                logger.error(f"Error writing to header file {header_path}", exc_info=True)
                 raise
 
             try:
@@ -91,9 +87,7 @@ def read_envi(
     return (image, wl, im_handle.metadata)
 
 
-def save_envi(
-    header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs
-) -> None:
+def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs) -> None:
     """Save ENVI file with parameters compatible with Spectronon
 
     Parameters
@@ -109,9 +103,7 @@ def save_envi(
         See read_envi()
     """
     # Save file
-    spectral.envi.save_image(
-        header_path, image, metadata=metadata, force=True, ext=None, **kwargs
-    )
+    spectral.envi.save_image(header_path, image, metadata=metadata, force=True, ext=None, **kwargs)
 
 
 def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
@@ -140,9 +132,7 @@ def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
     return wl_str
 
 
-def update_header_wavelengths(
-    wavelengths: NDArray, header_path: Union[Path, str]
-) -> None:
+def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str]) -> None:
     """Update ENVI header wavelengths
 
     Parameters
@@ -254,9 +244,7 @@ def savitzky_golay_filter(
     NDArray
         Filtered version of image.
     """
-    return savgol_filter(
-        image, window_length=window_length, polyorder=polyorder, axis=axis
-    )
+    return savgol_filter(image, window_length=window_length, polyorder=polyorder, axis=axis)
 
 
 def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
@@ -383,7 +371,7 @@ def convert_long_lat_to_utm(
     proj = Proj(utm_crs)
     UTMx, UTMy = proj(long, lat)
 
-    return UTMx, UTMy, utm_crs.to_epsg()
+    return np.array(UTMx), np.array(UTMy), utm_crs.to_epsg()
 
 
 def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:

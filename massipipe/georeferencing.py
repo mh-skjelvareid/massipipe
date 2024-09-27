@@ -207,11 +207,13 @@ class GeoTransformer:
         self,
         imu_data_path: Union[Path, str],
         image_header_path: Union[Path, str],
-        camera_opening_angle: float = 36.5,
-        pitch_offset: float = 0.0,
-        roll_offset: float = 0.0,
-        assume_square_pixels: bool = True,
-        altitude_offset: float = 0.0,
+        camera_opening_angle: Union[float, None] = None,
+        pitch_offset: Union[float, None] = None,
+        roll_offset: Union[float, None] = None,
+        altitude_offset: Union[float, None] = None,
+        utm_x_offset: Union[float, None] = None,
+        utm_y_offset: Union[float, None] = None,
+        assume_square_pixels: Union[bool, None] = True,
     ):
         """Initialize image flight metadata object
 
@@ -226,10 +228,19 @@ class GeoTransformer:
             Corresponds to angle between rays hitting leftmost and
             rightmost pixels of image.
         pitch_offset : float, default 0.0
-            How much forward the camera is pointing relative to nadir
+            How much forward the camera is pointing relative to nadir (degrees)
         roll_offset : float, default 0.0
             How much to the right ("right wing up") the camera is pointing
-            relative to nadir.
+            relative to nadir (degrees).
+        altitude_offset : float, default 0.0
+            Offset added to the estimated altitude. If the UAV was higher
+            in reality than that estimated by the GeoTransformer
+            object, add a positive altitude_offset.
+        utm_x_offset, utm_y_offset: float, default 0.0
+            How far from the real position the IMU data position is, measured in
+            meters. If the IMU data is too far east, utm_x_offset is positive.
+            If the IMU data is too far north, utm_y_offset is positive.
+            The offset is assumed to be constant across a dataset.
         assume_square_pixels : bool, default True
             Whether to assume that the original image was acquired with
             flight parameters (flight speed, frame rate, altitude)
@@ -237,30 +248,38 @@ class GeoTransformer:
             camera is estimated from the shape of the image and the (along-track)
             swath length. This can be useful in cases where absolute altitude
             measurement of the camera IMU is not very accurate.
-        altitude_offset : float, default 0.0
-            Offset added to the estimated altitude. If the UAV was higher
-            in reality than that estimated by the GeoTransformer
-            object, add a positive altitude_offset.
         """
 
-        # Set input attributes
+        # Set default values
+        camera_opening_angle = camera_opening_angle if camera_opening_angle else 36.5
+        pitch_offset = pitch_offset if pitch_offset else 0.0
+        roll_offset = roll_offset if roll_offset else 0.0
+        altitude_offset = altitude_offset if altitude_offset else 0.0
+        utm_x_offset = utm_x_offset if utm_x_offset else 0.0
+        utm_y_offset = utm_y_offset if utm_y_offset else 0.0
+        assume_square_pixels = (
+            True if assume_square_pixels or (assume_square_pixels is None) else False
+        )
+
+        # Set attributes, converting degrees to radians
         self.camera_opening_angle = camera_opening_angle * (np.pi / 180)
         self.pitch_offset = pitch_offset * (np.pi / 180)
         self.roll_offset = roll_offset * (np.pi / 180)
         self.altitude_offset = altitude_offset
+        self.utm_x_offset = utm_x_offset
+        self.utm_y_offset = utm_y_offset
 
         # Get imu data and image shape from files
         self.imu_data = mpu.read_json(imu_data_path)
         self.image_shape = mpu.get_image_shape(image_header_path)
 
         # Get UTM coordinates and CRS code
-        utm_x, utm_y, utm_epsg = mpu.convert_long_lat_to_utm(
+        self.utm_x, self.utm_y, self.utm_epsg = mpu.convert_long_lat_to_utm(
             self.imu_data["longitude"], self.imu_data["latitude"]
         )
-        self.utm_x = utm_x
-        self.utm_y = utm_y
-        self.camera_origin = np.array([utm_x[0], utm_y[0]])
-        self.utm_epsg = utm_epsg
+        self.utm_x -= self.utm_x_offset
+        self.utm_y -= self.utm_y_offset
+        self.camera_origin = np.array([self.utm_x[0], self.utm_y[0]])
 
         # Time-related attributes
         t_total, dt = self._calc_time_attributes()
@@ -341,21 +360,15 @@ class GeoTransformer:
 
     def _calc_acrosstrack_properties(self):
         """Calculate cross-track unit vector, swath width and sampling distance"""
-        u_acrosstrack = np.array(
-            [-self.u_alongtrack[1], self.u_alongtrack[0]]
-        )  # Rotate 90 CCW
+        u_acrosstrack = np.array([-self.u_alongtrack[1], self.u_alongtrack[0]])  # Rotate 90 CCW
         swath_width = 2 * self.mean_altitude * np.tan(self.camera_opening_angle / 2)
         gsd_acrosstrack = swath_width / self.image_shape[1]
         return u_acrosstrack, swath_width, gsd_acrosstrack
 
     def _calc_image_origin(self):
         """Calculate location of image pixel (0,0) in georeferenced coordinates (x,y)"""
-        alongtrack_offset = (
-            self.mean_altitude * np.tan(self.pitch_offset) * self.u_alongtrack
-        )
-        acrosstrack_offset = (
-            self.mean_altitude * np.tan(self.roll_offset) * self.u_acrosstrack
-        )
+        alongtrack_offset = self.mean_altitude * np.tan(self.pitch_offset) * self.u_alongtrack
+        acrosstrack_offset = self.mean_altitude * np.tan(self.roll_offset) * self.u_acrosstrack
         # NOTE: Signs of cross-track elements in equation below are "flipped"
         # because UTM coordinate system is right-handed and image coordinate
         # system is left-handed. If the camera_origin is in the middle of the
@@ -696,9 +709,7 @@ class SimpleGeoreferencer:
             resolution=resolution,
         )
         dst_profile = src.meta.copy()
-        dst_profile.update(
-            {"transform": non_rotated_transform, "width": width, "height": height}
-        )
+        dst_profile.update({"transform": non_rotated_transform, "width": width, "height": height})
         return dst_profile
 
     def write_geotiff(
