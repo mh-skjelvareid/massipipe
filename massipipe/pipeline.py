@@ -411,7 +411,7 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def parse_and_save_imu_data(self, **kwargs):
+    def parse_and_save_imu_data(self):
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
         logger.info("---- IMU DATA PROCESSING ----")
         self.imudata_dir.mkdir(exist_ok=True)
@@ -419,6 +419,10 @@ class PipelineProcessor:
         for lcf_path, times_path, imu_data_path in zip(
             self.lcf_paths, self.times_paths, self.imu_data_paths
         ):
+            if imu_data_path.exists() and not self._get_config("imu_data", "overwrite"):
+                logger.info(f"Image {imu_data_path.name} exists - skipping.")
+                continue
+
             logger.info(f"Processing IMU data from {lcf_path.name}")
             try:
                 imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
@@ -733,8 +737,7 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while creating quicklook images", exc_info=True)
 
-        # FIXME: Fix if
-        if True:  # parse_imu_data:
+        if self._get_config("imu_data", "create"):
             try:
                 self.parse_and_save_imu_data()
             except Exception:
