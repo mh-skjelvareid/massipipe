@@ -375,13 +375,17 @@ class PipelineProcessor:
                 logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
-    def convert_raw_spectra_to_irradiance(self, **kwargs):
+    def convert_raw_spectra_to_irradiance(self):
         """Convert raw spectra (DN) to irradiance (W/(m2*nm))"""
         logger.info("---- IRRADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
         irradiance_converter = IrradianceConverter(self.irradiance_calibration_file)
         for raw_spec_path, irrad_spec_path in zip(self.raw_spec_paths, self.irrad_spec_paths):
-            if raw_spec_path is not None:
+            if irrad_spec_path.exists() and not self._get_config("irradiance", "overwrite"):
+                logger.info(f"Image {irrad_spec_path.name} exists - skipping.")
+                continue
+
+            if raw_spec_path.exists():
                 logger.info(f"Converting {raw_spec_path.name} to downwelling irradiance")
                 try:
                     irradiance_converter.convert_raw_file_to_irradiance(
@@ -391,7 +395,7 @@ class PipelineProcessor:
                     logger.error(f"Error occured while processing {raw_spec_path}", exc_info=True)
                     logger.error("Skipping file")
 
-    def calibrate_irradiance_wavelengths(self, **kwargs):
+    def calibrate_irradiance_wavelengths(self):
         """Calibrate irradiance wavelengths using Fraunhofer absorption lines"""
         logger.info("---- IRRADIANCE WAVELENGTH CALIBRATION ----")
         if not (self.radiance_dir.exists()):
@@ -772,20 +776,17 @@ class PipelineProcessor:
                 self.convert_raw_images_to_radiance()
             except Exception:
                 logger.error("Error while converting raw images to radiance", exc_info=True)
-        # if convert_raw_spectra_to_irradiance:
-        #     try:
-        #         self.convert_raw_spectra_to_irradiance()
-        #     except Exception:
-        #         logger.error(
-        #             "Error while converting raw spectra to irradiance", exc_info=True
-        #         )
-        # if calibrate_irradiance_wavelengths:
-        #     try:
-        #         self.calibrate_irradiance_wavelengths()
-        #     except Exception:
-        #         logger.error(
-        #             "Error while calibrating irradiance wavelengths", exc_info=True
-        #         )
+
+        if self._get_config("irradiance", "create"):
+            try:
+                self.convert_raw_spectra_to_irradiance()
+            except Exception:
+                logger.error("Error while converting raw spectra to irradiance", exc_info=True)
+
+            try:
+                self.calibrate_irradiance_wavelengths()
+            except Exception:
+                logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
 
         # if convert_radiance_to_reflectance:
         #     try:
