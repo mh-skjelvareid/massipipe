@@ -56,9 +56,12 @@ massipipe_options:
     overwrite: false 
     wl_min: null
     wl_max: null
-    fwhm_irradiance_smoothing: null
+    conv_irrad_with_gauss: true
+    fwhm_irrad_smooth: null
     smooth_spectra: false
     add_map_info: true
+    refl_from_mean_irrad: false
+    irrad_spec_paths: null
   reflectance_gc: 
     create: true
     overwrite: false

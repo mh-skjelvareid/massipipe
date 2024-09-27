@@ -349,6 +349,58 @@ class PipelineProcessor:
                 logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
+    def parse_and_save_imu_data(self):
+        """Parse *.lcf and *.times files with IMU data and save as JSON"""
+        logger.info("---- IMU DATA PROCESSING ----")
+        self.imudata_dir.mkdir(exist_ok=True)
+        imu_data_parser = ImuDataParser()
+        for lcf_path, times_path, imu_data_path in zip(
+            self.lcf_paths, self.times_paths, self.imu_data_paths
+        ):
+            if imu_data_path.exists() and not self._get_config("imu_data", "overwrite"):
+                logger.info(f"Image {imu_data_path.name} exists - skipping.")
+                continue
+
+            logger.info(f"Processing IMU data from {lcf_path.name}")
+            try:
+                imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
+            except Exception:
+                logger.error(f"Error occured while processing {lcf_path}", exc_info=True)
+                logger.error("Skipping file")
+
+    def create_and_save_geotransform(self):
+        logger.info("---- GEOTRANSFORM CALCULATION ----")
+        self.geotransform_dir.mkdir(exist_ok=True)
+        for raw_im_path, imu_data_path, geotrans_path in zip(
+            self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
+        ):
+            if geotrans_path.exists() and not self._get_config("geotransform", "overwrite"):
+                logger.info(f"Image {geotrans_path.name} exists - skipping.")
+                continue
+
+            logger.info(f"Creating and saving geotransform based on {imu_data_path.name}")
+            try:
+                if imu_data_path.exists() and raw_im_path.exists():
+                    geotransformer = GeoTransformer(
+                        imu_data_path,
+                        raw_im_path,
+                        camera_opening_angle=self._get_config(
+                            "geotransform", "camera_opening_angle_deg"
+                        ),
+                        pitch_offset=self._get_config("geotransform", "pitch_offset_deg"),
+                        roll_offset=self._get_config("geotransform", "roll_offset_deg"),
+                        altitude_offset=self._get_config("geotransform", "altitude_offset_m"),
+                        utm_x_offset=self._get_config("geotransform", "utm_x_offset_m"),
+                        utm_y_offset=self._get_config("geotransform", "utm_y_offset_m"),
+                        assume_square_pixels=self._get_config(
+                            "geotransform", "assume_square_pixels"
+                        ),
+                    )
+                    geotransformer.save_image_geotransform(geotrans_path)
+            except Exception:
+                logger.error(f"Error occured while processing {imu_data_path}", exc_info=True)
+                logger.error("Skipping file")
+
     def convert_raw_images_to_radiance(self):
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
@@ -415,59 +467,7 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def parse_and_save_imu_data(self):
-        """Parse *.lcf and *.times files with IMU data and save as JSON"""
-        logger.info("---- IMU DATA PROCESSING ----")
-        self.imudata_dir.mkdir(exist_ok=True)
-        imu_data_parser = ImuDataParser()
-        for lcf_path, times_path, imu_data_path in zip(
-            self.lcf_paths, self.times_paths, self.imu_data_paths
-        ):
-            if imu_data_path.exists() and not self._get_config("imu_data", "overwrite"):
-                logger.info(f"Image {imu_data_path.name} exists - skipping.")
-                continue
-
-            logger.info(f"Processing IMU data from {lcf_path.name}")
-            try:
-                imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
-            except Exception:
-                logger.error(f"Error occured while processing {lcf_path}", exc_info=True)
-                logger.error("Skipping file")
-
-    def create_and_save_geotransform(self):
-        logger.info("---- GEOTRANSFORM CALCULATION ----")
-        self.geotransform_dir.mkdir(exist_ok=True)
-        for raw_im_path, imu_data_path, geotrans_path in zip(
-            self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
-        ):
-            if geotrans_path.exists() and not self._get_config("geotransform", "overwrite"):
-                logger.info(f"Image {geotrans_path.name} exists - skipping.")
-                continue
-
-            logger.info(f"Creating and saving geotransform based on {imu_data_path.name}")
-            try:
-                if imu_data_path.exists() and raw_im_path.exists():
-                    geotransformer = GeoTransformer(
-                        imu_data_path,
-                        raw_im_path,
-                        camera_opening_angle=self._get_config(
-                            "geotransform", "camera_opening_angle_deg"
-                        ),
-                        pitch_offset=self._get_config("geotransform", "pitch_offset_deg"),
-                        roll_offset=self._get_config("geotransform", "roll_offset_deg"),
-                        altitude_offset=self._get_config("geotransform", "altitude_offset_m"),
-                        utm_x_offset=self._get_config("geotransform", "utm_x_offset_m"),
-                        utm_y_offset=self._get_config("geotransform", "utm_y_offset_m"),
-                        assume_square_pixels=self._get_config(
-                            "geotransform", "assume_square_pixels"
-                        ),
-                    )
-                    geotransformer.save_image_geotransform(geotrans_path)
-            except Exception:
-                logger.error(f"Error occured while processing {imu_data_path}", exc_info=True)
-                logger.error("Skipping file")
-
-    def glint_correct_radiance_images(self, overwrite=False):
+    def glint_correct_radiance_images(self):
         """Remove water surface reflections of sun and sky light"""
         logger.info("---- RADIANCE GLINT CORRECTION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
@@ -491,11 +491,19 @@ class PipelineProcessor:
         glint_corrector = HedleyGlintCorrector()
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
 
-    def convert_radiance_images_to_reflectance(self, overwrite=False, **kwargs):
+    def convert_radiance_images_to_reflectance(self, overwrite=False):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
-        reflectance_converter = ReflectanceConverter(irrad_spec_paths=self.irrad_spec_paths)
+        reflectance_converter = ReflectanceConverter(
+            wl_min=self._get_config("reflectance", "wl_min"),
+            wl_max=self._get_config("reflectance", "wl_max"),
+            conv_irrad_with_gauss=self._get_config("reflectance", "conv_irrad_with_gauss"),
+            smooth_spectra=self._get_config("reflectance", "smooth_spectra"),
+            add_map_info=self._get_config("reflectance", "add_map_info"),
+            refl_from_mean_irrad=self._get_config("reflectance", "refl_from_mean_irrad"),
+            irrad_spec_paths=self.irrad_spec_paths,
+        )
 
         if all([not rp.exists() for rp in self.rad_im_paths]):
             raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
@@ -512,7 +520,7 @@ class PipelineProcessor:
                 logger.info(f"Converting {rad_path.name} to reflectance.")
                 try:
                     reflectance_converter.convert_radiance_file_to_reflectance(
-                        rad_path, irrad_path, refl_path, **kwargs
+                        rad_path, irrad_path, refl_path
                     )
                 except Exception as e:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
@@ -788,18 +796,15 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
 
-        # if convert_radiance_to_reflectance:
-        #     try:
-        #         self.convert_radiance_images_to_reflectance()
-        #     except FileNotFoundError:
-        #         logger.warning(
-        #             "Missing input radiance / irradiance files, "
-        #             "skipping reflectance conversion."
-        #         )
-        #     except Exception:
-        #         logger.error(
-        #             "Error while converting from radiance to reflectance", exc_info=True
-        #         )
+        if self._get_config("reflectance", "create"):
+            try:
+                self.convert_radiance_images_to_reflectance()
+            except FileNotFoundError:
+                logger.warning(
+                    "Missing input radiance / irradiance files, " "skipping reflectance conversion."
+                )
+            except Exception:
+                logger.error("Error while converting from radiance to reflectance", exc_info=True)
 
         # if glint_correct_reflectance:
         #     try:
