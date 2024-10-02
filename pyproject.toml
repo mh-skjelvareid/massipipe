@@ -14,7 +14,8 @@ dependencies = [
   "rasterio",
   "spectral",
   "scipy",
-  "schema"
+  "schema",
+  "pydantic"
 ]
 requires-python = ">=3.8"
 authors = [
