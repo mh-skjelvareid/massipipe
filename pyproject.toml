@@ -37,6 +37,7 @@ dev = [
   "jupyterlab",
   "pytest",
   "ruff",
+  "rich",
   "numpydoc-linter",
   "mkdocs",
   "mkdocstrings-python",

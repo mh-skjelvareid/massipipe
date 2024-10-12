@@ -1,6 +1,6 @@
 grouping: null                            # General identifier linking this flight to related flights
 area: null                                # Name of specific location
-datetime: null                            # Format 'yyyymmddHHMM'
+datetime: null                            # Format 'yyyymmddHHMM' (must be text string)
 nfiles: null                              # Number of raw hyperspectral files
 organisation: UiT
 mosaic: true
@@ -61,7 +61,6 @@ massipipe_options:
     smooth_spectra: false
     add_map_info: true
     refl_from_mean_irrad: false
-    irrad_spec_paths: null
   reflectance_gc: 
     create: true
     overwrite: false
