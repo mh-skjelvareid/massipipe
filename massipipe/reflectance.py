@@ -82,7 +82,7 @@ class ReflectanceConverter:
             self.refl_from_mean_irrad = True
             irrad_spec_mean, irrad_wl, _ = self._get_mean_irrad_spec(irrad_spec_paths)
         else:
-            self.refl_from_mean_irrad = True
+            self.refl_from_mean_irrad = False
             irrad_spec_mean, irrad_wl = np.array([]), np.array([])
         self.ref_irrad_spec_mean = irrad_spec_mean
         self.ref_irrad_spec_wl = irrad_wl
@@ -101,8 +101,7 @@ class ReflectanceConverter:
         irrad_spec_mean = np.mean(irrad_spectra, axis=0)
         return irrad_spec_mean, irrad_wl, irrad_spectra
 
-    @staticmethod
-    def conv_spec_with_gaussian(spec: NDArray, wl: NDArray, gauss_fwhm: float) -> NDArray:
+    def conv_spec_with_gaussian(self, spec: NDArray, wl: NDArray) -> NDArray:
         """Convolve spectrum with Gaussian kernel to smooth / blur spectral details
 
         Parameters
@@ -111,10 +110,6 @@ class ReflectanceConverter:
             Input spectrum, shape (n_bands,)
         wl: NDArray, nanometers
             Wavelengths corresponding to each spectrum value, shape (n_bands,)
-        gauss_fwhm: float
-            "Full width half maximum" (FWHM) of Gaussian kernel used for
-            smoothin the spectrum. FWHM is the width of the kernel in nanometers
-            at the level where the kernel values are half of the maximum value.
 
         Returns
         -------
@@ -127,7 +122,7 @@ class ReflectanceConverter:
         by repeating the nearest sampled value (edge value).
 
         """
-        sigma_wl = gauss_fwhm * 0.588705  # sigma = FWHM / 2*sqrt(2*ln(2))
+        sigma_wl = self.fwhm_irrad_smooth * 0.588705  # sigma = FWHM / 2*sqrt(2*ln(2))
         dwl = np.mean(np.diff(wl))  # Downwelling wavelength sampling dist.
         sigma_pix = sigma_wl / dwl  # Sigma in units of spectral samples
         spec_filtered = gaussian_filter1d(input=spec, sigma=sigma_pix, mode="nearest")
@@ -190,7 +185,7 @@ class ReflectanceConverter:
         # Make irradiance spectrum compatible with image
         irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
         if self.conv_irrad_with_gauss:
-            irrad_spec = self.conv_spec_with_gaussian(irrad_spec, irrad_wl, self.fwhm_irrad_smooth)
+            irrad_spec = self.conv_spec_with_gaussian(irrad_spec, irrad_wl)
         irrad_spec = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
         irrad_spec = np.expand_dims(irrad_spec, axis=(0, 1))
 
