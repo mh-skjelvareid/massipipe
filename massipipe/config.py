@@ -1,8 +1,8 @@
 from datetime import datetime
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Sequence, Tuple, Union
 
 import yaml
-from pydantic import BaseModel, PositiveFloat, PositiveInt, field_validator
+from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, field_validator
 
 
 def parse_config(yaml_path):
@@ -13,13 +13,13 @@ def parse_config(yaml_path):
 
 
 class MpGeneral(BaseModel):
-    rgb_wl: Optional[tuple[int, int, int]] = None
+    rgb_wl: Optional[tuple[PositiveInt, PositiveInt, PositiveInt]] = None
 
 
 class MpQuickLook(BaseModel):
     create: bool = True
     overwrite: bool = False
-    percentiles: Optional[tuple[int, int]] = None
+    percentiles: Optional[tuple[NonNegativeInt, PositiveInt]] = None
 
 
 class MpImuData(BaseModel):
@@ -58,7 +58,7 @@ class MpRadianceGc(BaseModel):
     subtract_dark_spec: bool = True
     reference_image_numbers: Optional[List[PositiveInt]] = None
     reference_image_ranges: Optional[
-        List[Tuple[PositiveInt, PositiveInt, PositiveInt, PositiveInt]]
+        List[Tuple[NonNegativeInt, PositiveInt, NonNegativeInt, PositiveInt]]
     ] = None
 
 
@@ -103,7 +103,7 @@ class MpMosaicCreateOverwrite(BaseModel):
 
 
 class MpMosaic(BaseModel):
-    overview_factors: Optional[Union[list[int], tuple[int]]] = None
+    overview_factors: Optional[Sequence[PositiveInt]] = None
     radiance_rgb: MpMosaicCreateOverwrite
     radiance_gc_rgb: MpMosaicCreateOverwrite
     reflectance_gc_rgb: MpMosaicCreateOverwrite
