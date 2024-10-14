@@ -85,16 +85,41 @@ class FlatSpecGlintCorrector:
 
 
 class HedleyGlintCorrector:
-    def __init__(self, smooth_with_savitsky_golay: bool = True):
+    def __init__(
+        self,
+        smooth_with_savitsky_golay: bool = True,
+        subtract_dark_spec: bool = True,
+        require_positivity=False,
+        max_invalid_frac: float = 0.05,
+    ):
         """Initialize glint corrector
 
         Parameters
         ----------
         smooth_with_savitsky_golay : bool, default True
-            Whether to smooth glint corrected images using a
-            Savitsky-Golay filter.
+            Whether to smooth glint corrected images using a Savitsky-Golay filter.
+        subtract_dark_spec: bool
+            Whether to subtract estimated minimum value in training data (for each
+            wavelength) from glint corrected image. This has the effect of removing
+            "background" spectrum caused by e.g. reflection of the sky and water column
+            scattering.
+        require_positivity: bool
+            Glint is corrected by subtracting estimated glint from the original image.
+            The subtraction process may result in some spectral bands getting negative
+            values. If the fraction of pixels that is negative is larger than
+            max_invalid_fraction, all pixel values are set to zero, indicating an
+            invalid pixel.
+        max_invalid_frac: float
+            The he fraction of spectral bands that is allowed to be invalid (i.e. zero)
+            before the whole pixel is declared invalid and all bands are set to zero.
+            Allowing some invalid bands may keep useful information, but a high number
+            of invalid bands results in severe spectral distortion and indicates poor
+            data quality.
         """
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
+        self.subtract_dark_spec = subtract_dark_spec
+        self.require_positivity = require_positivity
+        self.max_invalid_frac = max_invalid_frac
         self.b = None
         self.wl = None
         self.min_nir = None
@@ -207,9 +232,6 @@ class HedleyGlintCorrector:
     def glint_correct_image(
         self,
         image: NDArray,
-        require_positivity=False,
-        max_invalid_fraction: float = 0.05,
-        subtract_dark_spec=True,
     ) -> NDArray:
         """Remove sun and sky glint from image using fit linear model
 
@@ -217,21 +239,6 @@ class HedleyGlintCorrector:
         ----------
         image: NDArray
             Hyperspectral image, shape (n_lines, n_samples, n_bands)
-        max_invalid_frac: float
-            Glint is corrected by subtracting estimated glint from the
-            original image. The subtraction process may result in some spectral
-            bands getting negative values. These are set to zero.
-            max_invalid_frac is the fraction of spectral bands that is allowed
-            to be invalid (i.e. zero) before the whole pixel is declared
-            invalid and all bands are set to zero. Allowing some invalid bands
-            may keep useful information, but a high number of invalid bands
-            results in severe spectral distortion and indicates poor data
-            quality.
-        subtrack_dark_spec: bool
-            Whether to subtract estimated minimum value in training data
-            (for each wavelength) from glint corrected image. This
-            has the effect of removing "background" spectrum caused by
-            e.g. reflection of the sky and water column scattering.
 
         Returns
         --------
@@ -266,16 +273,16 @@ class HedleyGlintCorrector:
         vis = vis - glint
         vis[vis < 0] = 0  # Positivity contraint
 
-        if subtract_dark_spec:
+        if self.subtract_dark_spec:
             if self.dark_spec is not None:
                 vis = vis - self.dark_spec[self.vis_ind]
             else:
                 raise ValueError("Dark spectrum not calculated - run fit() first")
 
         # Set invalid pixels (too many zeros) to all-zeros
-        if require_positivity:
+        if self.require_positivity:
             zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
-            invalid_mask = invalid_mask & (zeros_fraction > max_invalid_fraction)
+            invalid_mask = invalid_mask & (zeros_fraction > self.max_invalid_frac)
             vis[invalid_mask] = 0
 
         # Reshape to fit original dimensions
