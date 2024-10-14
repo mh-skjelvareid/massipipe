@@ -485,8 +485,9 @@ class PipelineProcessor:
             if rad_gc_image.exists() and not self.config.radiance_gc.overwrite:
                 logger.info(f"Image {rad_gc_image.name} exists - skipping.")
                 continue
-            logger.info(f"Running glint correction for {rad_image.name}")
-            glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
+            if rad_image.exists():
+                logger.info(f"Running glint correction for {rad_image.name}")
+                glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
 
     def convert_radiance_images_to_reflectance(self):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
