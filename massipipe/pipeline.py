@@ -323,7 +323,9 @@ class PipelineProcessor:
         """Create quicklook versions of raw images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
-        quicklook_processor = QuickLookProcessor(percentiles=self.config.quicklook.percentiles)
+        quicklook_processor = QuickLookProcessor(
+            rgb_wl=self.config.general.rgb_wl, percentiles=self.config.quicklook.percentiles
+        )
 
         for raw_image_path, quicklook_image_path in zip(self.raw_image_paths, self.ql_im_paths):
             if quicklook_image_path.exists() and not self.config.quicklook.overwrite:
@@ -547,7 +549,7 @@ class PipelineProcessor:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
-        georeferencer = SimpleGeoreferencer()
+        georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
         if all([not rp.exists() for rp in self.refl_gc_im_paths]):
             warnings.warn(f"No reflectance images found in {self.reflectance_gc_dir}")

@@ -538,6 +538,7 @@ class SimpleGeoreferencer:
     def __init__(
         self,
         rgb_only: bool = True,
+        rgb_wl: Union[tuple[float, float, float], None] = None,
         nodata_value: int = -9999,
         reproject_to_nonrotated_transform: bool = True,
         resolution: Union[float, None] = None,
@@ -551,6 +552,9 @@ class SimpleGeoreferencer:
             If false, the entire hyperspectral image is used. Note that
             this typically creates very large files that some programs
             (e.g. QGIS) can struggle to read.
+        rgb_wl: Union[tuple[float, float, float], None]
+            Wavelengths (in nm) to use for red, green and blue.
+            If None, default values are used.
         nodata_value:
             Value to insert in place of invalid pixels.
             Pixels which contain "all zeros" are considered invalid.
@@ -569,6 +573,7 @@ class SimpleGeoreferencer:
 
         """
         self.rgb_only = rgb_only
+        self.rgb_wl = rgb_wl
         self.nodata_value = nodata_value
         self.reproject_to_nonrotated_transform = reproject_to_nonrotated_transform
         self.resolution = resolution
@@ -593,7 +598,10 @@ class SimpleGeoreferencer:
         # Read image, and (optional) create RGB subset
         image, wl, _ = mpu.read_envi(image_path)
         if self.rgb_only:
-            image, wl = mpu.rgb_subset_from_hsi(image, wl)
+            if self.rgb_wl:
+                image, wl = mpu.rgb_subset_from_hsi(image, wl, rgb_target_wl=self.rgb_wl)
+            else:
+                image, wl = mpu.rgb_subset_from_hsi(image, wl)
 
         # Insert nodata value in invalid pixels
         self._insert_image_nodata_value(image)
