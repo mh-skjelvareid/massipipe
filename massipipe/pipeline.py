@@ -456,7 +456,7 @@ class PipelineProcessor:
     def glint_correct_radiance_images(self):
         """Remove water surface reflections of sun and sky light"""
         logger.info("---- RADIANCE GLINT CORRECTION ----")
-        self.reflectance_dir.mkdir(exist_ok=True)
+        self.radiance_gc_dir.mkdir(exist_ok=True)
 
         # Read glint correction reference information from config
         ref_im_nums = self.config.radiance_gc.reference_image_numbers
@@ -477,6 +477,7 @@ class PipelineProcessor:
             smooth_spectra=self.config.radiance_gc.smooth_spectra,
             subtract_dark_spec=self.config.radiance_gc.subtract_dark_spec,
         )
+        logger.info(f"Fitting glint correction model based on image numbers {ref_im_nums}")
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
 
         # Run glint correction
@@ -484,6 +485,7 @@ class PipelineProcessor:
             if rad_gc_image.exists() and not self.config.radiance_gc.overwrite:
                 logger.info(f"Image {rad_gc_image.name} exists - skipping.")
                 continue
+            logger.info(f"Running glint correction for {rad_image.name}")
             glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
 
     def convert_radiance_images_to_reflectance(self):
