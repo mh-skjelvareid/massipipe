@@ -12,6 +12,7 @@ import rasterio
 import rasterio.merge
 import yaml
 
+from massipipe.config import Config, parse_config
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
@@ -69,18 +70,16 @@ class PipelineProcessor:
         """
         self.dataset_dir = Path(dataset_dir)
 
-        # Read config
+        # Read and validate YAML config file
         config_file_path = self.dataset_dir / config_file_name
         self.config_file_path = config_file_path
         try:
-            full_config = self.parse_config(self.dataset_dir / config_file_name)
-            self.config = full_config["massipipe_options"]
+            full_config_dict = parse_config(self.dataset_dir / config_file_name)
         except IOError:
             logger.error(f"Error parsing config file {config_file_path}")
             raise
-        except KeyError:
-            logger.error(f"Config file lacks massipipe_options key")
-            raise
+        self._full_config = Config(**full_config_dict)
+        self.config = self._full_config.massipipe_options
 
         # Define dataset folder structure
         self.dataset_base_name = self.dataset_dir.name
@@ -157,13 +156,6 @@ class PipelineProcessor:
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
         logger.info("File logging initialized.")
-
-    @staticmethod
-    def parse_config(yaml_path):
-        """Parse YAML config file, accepting only basic YAML tags"""
-        with open(yaml_path, "r") as stream:
-            config = yaml.safe_load(stream)
-        return config
 
     def _validate_raw_files(self):
         """Check that all expected raw files exist
@@ -331,12 +323,10 @@ class PipelineProcessor:
         """Create quicklook versions of raw images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
-        quicklook_processor = QuickLookProcessor(
-            percentiles=self._get_config("quicklook", "percentiles")
-        )
+        quicklook_processor = QuickLookProcessor(percentiles=self.config.quicklook.percentiles)
 
         for raw_image_path, quicklook_image_path in zip(self.raw_image_paths, self.ql_im_paths):
-            if quicklook_image_path.exists() and not self._get_config("quicklook", "overwrite"):
+            if quicklook_image_path.exists() and not self.config.quicklook.overwrite:
                 logger.info(f"Image {quicklook_image_path.name} exists - skipping.")
                 continue
 
@@ -357,7 +347,7 @@ class PipelineProcessor:
         for lcf_path, times_path, imu_data_path in zip(
             self.lcf_paths, self.times_paths, self.imu_data_paths
         ):
-            if imu_data_path.exists() and not self._get_config("imu_data", "overwrite"):
+            if imu_data_path.exists() and not self.config.imu_data.overwrite:
                 logger.info(f"Image {imu_data_path.name} exists - skipping.")
                 continue
 
@@ -374,7 +364,7 @@ class PipelineProcessor:
         for raw_im_path, imu_data_path, geotrans_path in zip(
             self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
         ):
-            if geotrans_path.exists() and not self._get_config("geotransform", "overwrite"):
+            if geotrans_path.exists() and not self.config.geotransform.overwrite:
                 logger.info(f"Image {geotrans_path.name} exists - skipping.")
                 continue
 
@@ -384,17 +374,13 @@ class PipelineProcessor:
                     geotransformer = GeoTransformer(
                         imu_data_path,
                         raw_im_path,
-                        camera_opening_angle=self._get_config(
-                            "geotransform", "camera_opening_angle_deg"
-                        ),
-                        pitch_offset=self._get_config("geotransform", "pitch_offset_deg"),
-                        roll_offset=self._get_config("geotransform", "roll_offset_deg"),
-                        altitude_offset=self._get_config("geotransform", "altitude_offset_m"),
-                        utm_x_offset=self._get_config("geotransform", "utm_x_offset_m"),
-                        utm_y_offset=self._get_config("geotransform", "utm_y_offset_m"),
-                        assume_square_pixels=self._get_config(
-                            "geotransform", "assume_square_pixels"
-                        ),
+                        camera_opening_angle=self.config.geotransform.camera_opening_angle_deg,
+                        pitch_offset=self.config.geotransform.pitch_offset_deg,
+                        roll_offset=self.config.geotransform.roll_offset_deg,
+                        altitude_offset=self.config.geotransform.altitude_offset_m,
+                        utm_x_offset=self.config.geotransform.utm_x_offset_m,
+                        utm_y_offset=self.config.geotransform.utm_y_offset_m,
+                        assume_square_pixels=self.config.geotransform.assume_square_pixels,
                     )
                     geotransformer.save_image_geotransform(geotrans_path)
             except Exception:
@@ -407,14 +393,12 @@ class PipelineProcessor:
         self.radiance_dir.mkdir(exist_ok=True)
         radiance_converter = RadianceConverter(
             self.radiance_calibration_file,
-            set_saturated_pixels_to_zero=self._get_config(
-                "radiance", "set_saturated_pixels_to_zero"
-            ),
+            set_saturated_pixels_to_zero=self.config.radiance.set_saturated_pixels_to_zero,
         )
         for raw_image_path, radiance_image_path, geotransform_path in zip(
             self.raw_image_paths, self.rad_im_paths, self.geotransform_paths
         ):
-            if radiance_image_path.exists() and not self._get_config("radiance", "overwrite"):
+            if radiance_image_path.exists() and not self.config.radiance.overwrite:
                 logger.info(f"Image {radiance_image_path.name} exists - skipping.")
                 continue
 
@@ -433,7 +417,7 @@ class PipelineProcessor:
         self.radiance_dir.mkdir(exist_ok=True)
         irradiance_converter = IrradianceConverter(self.irradiance_calibration_file)
         for raw_spec_path, irrad_spec_path in zip(self.raw_spec_paths, self.irrad_spec_paths):
-            if irrad_spec_path.exists() and not self._get_config("irradiance", "overwrite"):
+            if irrad_spec_path.exists() and not self.config.irradiance.overwrite:
                 logger.info(f"Image {irrad_spec_path.name} exists - skipping.")
                 continue
 
@@ -473,35 +457,36 @@ class PipelineProcessor:
         self.reflectance_dir.mkdir(exist_ok=True)
 
         # Read glint correction reference information from config
-        try:
-            ref_im_nums = (self.config["massipipe_options"]
-                          ["glint_correction"]["reference_image_numbers"])  # fmt: skip
-            ref_im_ranges = (self.config["massipipe_options"]
-                            ["glint_correction"]["reference_image_ranges"])  # fmt: skip
-        except KeyError as ke:
-            logger.error(
-                "Missing glint correction reference image numbers / ranges "
-                + f"in YAML config file {self.config_file_path}."
+        ref_im_nums = self.config.radiance_gc.reference_image_numbers
+        ref_im_ranges = self.config.radiance_gc.reference_image_ranges
+
+        if not (ref_im_nums):
+            raise ValueError("No reference image numbers for sun glint correction specified.")
+        if not (ref_im_ranges):
+            raise ValueError("No reference image ranges for sun glint correction specified.")
+        if len(ref_im_nums) != len(ref_im_ranges):
+            raise ValueError(
+                "The number of reference image numbers and reference image ranges do not match."
             )
-            raise
-        assert len(ref_im_nums) == len(ref_im_ranges)
-        ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
 
         # Fit glint corrector
+        ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
         glint_corrector = HedleyGlintCorrector()
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
+
+        # TODO: Add code for actually glint correcting the images!
 
     def convert_radiance_images_to_reflectance(self, overwrite=False):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
         reflectance_converter = ReflectanceConverter(
-            wl_min=self._get_config("reflectance", "wl_min"),
-            wl_max=self._get_config("reflectance", "wl_max"),
-            conv_irrad_with_gauss=self._get_config("reflectance", "conv_irrad_with_gauss"),
-            smooth_spectra=self._get_config("reflectance", "smooth_spectra"),
-            add_map_info=self._get_config("reflectance", "add_map_info"),
-            refl_from_mean_irrad=self._get_config("reflectance", "refl_from_mean_irrad"),
+            wl_min=self.config.reflectance.wl_min,
+            wl_max=self.config.reflectance.wl_max,
+            conv_irrad_with_gauss=self.config.reflectance.conv_irrad_with_gauss,
+            smooth_spectra=self.config.reflectance.smooth_spectra,
+            add_map_info=self.config.reflectance.add_map_info,
+            refl_from_mean_irrad=self.config.reflectance.refl_from_mean_irrad,
             irrad_spec_paths=self.irrad_spec_paths,
         )
 
@@ -692,100 +677,44 @@ class PipelineProcessor:
         if self.mosaic_dir.exists() and delete_mosaics:
             shutil.rmtree(self.mosaic_dir)
 
-    def _get_config(self, *keys):
-        """Get (nested) configuration value if it exists
-
-        Parameters
-        ----------
-        *keys
-            One or multiple keys needed to access value in nested dict generated from
-            YAML configuration file.
-
-        Returns
-        -------
-        configuration_value
-            Value if value is defined in dictionary, None if not.
-            Note that "null" values in YAML also correspond to None (not defined)
-        """
-        config = self.config
-        for key in keys:
-            if key in config:
-                config = config[key]
-            else:
-                return None
-        return config
-
     def run(
         self,
-        # create_quicklook_images=True,
-        # convert_raw_images_to_radiance=True,
-        # convert_raw_spectra_to_irradiance=True,
-        # calibrate_irradiance_wavelengths=True,
-        # parse_imu_data=True,
-        # create_geotransform_json=True,
-        # convert_radiance_to_reflectance=True,
-        # glint_correct_reflectance=True,
-        # geotiff_from_glint_corrected_reflectance=True,
-        # mosaic_geotiffs=True,
-        # **kwargs,
     ):
-        """_summary_
+        """Run pipeline using parameters defined in YAML file
 
-        Parameters
-        ----------
-        create_quicklook_images : bool, default True
-            Whether to create "quicklook" images based on raw images
-        convert_raw_images_to_radiance : bool, default True
-            Whether to convert raw images to radiance
-        convert_raw_spectra_to_irradiance : bool, default True
-            Whether to convert raw spectra to irradiance.
-            Raw spectra ("downwelling") must exist in the 0_raw folder
-        calibrate_irradiance_wavelengths : bool, default True
-            Whether to calibrate irrdaiance wavelengths using
-            known Fraunhofer absorption lines.
-        parse_imu_data : bool, default True
-            Wheter to read IMU data from *.lcf files,
-            interpolate it to match image line timestamps in
-            *.times files, and save the results in JSON file.
-        convert_radiance_to_reflectance : bool, default True
-            Whether to convert radiance iamges to reflectance images.
-            Radiance images must exist in folder 1_radiance.
-        glint_correct_reflectance : bool, default True
-            Whether to apply glint correction to reflectance images.
-            Reflectance images must exist in folder 2_reflectance
-        geotiff_from_glint_corrected_reflectance : bool, default True
-            Whether to create georeferenced GeoTIFF images from
-            glint corrected reflectance images.
-        mosaic_geotiffs : bool, default True
-            Whether to combine all GeoTIFFs in a single "mosaic" GeoTIFF
+        Run processing pipeline based on parameters defined in YAML file, including
+        which products to create and whether to overwrite existing products.
+
+        See massipipe.config.Config and template YAML file for all options.
+
         """
-        # TODO: Update docstring (using config file instead)
 
-        if self._get_config("quicklook", "create"):
+        # if self._get_config("quicklook", "create"):
+        if self.config.quicklook.create:
             try:
                 self.create_quicklook_images()
             except Exception:
                 logger.error("Error while creating quicklook images", exc_info=True)
 
-        if self._get_config("imu_data", "create"):
+        if self.config.imu_data.create:
             try:
                 self.parse_and_save_imu_data()
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-        if self._get_config("geotransform", "create"):
+        if self.config.geotransform.create:
             try:
                 self.create_and_save_geotransform()
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-        if self._get_config("radiance", "create"):
+        if self.config.radiance.create:
             try:
                 self.convert_raw_images_to_radiance()
             except Exception:
                 logger.error("Error while converting raw images to radiance", exc_info=True)
 
-        if self._get_config("irradiance", "create"):
+        if self.config.irradiance.create:
             try:
                 self.convert_raw_spectra_to_irradiance()
             except Exception:
@@ -796,7 +725,7 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
 
-        if self._get_config("reflectance", "create"):
+        if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
             except FileNotFoundError:

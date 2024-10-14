@@ -571,3 +571,26 @@ def _count_leaps(gps_time, dir_flag):
         else:
             raise ValueError("Invalid Flag!")
     return nleaps
+
+
+def get_nested_dict_value(nested_dict, *keys):
+    """Get (nested) dictionary value if it exists
+
+    Parameters
+    ----------
+    *keys
+        One or multiple keys needed to access value in nested dict.
+
+    Returns
+    -------
+    value
+        Value if value is defined in dictionary, None if not.
+        Note that "null" values in YAML also correspond to None (not defined).
+    """
+    current = nested_dict
+    for key in keys:
+        if key in current:
+            current = current[key]
+        else:
+            return None
+    return current

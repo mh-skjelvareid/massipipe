@@ -1,7 +1,7 @@
 # Imports
 import logging
 from pathlib import Path
-from typing import Union
+from typing import Sequence, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -104,8 +104,8 @@ class HedleyGlintCorrector:
 
     def fit_to_reference_images(
         self,
-        reference_image_paths: list[Union[Path, str]],
-        reference_image_ranges: Union[None, list[Union[None, list[int]]]] = None,
+        reference_image_paths: Sequence[Union[Path, str]],
+        reference_image_ranges: Union[None, Sequence[Union[None, Sequence[int]]]] = None,
         sample_frac: float = 0.5,
     ) -> None:
         """Fit glint model based on spectra from reference images
@@ -135,9 +135,7 @@ class HedleyGlintCorrector:
             reference_image_ranges = [None for _ in range(len(reference_image_paths))]
 
         train_spec = []
-        for ref_im_path, ref_im_range in zip(
-            reference_image_paths, reference_image_ranges
-        ):
+        for ref_im_path, ref_im_range in zip(reference_image_paths, reference_image_ranges):
             ref_im, wl, _ = mpu.read_envi(Path(ref_im_path))
             if ref_im_range is not None:
                 assert len(ref_im_range) == 4
@@ -170,9 +168,7 @@ class HedleyGlintCorrector:
         self.dark_spec = np.percentile(train_spec, q=1, axis=0)
 
     @staticmethod
-    def linear_regression_multiple_dependent_variables(
-        x: NDArray, Y: NDArray
-    ) -> NDArray:
+    def linear_regression_multiple_dependent_variables(x: NDArray, Y: NDArray) -> NDArray:
         """Compute linear regression slopes for multiple dependent variables
 
         Parameters
