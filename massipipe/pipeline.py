@@ -687,19 +687,26 @@ class PipelineProcessor:
         if self.mosaic_dir.exists() and delete_mosaics:
             shutil.rmtree(self.mosaic_dir)
 
-    def run(
-        self,
-    ):
+    def run_basic(self):
         """Run pipeline using parameters defined in YAML file
 
-        Run processing pipeline based on parameters defined in YAML file, including
-        which products to create and whether to overwrite existing products.
+        Run basic processing steps based on parameters defined in YAML file. These steps
+        can all be run without manually interpreting any of the data (such
+        intepretation may be needed for other steps such as glint correction).
+
+        The steps include:
+            - Creating "quicklook" RGB versions of images
+            - Converting raw hyperspectral images to radiance
+            - Converting raw downwelling spectra to irradiance
+            - Parsing and processing IMU data
+            - Creating basic "geotransform" and adding basic "map info" to
+            radiance file for rough georeferencing.
+            - Converting radiance to reflectance
 
         See massipipe.config.Config and template YAML file for all options.
 
         """
 
-        # if self._get_config("quicklook", "create"):
         if self.config.quicklook.create:
             try:
                 self.create_quicklook_images()
@@ -744,6 +751,27 @@ class PipelineProcessor:
                 )
             except Exception:
                 logger.error("Error while converting from radiance to reflectance", exc_info=True)
+
+    def run_glint_correction(self):
+        """Run glint correction using parameters defined in YAML file
+
+        The processing steps include:
+            - TODO: Fill out
+
+        See massipipe.config.Config and template YAML file for all options.
+
+        """
+
+        if self.config.radiance_gc.create:
+            try:
+                self.glint_correct_radiance_images()
+            except Exception:
+                logger.error("Error while glint correcting radiance images", exc_info=True)
+
+    def run(self):
+        """Run all processing steps"""
+        self.run_basic()
+        self.run_glint_correction()
 
         # if glint_correct_reflectance:
         #     try:
