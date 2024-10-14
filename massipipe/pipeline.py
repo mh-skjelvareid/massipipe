@@ -439,7 +439,7 @@ class PipelineProcessor:
         if not (self.radiance_dir.exists()):
             raise FileNotFoundError("Radiance folder with irradiance spectra does not exist")
         wavelength_calibrator = WavelengthCalibrator()
-        irradiance_spec_paths = list(self.radiance_dir.glob("*.spec.hdr"))
+        irradiance_spec_paths = sorted(self.radiance_dir.glob("*.spec.hdr"))
         if irradiance_spec_paths:
             wavelength_calibrator.fit_batch(irradiance_spec_paths)
             for irradiance_spec_path in irradiance_spec_paths:
