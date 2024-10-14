@@ -471,12 +471,20 @@ class PipelineProcessor:
 
         # Fit glint corrector
         ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
-        glint_corrector = HedleyGlintCorrector()
+        glint_corrector = HedleyGlintCorrector(
+            smooth_spectra=self.config.radiance_gc.smooth_spectra,
+            subtract_dark_spec=self.config.radiance_gc.subtract_dark_spec,
+        )
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
 
-        # TODO: Add code for actually glint correcting the images!
+        # Run glint correction
+        for rad_image, rad_gc_image in zip(self.rad_im_paths, self.rad_gc_im_paths):
+            if rad_gc_image.exists() and not self.config.radiance_gc.overwrite:
+                logger.info(f"Image {rad_gc_image.name} exists - skipping.")
+                continue
+            glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
 
-    def convert_radiance_images_to_reflectance(self, overwrite=False):
+    def convert_radiance_images_to_reflectance(self):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
@@ -498,7 +506,7 @@ class PipelineProcessor:
         for rad_path, irrad_path, refl_path in zip(
             self.rad_im_paths, self.irrad_spec_paths, self.refl_im_paths
         ):
-            if refl_path.exists() and not overwrite:
+            if refl_path.exists() and not self.config.reflectance.overwrite:
                 logger.info(f"Image {refl_path.name} exists - skipping.")
                 continue
             if rad_path.exists() and irrad_path.exists():
@@ -511,7 +519,7 @@ class PipelineProcessor:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
 
-    def glint_correct_reflectance_images(self, overwrite=False, **kwargs):
+    def glint_correct_reflectance_images(self):
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- REFLECTANCE GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
@@ -521,7 +529,7 @@ class PipelineProcessor:
             raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")
 
         for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
-            if refl_gc_path.exists() and not overwrite:
+            if refl_gc_path.exists() and not self.config.reflectance_gc.overwrite:
                 logger.info(f"Image {refl_gc_path.name} exists - skipping.")
                 continue
             if refl_path.exists():
@@ -535,7 +543,7 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def georeference_glint_corrected_reflectance(self, **kwargs):
+    def georeference_glint_corrected_reflectance(self):
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)

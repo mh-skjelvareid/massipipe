@@ -87,7 +87,7 @@ class FlatSpecGlintCorrector:
 class HedleyGlintCorrector:
     def __init__(
         self,
-        smooth_with_savitsky_golay: bool = True,
+        smooth_spectra: bool = True,
         subtract_dark_spec: bool = True,
         require_positivity=False,
         max_invalid_frac: float = 0.05,
@@ -97,7 +97,7 @@ class HedleyGlintCorrector:
         Parameters
         ----------
         smooth_with_savitsky_golay : bool, default True
-            Whether to smooth glint corrected images using a Savitsky-Golay filter.
+            Whether to smooth glint corrected images using a Savitzky-Golay filter.
         subtract_dark_spec: bool
             Whether to subtract estimated minimum value in training data (for each
             wavelength) from glint corrected image. This has the effect of removing
@@ -116,7 +116,7 @@ class HedleyGlintCorrector:
             of invalid bands results in severe spectral distortion and indicates poor
             data quality.
         """
-        self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
+        self.smooth_spectra = smooth_spectra
         self.subtract_dark_spec = subtract_dark_spec
         self.require_positivity = require_positivity
         self.max_invalid_frac = max_invalid_frac
@@ -290,7 +290,7 @@ class HedleyGlintCorrector:
         vis = np.reshape(vis, output_shape)
 
         # Smooth spectra (optional)
-        if self.smooth_with_savitsky_golay:
+        if self.smooth_spectra:
             vis = mpu.savitzky_golay_filter(vis)
 
         return vis
