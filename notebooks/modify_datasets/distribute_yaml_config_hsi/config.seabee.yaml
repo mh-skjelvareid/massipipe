@@ -43,6 +43,7 @@ massipipe_options:
     overwrite: false
     smooth_spectra: false
     subtract_dark_spec: true
+    set_negative_values_to_zero: true
     reference_image_numbers: null
     reference_image_ranges: null
   radiance_gc_rgb:

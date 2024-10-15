@@ -89,7 +89,7 @@ class HedleyGlintCorrector:
         self,
         smooth_spectra: bool = True,
         subtract_dark_spec: bool = True,
-        require_positivity=False,
+        set_negative_values_to_zero=False,
         max_invalid_frac: float = 0.05,
     ):
         """Initialize glint corrector
@@ -103,14 +103,14 @@ class HedleyGlintCorrector:
             wavelength) from glint corrected image. This has the effect of removing
             "background" spectrum caused by e.g. reflection of the sky and water column
             scattering.
-        require_positivity: bool
+        set_negative_values_to_zero: bool
             Glint is corrected by subtracting estimated glint from the original image.
             The subtraction process may result in some spectral bands getting negative
             values. If the fraction of pixels that is negative is larger than
             max_invalid_fraction, all pixel values are set to zero, indicating an
             invalid pixel.
         max_invalid_frac: float
-            The he fraction of spectral bands that is allowed to be invalid (i.e. zero)
+            The fraction of spectral bands that is allowed to be invalid (i.e. zero)
             before the whole pixel is declared invalid and all bands are set to zero.
             Allowing some invalid bands may keep useful information, but a high number
             of invalid bands results in severe spectral distortion and indicates poor
@@ -118,7 +118,7 @@ class HedleyGlintCorrector:
         """
         self.smooth_spectra = smooth_spectra
         self.subtract_dark_spec = subtract_dark_spec
-        self.require_positivity = require_positivity
+        self.set_negative_values_to_zero = set_negative_values_to_zero
         self.max_invalid_frac = max_invalid_frac
         self.b = None
         self.wl = None
@@ -271,7 +271,6 @@ class HedleyGlintCorrector:
         # Estimate glint and subtract from visible spectrum
         glint = nir @ self.b
         vis = vis - glint
-        vis[vis < 0] = 0  # Positivity contraint
 
         if self.subtract_dark_spec:
             if self.dark_spec is not None:
@@ -279,8 +278,12 @@ class HedleyGlintCorrector:
             else:
                 raise ValueError("Dark spectrum not calculated - run fit() first")
 
+        # Set negative values to zero
+        if self.set_negative_values_to_zero:
+            vis[vis < 0] = 0
+
         # Set invalid pixels (too many zeros) to all-zeros
-        if self.require_positivity:
+        if self.set_negative_values_to_zero:
             zeros_fraction = np.count_nonzero(vis == 0, axis=1) / vis.shape[1]
             invalid_mask = invalid_mask & (zeros_fraction > self.max_invalid_frac)
             vis[invalid_mask] = 0

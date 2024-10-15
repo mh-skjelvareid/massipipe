@@ -56,6 +56,7 @@ class MpRadianceGc(BaseModel):
     overwrite: bool = False
     smooth_spectra: bool = False
     subtract_dark_spec: bool = True
+    set_negative_values_to_zero = True
     reference_image_numbers: Optional[List[PositiveInt]] = None
     reference_image_ranges: Optional[
         List[Tuple[NonNegativeInt, PositiveInt, NonNegativeInt, PositiveInt]]
