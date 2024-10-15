@@ -238,7 +238,35 @@ class ReflectanceConverter:
             rad_image, rad_wl, irrad_spec, irrad_wl
         )
 
-        wl_str = mpu.wavelength_array_to_header_string(refl_wl)
+        wl_str = mpu.array_to_header_string(refl_wl)
         refl_meta = rad_meta
         refl_meta["wavelength"] = wl_str
         mpu.save_envi(reflectance_image_header, refl_im, refl_meta)
+
+    def add_irradiance_spectrum_to_header(
+        self,
+        radiance_image_header: Union[Path, str],
+        irradiance_header: Union[Path, str, None],
+    ):
+        """Add irradiance spectrum to radiance image header
+
+        Parameters
+        ----------
+        radiance_image_header : Union[Path, str]
+            Path to radiance image
+        irradiance_header : Union[Path, str, None]
+            Path to irradiance spectrum header.
+            If refl_from_mean_irrad == True for ReflectanceConverter,
+            the calculated mean spectrum is used, and irradiance_header can be set to None.
+        """
+        if self.refl_from_mean_irrad:
+            irrad_spec = self.ref_irrad_spec_mean
+            irrad_wl = self.ref_irrad_spec_wl
+        elif irradiance_header is not None:
+            irrad_spec, irrad_wl, _ = mpu.read_envi(irradiance_header)
+        else:
+            raise ValueError("Must specify irradiance spectrum file if not using mean irradiance.")
+
+        _, rad_wl = mpu.read_envi_header(radiance_image_header)
+        irrad_spec_interp = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
+        mpu.add_header_irradiance(irrad_spec_interp, radiance_image_header)
