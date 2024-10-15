@@ -489,6 +489,33 @@ class PipelineProcessor:
                 logger.info(f"Running glint correction for {rad_image.name}")
                 glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
 
+    def create_glint_corrected_radiance_rgb_geotiff(self):
+        """Create georeferenced GeoTIFF versions of glint corrected radiance"""
+        logger.info("---- GEOREFERENCING GLINT CORRECTED RADIANCE ----")
+        self.radiance_gc_rgb_dir.mkdir(exist_ok=True)
+        georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
+
+        if all([not rp.exists() for rp in self.rad_gc_im_paths]):
+            warnings.warn(f"No radiance images found in {self.radiance_gc_dir}")
+
+        for rad_gc_path, geotrans_path, geotiff_path in zip(
+            self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
+        ):
+            if rad_gc_path.exists() and geotrans_path.exists():
+                logger.info(f"Georeferencing and exporting RGB version of {rad_gc_path.name}.")
+                try:
+                    georeferencer.georeference_hyspec_save_geotiff(
+                        rad_gc_path,
+                        geotrans_path,
+                        geotiff_path,
+                    )
+                except Exception:
+                    logger.error(
+                        "Error occured while georeferencing RGB version of " f"{rad_gc_path}",
+                        exc_info=True,
+                    )
+                    logger.error("Skipping file")
+
     def convert_radiance_images_to_reflectance(self):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
@@ -759,7 +786,9 @@ class PipelineProcessor:
         """Run glint correction using parameters defined in YAML file
 
         The processing steps include:
-            - TODO: Fill out
+            - Fitting a glint correction model to radiance images
+            - Running glint correction and saving glint corrected images
+            - Creating RGB GeoTiff versions of glint corrected images
 
         See massipipe.config.Config and template YAML file for all options.
 
@@ -770,6 +799,14 @@ class PipelineProcessor:
                 self.glint_correct_radiance_images()
             except Exception:
                 logger.error("Error while glint correcting radiance images", exc_info=True)
+
+        if self.config.radiance_gc_rgb.create:
+            try:
+                self.create_glint_corrected_radiance_rgb_geotiff()
+            except Exception:
+                logger.error(
+                    "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
+                )
 
     def run(self):
         """Run all processing steps"""
