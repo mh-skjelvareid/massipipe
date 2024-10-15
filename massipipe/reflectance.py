@@ -183,6 +183,7 @@ class ReflectanceConverter:
         rad_image = rad_image[:, :, valid_image_wl_ind]
 
         # Make irradiance spectrum compatible with image
+        # TODO: Fix scaling factor below, not correct(?)
         irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
         if self.conv_irrad_with_gauss:
             irrad_spec = self.conv_spec_with_gaussian(irrad_spec, irrad_wl)
@@ -270,3 +271,57 @@ class ReflectanceConverter:
         _, rad_wl = mpu.read_envi_header(radiance_image_header)
         irrad_spec_interp = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
         mpu.add_header_irradiance(irrad_spec_interp, radiance_image_header)
+
+    def convert_radiance_file_with_irradiance_to_reflectance(
+        self,
+        radiance_image_header: Union[Path, str],
+        reflectance_image_header: Union[Path, str],
+    ):
+        """Convert radiance image with irradiance spectrum in header to reflectance
+
+        The irradiance information is read from the field "solar irradiance" in the
+        header of the radiance image file. The irradiance is assumed to be in units
+        W/(m2*um), which is standard for ENVI files, and the irradiance values are
+        assumed to match the wavelengths of the image.
+
+        Parameters
+        ----------
+        radiance_image_header: Union[Path, str]
+            Path to header file for radiance image.
+        reflectance_image_header: Union[Path, str]
+            Path to header file for (output) reflectance image.
+            Binary file will be saved with same name, except .hdr extension.
+
+        """
+        # Read radiance image and header
+        rad_image, rad_wl, rad_meta = mpu.read_envi(radiance_image_header)
+
+        # Convert irradiance spectrum string to numeric array
+        irrad_str_list = rad_meta["solar irradiance"].strip("{}").split(",")
+        irrad_spec = np.array((float(irrad) for irrad in irrad_str_list))
+        assert len(irrad_spec) == len(rad_wl)
+
+        # Limit output wavelength range
+        valid_image_wl_ind = (rad_wl >= self.wl_min) & (rad_wl <= self.wl_max)
+        rad_wl = rad_wl[valid_image_wl_ind]
+        rad_image = rad_image[:, :, valid_image_wl_ind]
+        irrad_spec = irrad_spec[valid_image_wl_ind]
+
+        # Make irradiance spectrum compatible with image
+        # TODO: Verify that conversion below is correct!
+        irrad_spec = irrad_spec * 1000  # Convert from W/(m2*um) to W/(m2*nm)
+        irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
+        irrad_spec = np.expand_dims(irrad_spec, axis=(0, 1))
+
+        # Convert to reflectance, assuming Lambertian (perfectly diffuse) surface
+        refl_image = np.pi * (rad_image.astype(np.float32) / irrad_spec.astype(np.float32))
+
+        # Spectral smoothing (optional)
+        if self.smooth_spectra:
+            refl_image = mpu.savitzky_golay_filter(refl_image)
+
+        # Update header wavelength info
+        wl_str = mpu.array_to_header_string(rad_wl)
+        refl_meta = rad_meta
+        refl_meta["wavelength"] = wl_str
+        mpu.save_envi(reflectance_image_header, refl_image, refl_meta)

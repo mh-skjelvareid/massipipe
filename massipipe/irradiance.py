@@ -143,9 +143,12 @@ class IrradianceConverter:
 
         # Subtract dark current, multiply with radiance conversion spectrum
         # NOTE: Resonon irradiance unit is uW/(pi*cm2*um) = 10e-5 W/(pi*m2*nm)
+        # TODO: Check if pi in unit above is correct (probably not)
         cal_irrad_spec = (raw_spec - self._cal_dark_spec) * scaled_conv_spec
 
         # Convert to standard spectral irradiance unit W/(m2*nm)
+        # TODO: Conversion below does not make sense
+        # W/(m2*nm) = 10^5 * uW/(cm2*um)
         cal_irrad_spec = cal_irrad_spec * (np.pi / 100_000)
 
         # Set spectrum outside wavelength limits to zero
