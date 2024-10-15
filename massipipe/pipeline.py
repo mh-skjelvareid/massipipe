@@ -476,6 +476,7 @@ class PipelineProcessor:
         glint_corrector = HedleyGlintCorrector(
             smooth_spectra=self.config.radiance_gc.smooth_spectra,
             subtract_dark_spec=self.config.radiance_gc.subtract_dark_spec,
+            set_negative_values_to_zero=self.config.radiance_gc.set_negative_values_to_zero,
         )
         logger.info(f"Fitting glint correction model based on image numbers {ref_im_nums}")
         glint_corrector.fit_to_reference_images(ref_im_paths, ref_im_ranges)
@@ -813,32 +814,6 @@ class PipelineProcessor:
         self.run_basic()
         self.run_glint_correction()
 
-        # if glint_correct_reflectance:
-        #     try:
-        #         self.glint_correct_reflectance_images()
-        #     except FileNotFoundError:
-        #         logger.warning(
-        #             "Missing input reflectance files, skipping glint correction."
-        #         )
-        #     except Exception:
-        #         logger.error(
-        #             "Error while glint correcting reflectance images", exc_info=True
-        #         )
-
-        # if geotiff_from_glint_corrected_reflectance:
-        #     try:
-        #         self.georeference_glint_corrected_reflectance()
-        #     except Exception:
-        #         logger.error(
-        #             "Error while georeferencing glint corrected images ", exc_info=True
-        #         )
-
-        # if mosaic_geotiffs:
-        #     try:
-        #         self.mosaic_geotiffs()
-        #     except Exception:
-        #         logger.error("Error while mosaicing geotiffs ", exc_info=True)
-
 
 if __name__ == "__main__":
     print(PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr"))
@@ -854,40 +829,3 @@ if __name__ == "__main__":
     #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0
     # )
     # )
-
-    # def update_geotiff_transforms(self, **kwargs):
-    #     """Batch update GeoTIFF transforms
-
-    #     Image affine transforms are re-calculated based on IMU data and
-    #     (optional) keyword arguments.
-
-    #     Keyword arguments:
-    #     ------------------
-    #     **kwargs:
-    #         keyword arguments accepted by ImageFlightSegment, e.g.
-    #         "altitude_offset".
-
-    #     """
-    #     logger.info("---- UPDATING GEOTIFF AFFINE TRANSFORMS ----")
-    #     georeferencer = SimpleGeoreferencer()
-
-    #     if all([not gtp.exists() for gtp in self.refl_gc_rgb_paths]):
-    #         warnings.warn(f"No GeoTIFF images found in {self.reflectance_gc_rgb_dir}")
-
-    #     for imu_data_path, geotiff_path in zip(
-    #         self.imu_data_paths, self.refl_gc_rgb_paths
-    #     ):
-    #         if imu_data_path.exists() and geotiff_path.exists():
-    #             logger.info(f"Updating transform for {geotiff_path.name}.")
-    #             try:
-    #                 georeferencer.update_image_file_transform(
-    #                     geotiff_path,
-    #                     imu_data_path,
-    #                     **kwargs,
-    #                 )
-    #             except Exception:
-    #                 logger.error(
-    #                     f"Error occured while updating transform for {geotiff_path}",
-    #                     exc_info=True,
-    #                 )
-    #                 logger.error("Skipping file")
