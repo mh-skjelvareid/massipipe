@@ -20,8 +20,8 @@ class IrradianceConverter:
         self,
         irrad_cal_file: Union[Path, str],
         irrad_cal_dir_name: str = "downwelling_calibration_spectra",
-        wl_min: Union[int, float, None] = 370,
-        wl_max: Union[int, float, None] = 1000,
+        wl_min: Union[float, None] = 370,
+        wl_max: Union[float, None] = 1000,
     ):
         """Initialize irradiance converter
 
@@ -31,9 +31,9 @@ class IrradianceConverter:
             Path to downwelling irradiance calibration file.
         irrad_cal_dir_name : str, default "downwelling_calibration_spectra"
             Name of folder which calibration files will be unzipped into.
-        wl_min : Union[int, float, None], default 370
+        wl_min : Union[float, None], default 370
             Shortest valid wavelength (nm) in irradiance spectrum.
-        wl_max : Union[int, float, None], default 1000
+        wl_max : Union[float, None], default 1000
             Longest valid wavelength (nm) in irradiance spectrum.
         """
         # Save calibration file path
@@ -51,14 +51,12 @@ class IrradianceConverter:
         # Set valid wavelength range
         self.wl_min = self._irrad_wl[0] if wl_min is None else wl_min
         self.wl_max = self._irrad_wl[-1] if wl_max is None else wl_max
-        self._valid_wl_ind = (self._irrad_wl >= wl_min) & (self._irrad_wl <= wl_max)
+        self._valid_wl_ind = (self._irrad_wl >= self.wl_min) & (self._irrad_wl <= self.wl_max)
 
     def _unzip_irrad_cal_file(self, unzip_into_nonempty_dir: bool = False) -> None:
         """Unzip *.dcp file (which is a zip file)"""
         if not unzip_into_nonempty_dir and any(list(self.irrad_cal_dir.iterdir())):
-            logger.info(
-                f"Non-empty downwelling calibration directory {self.irrad_cal_dir}"
-            )
+            logger.info(f"Non-empty downwelling calibration directory {self.irrad_cal_dir}")
             logger.info(
                 "Skipping unzipping of downwelling calibration file, "
                 "assuming unzipping already done."
@@ -69,13 +67,10 @@ class IrradianceConverter:
                 for filename in zip_file.namelist():
                     zip_file.extract(filename, self.irrad_cal_dir)
         except zipfile.BadZipFile:
-            logger.error(
-                f"File {self.irrad_cal_file} is not a valid ZIP file.", exc_info=True
-            )
+            logger.error(f"File {self.irrad_cal_file} is not a valid ZIP file.", exc_info=True)
         except Exception as e:
             logger.error(
-                "Error while extracting downwelling calibration file "
-                f"{self.irrad_cal_file}",
+                "Error while extracting downwelling calibration file " f"{self.irrad_cal_file}",
                 exc_info=True,
             )
 
@@ -89,9 +84,7 @@ class IrradianceConverter:
 
         # Read from files
         cal_dark_spec, cal_dark_wl, cal_dark_metadata = mpu.read_envi(cal_dark_path)
-        irrad_sens_spec, irrad_sens_wl, irrad_sens_metadata = mpu.read_envi(
-            irrad_sens_path
-        )
+        irrad_sens_spec, irrad_sens_wl, irrad_sens_metadata = mpu.read_envi(irrad_sens_path)
 
         # Save attributes
         assert np.array_equal(cal_dark_wl, irrad_sens_wl)
@@ -146,9 +139,7 @@ class IrradianceConverter:
 
         # Scale conversion spectrum according to difference in shutter values
         raw_shutter = float(raw_metadata["shutter"])
-        scaled_conv_spec = (
-            self._irrad_sens_shutter / raw_shutter
-        ) * self._irrad_sens_spec
+        scaled_conv_spec = (self._irrad_sens_shutter / raw_shutter) * self._irrad_sens_spec
 
         # Subtract dark current, multiply with radiance conversion spectrum
         # NOTE: Resonon irradiance unit is uW/(pi*cm2*um) = 10e-5 W/(pi*m2*nm)
@@ -249,9 +240,7 @@ class WavelengthCalibrator:
             (index corresponds to polynomial degree)
 
         """
-        polynomial_fitted = Polynomial.fit(
-            sample_indices, wavelengths, deg=2, domain=[]
-        )
+        polynomial_fitted = Polynomial.fit(sample_indices, wavelengths, deg=2, domain=[])
         wl_cal = polynomial_fitted(np.arange(n_samples))
         wl_poly_coeff = polynomial_fitted.coef
         return wl_cal, wl_poly_coeff
@@ -299,9 +288,7 @@ class WavelengthCalibrator:
             win_high = fh_wl_ind + win_half_width
 
             # Find lines within search window, accept if single peak found
-            peaks_in_window = line_indices[
-                (line_indices >= win_low) & (line_indices <= win_high)
-            ]
+            peaks_in_window = line_indices[(line_indices >= win_low) & (line_indices <= win_high)]
             if len(peaks_in_window) == 1:
                 filtered_line_indices.append(peaks_in_window[0])
                 fraunhofer_wavelengths.append(fh_line_wl)
@@ -329,13 +316,9 @@ class WavelengthCalibrator:
         assert spec.ndim == 1
 
         line_indices, _ = self._detect_absorption_lines(spec, wl_orig)
-        fh_line_indices, fh_wavelengths = self._filter_fraunhofer_lines(
-            line_indices, wl_orig
-        )
+        fh_line_indices, fh_wavelengths = self._filter_fraunhofer_lines(line_indices, wl_orig)
         if len(fh_line_indices) < 3:
-            raise ValueError(
-                "Too low data quality: Less than 3 absorption lines found."
-            )
+            raise ValueError("Too low data quality: Less than 3 absorption lines found.")
         wl_cal, wl_poly_coeff = self._fit_wavelength_polynomial(
             fh_line_indices, fh_wavelengths, len(wl_orig)
         )
