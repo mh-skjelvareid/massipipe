@@ -270,6 +270,7 @@ class ReflectanceConverter:
 
         _, rad_wl = mpu.read_envi_header(radiance_image_header)
         irrad_spec_interp = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
+        irrad_spec_interp = mpu.irrad_si_nm_to_si_um(irrad_spec_interp)  # Convert to W/(m2*um)
         mpu.add_header_irradiance(irrad_spec_interp, radiance_image_header)
 
     def convert_radiance_file_with_irradiance_to_reflectance(
@@ -308,9 +309,7 @@ class ReflectanceConverter:
         irrad_spec = irrad_spec[valid_image_wl_ind]
 
         # Make irradiance spectrum compatible with image
-        # TODO: Verify that conversion below is correct!
-        irrad_spec = irrad_spec * 1000  # Convert from W/(m2*um) to W/(m2*nm)
-        irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
+        irrad_spec = mpu.irrad_si_um_to_uflicklike(irrad_spec)  # Convert W/(m2*um) to uW/(cm2*um)
         irrad_spec = np.expand_dims(irrad_spec, axis=(0, 1))
 
         # Convert to reflectance, assuming Lambertian (perfectly diffuse) surface

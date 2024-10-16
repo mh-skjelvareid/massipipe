@@ -643,3 +643,23 @@ def get_nested_dict_value(nested_dict, *keys):
         else:
             return None
     return current
+
+
+def irrad_uflicklike_to_si_nm(irrad: NDArray) -> NDArray:
+    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    return irrad / 100_000
+
+
+def irrad_si_nm_to_uflicklike(irrad: NDArray) -> NDArray:
+    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    return irrad * 100_000
+
+
+def irrad_si_nm_to_si_um(irrad: NDArray) -> NDArray:
+    """Convert irradiance from W/(m2*nm) to W/(m2*um)"""
+    return irrad * 1000
+
+
+def irrad_si_um_to_uflicklike(irrad: NDArray) -> NDArray:
+    """Convert irradiance from W/(m2*um) to uW/(cm2*um)"""
+    return irrad * 100
