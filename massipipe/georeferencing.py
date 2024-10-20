@@ -219,10 +219,10 @@ class GeoTransformer:
 
         Parameters
         ----------
-        imu_data : dict
-            Dictionary with imu_data, as formatted by ImuDataParser
-        image_shape : tuple[int]
-            Shape of image, typically (n_lines,n_samples,n_bands)
+        imu_data_path : Union[Path, str]
+            Path to JSON file with IMU data
+        image_header_path : Union[Path, str]
+            Path to header for hyperspectral image
         camera_opening_angle : float, default 36.5
             Full opening angle of camera, in degrees.
             Corresponds to angle between rays hitting leftmost and
@@ -494,11 +494,6 @@ class GeoTransformer:
     def save_image_geotransform(self, geotransform_json_path: Union[Path, str]) -> None:
         """Save geotransform and related parameters as JSON file
 
-        Parameters
-        ----------
-        geotransform_json_path : Union[Path, str]
-            Path to JSON file
-
         The following parameters are saved to file:
         utm_epsg: int
             Integer EPSG code describing UTM zone (CRS)
@@ -517,6 +512,10 @@ class GeoTransformer:
         rotation_deg: float
             Rotation of image in degrees, clockwise, +/- 180 degrees
 
+        Parameters
+        ----------
+        geotransform_json_path : Union[Path, str]
+            Path to JSON file
         """
         geotransform_data = {
             "utm_epsg": self.utm_epsg,
@@ -742,9 +741,6 @@ class SimpleGeoreferencer:
         geotiff_profile : dict
             Dict with GeoTIFF parameters ("profile"), typically created using
             create_geotiff_profile()
-        reproject_to_nonrotated_transform: bool, default True
-            Whether to reproject raster image to a non-rotated transform
-            before saving as GeoTIFF.
 
         Notes
         -----

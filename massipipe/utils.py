@@ -177,6 +177,10 @@ def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str
 def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) -> None:
     """Add irradiance information to ENVI header ("solar irradiance")
 
+    The irradiance is converted to unit W/(m2*um) (i.e., input irradiance is divided by
+    1000), since this is standard for ENVI files. The values are written to the header
+    field "solar irradiance".
+
     Parameters
     ----------
     irradiance : NDArray
@@ -186,10 +190,6 @@ def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) ->
     header_path : Union[Path, str]
         Path to ENVI header file (typically radiance image that can be converted to
         reflectance using irradiance information).
-
-    The irradiance is converted to unit W/(m2*um) (i.e., input irradiance is divided by
-    1000), since this is standard for ENVI files. The values are written to the header
-    field "solar irradiance".
     """
     header_path = Path(header_path)
     header_dict = spectral.io.envi.read_envi_header(header_path)

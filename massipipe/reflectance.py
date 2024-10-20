@@ -216,18 +216,11 @@ class ReflectanceConverter:
         irradiance_header: Union[Path, str]
             Path to ENVI file containing irradiance measurement
             corresponding to radiance image file.
-            Not used if use_mean_ref_irrad_spec is True - in this
+            Not used if self.refl_from_mean_irrad is True - in this
             case, it can be set to None.
         reflectance_image_header: Union[Path, str]
             Path to header file for (output) reflectance image.
             Binary file will be saved with same name, except .hdr extension.
-        use_mean_ref_irrad_spec: bool, default False
-            Whether to use mean of irradiance reference spectra (see __init__)
-            rather than an irradiance spectrum recorded together with the
-            radiance image. This may be useful in cases where the recorded
-            irradiance spectra are missing, or have low quality, e.g. at low
-            sun angles where movement of the UAV strongly affects the measurement.
-
         """
         rad_image, rad_wl, rad_meta = mpu.read_envi(radiance_image_header)
         if self.refl_from_mean_irrad:
