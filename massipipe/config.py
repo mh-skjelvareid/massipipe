@@ -42,8 +42,9 @@ class MpGeoTransform(BaseModel):
 class MpRadiance(BaseModel):
     create: bool = True
     overwrite: bool = False
-    set_saturated_pixels_to_zero: Optional[bool] = True
-    add_map_info: Optional[bool] = True
+    set_saturated_pixels_to_zero: bool = True
+    add_map_info: bool = True
+    add_irradiance_to_header: bool = True
 
 
 class MpRadianceRgb(BaseModel):

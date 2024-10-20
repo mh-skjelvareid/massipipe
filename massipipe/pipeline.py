@@ -552,6 +552,36 @@ class PipelineProcessor:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
 
+    def add_irradiance_to_radiance_header(self):
+        """Pre-process irradiance for reflectance calc. and save to radiance header"""
+        logger.info("---- WRITING IRRADIANCE TO RADIANCE HEADER ----")
+        reflectance_converter = ReflectanceConverter(
+            wl_min=None,  # Not used, but set to None to show that ...
+            wl_max=None,  # ... original radiance wavelengths are not modified.
+            conv_irrad_with_gauss=self.config.reflectance.conv_irrad_with_gauss,
+            smooth_spectra=self.config.reflectance.smooth_spectra,
+            add_map_info=self.config.reflectance.add_map_info,
+            refl_from_mean_irrad=self.config.reflectance.refl_from_mean_irrad,
+            irrad_spec_paths=self.irrad_spec_paths,
+        )
+
+        if all([not rp.exists() for rp in self.rad_im_paths]):
+            raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
+        if all([not irp.exists() for irp in self.irrad_spec_paths]):
+            raise FileNotFoundError(f"No irradiance spectra found in {self.radiance_dir}")
+
+        for rad_path, irrad_path in zip(self.rad_im_paths, self.irrad_spec_paths):
+            if rad_path.exists() and irrad_path.exists():
+                logger.info(
+                    f"Writing irradiance from {irrad_path.name} "
+                    + f"to radiance header {rad_path.name}."
+                )
+                try:
+                    reflectance_converter.add_irradiance_spectrum_to_header(rad_path, irrad_path)
+                except Exception as e:
+                    logger.error(f"Error occured while processing {rad_path}", exc_info=True)
+                    logger.error("Skipping file")
+
     def glint_correct_reflectance_images(self):
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- REFLECTANCE GLINT CORRECTION ----")
@@ -772,6 +802,12 @@ class PipelineProcessor:
                 self.calibrate_irradiance_wavelengths()
             except Exception:
                 logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
+
+        if self.config.radiance.add_irradiance_to_header:
+            try:
+                self.add_irradiance_to_radiance_header()
+            except Exception:
+                logger.error("Error while adding irradiance to radiance header", exc_info=True)
 
         if self.config.reflectance.create:
             try:

@@ -35,6 +35,7 @@ massipipe_options:
     overwrite: false
     set_saturated_pixels_to_zero: true
     add_map_info: true
+    add_irradiance_to_header: true
   radiance_rgb:
     create: true
     overwrite: false

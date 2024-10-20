@@ -21,8 +21,8 @@ class ReflectanceConverter:
 
     def __init__(
         self,
-        wl_min: Union[int, float, None] = 400,
-        wl_max: Union[int, float, None] = 930,
+        wl_min: Union[float, None] = None,
+        wl_max: Union[float, None] = None,
         conv_irrad_with_gauss: Union[bool, None] = True,
         fwhm_irrad_smooth: Union[float, None] = 3.5,
         smooth_spectra: Union[bool, None] = False,
@@ -34,10 +34,12 @@ class ReflectanceConverter:
 
         Parameters
         ----------
-        wl_min : Union[int, float], default 400
+        wl_min : Union[float, None], default None
             Minimum wavelength (nm) to include in reflectance image.
-        wl_max : Union[int, float], default 930
+            If None, -float("inf") is used, and no lower limit is applied.
+        wl_max : Union[float, None], default None
             Maximum wavelength (nm) to include in reflectance image.
+            If None, float("inf") is used, and no upper limit is applied.
         conv_irrad_with_gauss: bool, default True
             Indicate if irradiance spectrum should be smoothed with Gaussian kernel.
             This may be useful if irradiance is measured with a higher spectral
@@ -67,10 +69,9 @@ class ReflectanceConverter:
         noise can "blow up". Limiting the wavelength range can ensure
         that the reflectance images have more well-behaved values.
         """
-        # Defaults
-        self.wl_min = float(wl_min) if wl_min else 400.0
-        self.wl_max = float(wl_max) if wl_max else 930.0
 
+        self.wl_min = wl_min if wl_min else -float("inf")
+        self.wl_max = wl_max if wl_max else float("inf")
         self.conv_irrad_with_gauss = (
             True if conv_irrad_with_gauss or (conv_irrad_with_gauss is None) else False
         )
