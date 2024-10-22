@@ -1,15 +1,25 @@
 from datetime import datetime
+from pathlib import Path
 from typing import List, Literal, Optional, Sequence, Tuple, Union
 
 import yaml
 from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, field_validator
 
 
-def parse_config(yaml_path):
+def parse_config(yaml_path: Union[Path, str]):
     """Parse YAML config file, accepting only basic YAML tags"""
     with open(yaml_path, "r") as stream:
         config = yaml.safe_load(stream)
     return config
+
+
+def write_yaml(data: dict, yaml_path: Union[Path, str]):
+    """Write data formatted as dictionary to YAML file"""
+    with open(yaml_path, "w") as yaml_file:
+        yaml.dump(data, yaml_file, default_flow_style=False, sort_keys=False)
+
+
+#### DEFINE PYDANTIC CONFIG STRUCTURE ####
 
 
 class MpGeneral(BaseModel):
@@ -57,7 +67,7 @@ class MpRadianceGc(BaseModel):
     overwrite: bool = False
     smooth_spectra: bool = False
     subtract_dark_spec: bool = True
-    set_negative_values_to_zero = True
+    set_negative_values_to_zero: bool = True
     reference_image_numbers: Optional[List[PositiveInt]] = None
     reference_image_ranges: Optional[
         List[Tuple[NonNegativeInt, PositiveInt, NonNegativeInt, PositiveInt]]
@@ -105,9 +115,10 @@ class MpMosaicCreateOverwrite(BaseModel):
 
 
 class MpMosaic(BaseModel):
-    overview_factors: Optional[Sequence[PositiveInt]] = None
+    overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     radiance_rgb: MpMosaicCreateOverwrite
     radiance_gc_rgb: MpMosaicCreateOverwrite
+    reflectance_rgb: MpMosaicCreateOverwrite
     reflectance_gc_rgb: MpMosaicCreateOverwrite
 
 
@@ -130,14 +141,14 @@ class MassipipeOptions(BaseModel):
 class Config(BaseModel):
     grouping: str
     area: str
-    datetime: datetime
-    nfiles: PositiveInt | None
+    datetime: str | datetime
+    nfiles: PositiveInt
     organisation: str
+    creator_name: str
     mosaic: bool = False
     classify: bool = False
     theme: str = "Habitat"
     spectrum_type: Literal["RGB", "MSI", "HSI"] = "HSI"
-    creator_name: str
     massipipe_options: MassipipeOptions
 
     @field_validator("datetime", mode="before")
@@ -148,3 +159,56 @@ class Config(BaseModel):
             return datetime.strptime(datetime_str, "%Y%m%d%H%M")
         else:
             raise ValueError(f"Invalid datetime string, use YYYYmmdd or YYYYmmddHHMM")
+
+
+def get_config_template():
+    template_config = Config(
+        grouping="grouping_name",
+        area="area_name",
+        datetime="197001010000",
+        nfiles=1,
+        organisation="organization_name",
+        creator_name="creator_name",
+        massipipe_options=MassipipeOptions(
+            general=MpGeneral(),
+            quicklook=MpQuickLook(),
+            imu_data=MpImuData(),
+            geotransform=MpGeoTransform(),
+            radiance=MpRadiance(),
+            radiance_rgb=MpRadianceRgb(),
+            radiance_gc=MpRadianceGc(),
+            radiance_gc_rgb=MpRadianceGcRgb(),
+            irradiance=MpIrradiance(),
+            reflectance=MpReflectance(),
+            reflectance_gc=MpReflectanceGc(),
+            reflectance_gc_rgb=MpReflectanceGcRgb(),
+            mosaic=MpMosaic(
+                radiance_rgb=MpMosaicCreateOverwrite(),
+                radiance_gc_rgb=MpMosaicCreateOverwrite(),
+                reflectance_rgb=MpMosaicCreateOverwrite(),
+                reflectance_gc_rgb=MpMosaicCreateOverwrite(),
+            ),
+        ),
+    )
+    return template_config
+
+
+def nested_config_to_dict(config):
+    """Convert nested Pydantic configuration to nested dictionary (recursively)"""
+    config_dict = dict(config)
+    for key, value in config_dict.items():
+        if isinstance(value, BaseModel):
+            config_dict[key] = nested_config_to_dict(value)
+    return config_dict
+
+
+def export_template_yaml(yaml_path: Union[Path, str]):
+    """Export YAML template based on Pydantic schema"""
+    template_config = get_config_template()
+    template_dict = nested_config_to_dict(template_config)
+    write_yaml(template_dict, yaml_path)
+
+
+if __name__ == "__main__":
+    pass
+    # export_template_yaml("example_config.yaml")
