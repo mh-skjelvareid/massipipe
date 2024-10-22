@@ -849,19 +849,3 @@ class PipelineProcessor:
         """Run all processing steps"""
         self.run_basic()
         self.run_glint_correction()
-
-
-if __name__ == "__main__":
-    print(PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr"))
-    # dataset_dir = Path(
-    #     "/media/mha114/Massimal2/seabee-minio/larvik/olbergholmen/aerial/hsi/"
-    #     + "20230830/massimal_larvik_olbergholmen_202308301001-south-test_hsi"
-    # )
-    # pl = PipelineProcessor(dataset_dir)
-    # pl.run()
-
-    # pl.glint_correct_reflectance_images()
-    # pl.georeference_glint_corrected_reflectance(
-    #     altitude_offset=-2.2, pitch_offset=3.4, roll_offset=-0.0
-    # )
-    # )
