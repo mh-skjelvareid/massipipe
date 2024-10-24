@@ -12,7 +12,7 @@ import rasterio
 import rasterio.merge
 import yaml
 
-from massipipe.config import Config, parse_config
+from massipipe.config import Config, export_template_yaml, parse_config
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
@@ -60,6 +60,9 @@ class PipelineProcessor:
             - 0_raw: Contains all raw images as saved by Resonon airborne system.
             - calibration: Contains Resonon calibration files for
             camera (*.icp) and downwelling irradiance sensor (*.dcp)
+        config_file_name: str
+            Name of YAML config file for dataset.
+            If file does not yet exist, a template file is created.
 
         Raises
         ------
@@ -73,13 +76,10 @@ class PipelineProcessor:
         # Read and validate YAML config file
         config_file_path = self.dataset_dir / config_file_name
         self.config_file_path = config_file_path
-        try:
-            full_config_dict = parse_config(self.dataset_dir / config_file_name)
-        except IOError:
-            logger.error(f"Error parsing config file {config_file_path}")
-            raise
-        self._full_config = Config(**full_config_dict)
-        self.config = self._full_config.massipipe_options
+        if not self.config_file_path.exists():
+            logger.info(f"No config file found - exporting template file {config_file_name}")
+            export_template_yaml(self.config_file_path)
+        self.load_config_from_file()  # Reads config from file into self.config
 
         # Define dataset folder structure
         self.dataset_base_name = self.dataset_dir.name
@@ -137,6 +137,16 @@ class PipelineProcessor:
 
         # Configure logging
         self._configure_file_logging()
+
+    def load_config_from_file(self):
+        """Load or re-load configuration from YAML file"""
+        try:
+            full_config_dict = parse_config(self.config_file_path)
+        except IOError:
+            logger.error(f"Error parsing config file {self.config_file_path}")
+            raise
+        full_config = Config(**full_config_dict)
+        self.config = full_config.massipipe_options
 
     def _configure_file_logging(self):
         """Configure logging for pipeline"""
@@ -836,3 +846,6 @@ class PipelineProcessor:
         """Run all processing steps"""
         self.run_basic()
         self.run_glint_correction()
+
+    def create_template_yaml_config(self):
+        """Create YAML file"""
