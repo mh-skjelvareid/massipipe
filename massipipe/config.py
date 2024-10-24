@@ -87,8 +87,8 @@ class MpIrradiance(BaseModel):
 class MpReflectance(BaseModel):
     create: bool = True
     overwrite: bool = False
-    wl_min: Optional[float] = 400
-    wl_max: Optional[float] = 930
+    wl_min: float = 400
+    wl_max: float = 930
     conv_irrad_with_gauss: bool = True
     fwhm_irrad_smooth: Optional[float] = None
     smooth_spectra: bool = False
