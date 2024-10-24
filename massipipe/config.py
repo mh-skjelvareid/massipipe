@@ -152,15 +152,25 @@ class Config(BaseModel):
     spectrum_type: Literal["RGB", "MSI", "HSI"] = "HSI"
     massipipe_options: MassipipeOptions
 
+    # Validation of datetime string
+    # Note that string is not converted to datetime object,
+    # this is to keep original string for template generation.
     @field_validator("datetime", mode="before")
     @classmethod
     def datetime_validate(cls, datetime_str: str):
         if len(datetime_str) == 8:  # Expect YYYYmmdd
-            return datetime.strptime(datetime_str, "%Y%m%d")
+            try:
+                _ = datetime.strptime(datetime_str, "%Y%m%d")
+            except ValueError:
+                raise
         elif len(datetime_str) == 12:  # Expect YYYYmmddHHMM
-            return datetime.strptime(datetime_str, "%Y%m%d%H%M")
+            try:
+                _ = datetime.strptime(datetime_str, "%Y%m%d%H%M")
+            except ValueError:
+                raise
         else:
             raise ValueError(f"Invalid datetime string, use YYYYmmdd or YYYYmmddHHMM")
+        return datetime_str
 
 
 def get_config_template():
