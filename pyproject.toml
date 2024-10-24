@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "massipipe"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
   "ipykernel",
   "matplotlib",
@@ -14,7 +14,8 @@ dependencies = [
   "rasterio",
   "spectral",
   "scipy",
-  "schema"
+  "schema",
+  "pydantic"
 ]
 requires-python = ">=3.8"
 authors = [
@@ -36,6 +37,7 @@ dev = [
   "jupyterlab",
   "pytest",
   "ruff",
+  "rich",
   "numpydoc-linter",
   "mkdocs",
   "mkdocstrings-python",
@@ -46,7 +48,7 @@ dev = [
 Repository = "https://github.com/mh-skjelvareid/massipipe"
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "I"]

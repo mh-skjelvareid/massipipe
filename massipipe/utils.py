@@ -1,4 +1,5 @@
 # Imports
+import json
 import logging
 from pathlib import Path
 from typing import Union
@@ -53,18 +54,14 @@ def read_envi(
         im_handle = spectral.io.envi.open(header_path, image_path)
     except spectral.io.envi.MissingEnviHeaderParameter as e:
         logging.debug(f"Header file has missing parameter: {header_path}")
-        byte_order_missing_str = (
-            'Mandatory parameter "byte order" missing from header file.'
-        )
+        byte_order_missing_str = 'Mandatory parameter "byte order" missing from header file.'
         if str(e) == byte_order_missing_str and write_byte_order_if_missing:
             logging.debug('Writing "byte order = 0" to header file and retrying')
             try:
                 with open(header_path, "a") as file:
                     file.write("byte order = 0\n")
             except OSError:
-                logger.error(
-                    f"Error writing to header file {header_path}", exc_info=True
-                )
+                logger.error(f"Error writing to header file {header_path}", exc_info=True)
                 raise
 
             try:
@@ -90,9 +87,31 @@ def read_envi(
     return (image, wl, im_handle.metadata)
 
 
-def save_envi(
-    header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs
-) -> None:
+def read_envi_header(header_path: Union[Path, str]) -> tuple[dict, NDArray]:
+    """Read ENVI header information and convert wavelengths to numeric array
+
+    Parameters
+    ----------
+    header_path : Union[Path, str]
+        Path to ENVI header
+
+    Returns
+    -------
+    metadata: dict[str,str]
+        All header information formatted as dict
+    wl: NDArray
+        If "wavelength" is present in header file, wavelengths are returned as numeric
+        array. If not, an empty array is returned.
+    """
+    metadata = spectral.io.envi.read_envi_header(header_path)
+    if "wavelength" in metadata:
+        wl = np.array([float(i) for i in metadata["wavelength"]])
+    else:
+        wl = np.array([])
+    return metadata, wl
+
+
+def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs) -> None:
     """Save ENVI file with parameters compatible with Spectronon
 
     Parameters
@@ -108,39 +127,42 @@ def save_envi(
         See read_envi()
     """
     # Save file
-    spectral.envi.save_image(
-        header_path, image, metadata=metadata, force=True, ext=None, **kwargs
-    )
+    spectral.envi.save_image(header_path, image, metadata=metadata, force=True, ext=None, **kwargs)
 
 
-def wavelength_array_to_header_string(wavelengths: ArrayLike) -> str:
-    """Convert wavelength array to ENVI header string
+def array_to_header_string(num_array: ArrayLike, decimals: int = 3) -> str:
+    """Convert numeric array to ENVI header string
 
     Parameters
     ----------
-    wavelengths : NDArray
-        Array of wavelengths
+    num_array : ArrayLike
+        Array or iterable (list, tuple, ...) of wavelengths
+    decimals: int, default 3
+        Number of decimals used in text output
 
     Returns
     -------
-    str
-        Single string with wavelengths in curly braces,
-        with 3 decimals.
+    header_str
+        String with comma separated numeric values in curly braces.
 
     Examples
     --------
-    >>> wavelength_array_to_header_string([420.32, 500, 581.28849])
+    >>> array_to_header_string([420.32, 500, 581.28849])
     '{420.320, 500.000, 581.288}'
 
     """
-    wl_str = [f"{wl:.3f}" for wl in wavelengths]  # Convert each number to string
-    wl_str = "{" + ", ".join(wl_str) + "}"  # Join into single string
-    return wl_str
+    num_array = np.atleast_1d(np.array(num_array))  # Ensure array format
+    str_array = [f"{num:.{decimals}f}" for num in num_array]  # Convert each number to string
+    header_str = "{" + ", ".join(str_array) + "}"  # Join into single string
+    return header_str
 
 
-def update_header_wavelengths(
-    wavelengths: NDArray, header_path: Union[Path, str]
-) -> None:
+def header_string_to_array(header_string: str) -> NDArray:
+    """Convert header string with numeric array to NumPy array"""
+    return np.array([float(irrad) for irrad in header_string])
+
+
+def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str]) -> None:
     """Update ENVI header wavelengths
 
     Parameters
@@ -152,9 +174,36 @@ def update_header_wavelengths(
     """
     header_path = Path(header_path)
     header_dict = spectral.io.envi.read_envi_header(header_path)
-    wl_str = wavelength_array_to_header_string(wavelengths)
+    wl_str = array_to_header_string(wavelengths)
     header_dict["wavelength"] = wl_str
     spectral.io.envi.write_envi_header(header_path, header_dict)
+
+
+def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) -> None:
+    """Add irradiance information to ENVI header ("solar irradiance")
+
+    Parameters
+    ----------
+    irradiance : NDArray
+        Downwelling irradiance, shape (n_bands,), in units W/(m2*um).
+        The number of bands and the corresponding wavelengths for these bands
+        should match that of the hyperspectral image (see "wavelength" in header file).
+    header_path : Union[Path, str]
+        Path to ENVI header file (typically radiance image that can be converted to
+        reflectance using irradiance information).
+    """
+    header_path = Path(header_path)
+    header_dict = spectral.io.envi.read_envi_header(header_path)
+    irrad_str = array_to_header_string(irradiance, decimals=6)
+    header_dict["solar irradiance"] = irrad_str
+    spectral.io.envi.write_envi_header(header_path, header_dict)
+
+
+def get_image_shape(image_path: Union[Path, str]) -> tuple[int, int, int]:
+    """Get shape of image cube (lines, samples, bands)"""
+    header = spectral.envi.read_envi_header(image_path)
+    shape = (int(header["lines"]), int(header["samples"]), int(header["bands"]))
+    return shape
 
 
 def bin_image(
@@ -245,9 +294,7 @@ def savitzky_golay_filter(
     NDArray
         Filtered version of image.
     """
-    return savgol_filter(
-        image, window_length=window_length, polyorder=polyorder, axis=axis
-    )
+    return savgol_filter(image, window_length=window_length, polyorder=polyorder, axis=axis)
 
 
 def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
@@ -303,6 +350,43 @@ def rgb_subset_from_hsi(
     return rgb_im, rgb_wl
 
 
+def percentile_stretch_image(
+    image: NDArray,
+    percentiles: tuple[float, float] = (2, 98),
+    saturation_value: int = 2**12 - 1,
+) -> NDArray:
+    """Scale array values within percentile limits to range 0-255
+
+    Parameters
+    ----------
+    image : NDArray
+        Image, shape (n_lines, n_samples, n_bands)
+
+    Returns
+    -------
+    image_stretched: NDArray, dtype = uint8
+        Image with same shape as input.
+        Image intensity values are stretched so that the lower
+        percentile corresponds to 0 and the higher percentile corresponds
+        to 255 (maximum value for unsigned 8-bit integer, typical for PNG/JPG).
+        Pixels for which one or more bands are saturated are set to zero.
+    """
+    assert image.ndim == 3
+    saturated = np.any(image >= saturation_value, axis=2)
+    image_stretched = np.zeros_like(image, dtype=np.float64)
+
+    for band_index in range(image.shape[2]):
+        image_band = image[:, :, band_index]
+        p_low, p_high = np.percentile(image_band[~saturated], percentiles)
+        image_band[image_band < p_low] = p_low
+        image_band[image_band > p_high] = p_high
+        p_range = p_high - p_low
+        image_stretched[:, :, band_index] = (image_band - p_low) * (255 / p_range)
+
+    image_stretched[saturated] = 0
+    return image_stretched.astype(np.uint8)
+
+
 def convert_long_lat_to_utm(
     long: ArrayLike, lat: ArrayLike
 ) -> tuple[NDArray, NDArray, Union[int, None]]:
@@ -337,7 +421,7 @@ def convert_long_lat_to_utm(
     proj = Proj(utm_crs)
     UTMx, UTMy = proj(long, lat)
 
-    return UTMx, UTMy, utm_crs.to_epsg()
+    return np.array(UTMx), np.array(UTMy), utm_crs.to_epsg()
 
 
 def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:
@@ -422,6 +506,24 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
             dst.write(reshape_as_raster(rgb_image))
 
 
+def read_json(json_path: Union[Path, str]) -> dict:
+    """Read data saved in JSON file
+
+    Parameters
+    ----------
+    json_path : Union[Path,str]
+        Path to JSON file
+
+    Returns
+    -------
+    data: dict
+        Data from JSON file
+    """
+    with open(json_path, "r") as file:
+        imu_data = json.load(file)
+    return imu_data
+
+
 def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
     """_summary_
 
@@ -457,12 +559,11 @@ def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = Tr
     return samp
 
 
-# GPS - UNIX time conversion code adapted from
-# https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
-
-
 def unix2gps(unix_time):
-    """Convert UNIX time to GPS time (both in seconds)"""
+    """Convert UNIX time to GPS time (both in seconds)
+    UNIX-GPS time conversion code adapted from
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    """
     gps_time = unix_time - 315964800
     nleaps = _count_leaps(gps_time, "unix2gps")
     gps_time += nleaps + (1 if unix_time % 1 != 0 else 0)
@@ -470,7 +571,10 @@ def unix2gps(unix_time):
 
 
 def gps2unix(gps_time):
-    """Convert GPS time to UNIX time (both in seconds)"""
+    """Convert GPS time to UNIX time (both in seconds)
+    GPS-UNIX time conversion code adapted from
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    """
     unix_time = gps_time + 315964800
     nleaps = _count_leaps(gps_time, "gps2unix")
     unix_time -= nleaps
@@ -517,3 +621,46 @@ def _count_leaps(gps_time, dir_flag):
         else:
             raise ValueError("Invalid Flag!")
     return nleaps
+
+
+def get_nested_dict_value(nested_dict, *keys):
+    """Get (nested) dictionary value if it exists
+
+    Parameters
+    ----------
+    *keys
+        One or multiple keys needed to access value in nested dict.
+
+    Returns
+    -------
+    value
+        Value if value is defined in dictionary, None if not.
+        Note that "null" values in YAML also correspond to None (not defined).
+    """
+    current = nested_dict
+    for key in keys:
+        if key in current:
+            current = current[key]
+        else:
+            return None
+    return current
+
+
+def irrad_uflicklike_to_si_nm(irrad: NDArray) -> NDArray:
+    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    return irrad / 100_000
+
+
+def irrad_si_nm_to_uflicklike(irrad: NDArray) -> NDArray:
+    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    return irrad * 100_000
+
+
+def irrad_si_nm_to_si_um(irrad: NDArray) -> NDArray:
+    """Convert irradiance from W/(m2*nm) to W/(m2*um)"""
+    return irrad * 1000
+
+
+def irrad_si_um_to_uflicklike(irrad: NDArray) -> NDArray:
+    """Convert irradiance from W/(m2*um) to uW/(cm2*um)"""
+    return irrad * 100
