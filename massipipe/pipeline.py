@@ -586,27 +586,58 @@ class PipelineProcessor:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- REFLECTANCE GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
-        glint_corrector = FlatSpecGlintCorrector()
 
-        if all([not rp.exists() for rp in self.refl_im_paths]):
-            raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")
+        # Calculate reflectance based on glint corrected radiance
+        if self.config.reflectance_gc.method == "from_rad_gc":
+            logger.info("Calculating glint corrected reflectance from glint corrected radiance")
+            reflectance_converter = ReflectanceConverter()
 
-        for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
-            if refl_gc_path.exists() and not self.config.reflectance_gc.overwrite:
-                logger.info(f"Image {refl_gc_path.name} exists - skipping.")
-                continue
-            if refl_path.exists():
-                logger.info(f"Applying glint correction to {refl_path.name}.")
-                try:
-                    glint_corrector.glint_correct_image_file(refl_path, refl_gc_path)
-                except Exception as e:
-                    logger.error(
-                        f"Error occured while glint correcting {refl_path}",
-                        exc_info=True,
-                    )
-                    logger.error("Skipping file")
+            for rad_gc_path, refl_gc_path in zip(self.rad_gc_im_paths, self.refl_gc_im_paths):
+                if refl_gc_path.exists() and not self.config.reflectance_gc.overwrite:
+                    logger.info(f"Image {refl_gc_path.name} exists - skipping.")
+                    continue
+                if rad_gc_path.exists():
+                    logger.info(f"Calculating reflectance based on {rad_gc_path.name}.")
+                    try:
+                        reflectance_converter.convert_radiance_file_with_irradiance_to_reflectance(
+                            rad_gc_path, refl_gc_path
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Error occured while glint correcting {rad_gc_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
 
-    def georeference_glint_corrected_reflectance(self):
+        # Calculate glint corrected reflectance based on assumption of flat glint spectrum
+        elif self.config.reflectance_gc.method == "flat_spec":
+            logger.info("Using flat spectrum method for reflectance glint correction")
+            glint_corrector = FlatSpecGlintCorrector()
+
+            if all([not rp.exists() for rp in self.refl_im_paths]):
+                raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")
+
+            for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
+                if refl_gc_path.exists() and not self.config.reflectance_gc.overwrite:
+                    logger.info(f"Image {refl_gc_path.name} exists - skipping.")
+                    continue
+                if refl_path.exists():
+                    logger.info(f"Applying glint correction to {refl_path.name}.")
+                    try:
+                        glint_corrector.glint_correct_image_file(refl_path, refl_gc_path)
+                    except Exception as e:
+                        logger.error(
+                            f"Error occured while glint correcting {refl_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
+        else:
+            raise ValueError(
+                "Invalid reflectance glint correction method: "
+                + f"{self.config.reflectance_gc.method}"
+            )
+
+    def create_glint_corrected_reflectance_rgb_geotiff(self):
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
@@ -633,7 +664,7 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def mosaic_refl_gc_geotiffs(self):
+    def mosaic_reflectance_gc_geotiffs(self):
         """Merge non-rotated geotiffs into mosaic with overviews (rasterio)"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
@@ -782,6 +813,20 @@ class PipelineProcessor:
         if self.config.radiance_gc_rgb.create:
             try:
                 self.create_glint_corrected_radiance_rgb_geotiff()
+            except Exception:
+                logger.error(
+                    "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
+                )
+
+        if self.config.reflectance_gc.create:
+            try:
+                self.glint_correct_reflectance_images()
+            except Exception:
+                logger.error("Error while glint correcting radiance images", exc_info=True)
+
+        if self.config.reflectance_gc_rgb.create:
+            try:
+                self.create_glint_corrected_reflectance_rgb_geotiff()
             except Exception:
                 logger.error(
                     "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True

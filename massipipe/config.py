@@ -100,6 +100,7 @@ class MpReflectanceGc(BaseModel):
     create: bool = True
     overwrite: bool = False
     smooth_spectra: bool = False
+    method: Literal["from_rad_gc", "flat_spec"] = "from_rad_gc"
     wl_min: Optional[float] = None
     wl_max: Optional[float] = None
 
@@ -110,15 +111,15 @@ class MpReflectanceGcRgb(BaseModel):
 
 
 class MpMosaicCreateOverwrite(BaseModel):
-    create: bool = True
+    create: bool = False
     overwrite: bool = True
 
 
 class MpMosaic(BaseModel):
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
-    radiance_rgb: MpMosaicCreateOverwrite
+    # radiance_rgb: MpMosaicCreateOverwrite # Not yet implemented
     radiance_gc_rgb: MpMosaicCreateOverwrite
-    reflectance_rgb: MpMosaicCreateOverwrite
+    # reflectance_rgb: MpMosaicCreateOverwrite # Not yet implemented
     reflectance_gc_rgb: MpMosaicCreateOverwrite
 
 
@@ -183,9 +184,9 @@ def get_config_template():
             reflectance_gc=MpReflectanceGc(),
             reflectance_gc_rgb=MpReflectanceGcRgb(),
             mosaic=MpMosaic(
-                radiance_rgb=MpMosaicCreateOverwrite(),
+                # radiance_rgb=MpMosaicCreateOverwrite(),
                 radiance_gc_rgb=MpMosaicCreateOverwrite(),
-                reflectance_rgb=MpMosaicCreateOverwrite(),
+                # reflectance_rgb=MpMosaicCreateOverwrite(),
                 reflectance_gc_rgb=MpMosaicCreateOverwrite(),
             ),
         ),
