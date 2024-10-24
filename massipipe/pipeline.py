@@ -2,7 +2,6 @@
 import logging
 import shutil
 import subprocess
-import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -187,7 +186,7 @@ class PipelineProcessor:
                 or not (times_path.exists())
                 or not (lcf_path.exists())
             ):
-                warnings.warn(f"Set of raw files for image {raw_image_path} is incomplete.")
+                logger.warning(f"Set of raw files for image {raw_image_path} is incomplete.")
                 self.raw_image_paths.remove(raw_image_path)
             else:
                 times_paths.append(times_path)
@@ -473,9 +472,9 @@ class PipelineProcessor:
         ref_im_ranges = self.config.radiance_gc.reference_image_ranges
 
         if not (ref_im_nums):
-            raise ValueError("No reference image numbers for sun glint correction specified.")
-        # if not (ref_im_ranges):
-        #     raise ValueError("No reference image ranges for sun glint correction specified.")
+            logger.error("No reference images for sun glint correction specified - aborting.")
+            return
+
         if (ref_im_ranges is not None) and (len(ref_im_nums) != len(ref_im_ranges)):
             raise ValueError(
                 "The number of reference image numbers and reference image ranges do not match."
@@ -507,7 +506,7 @@ class PipelineProcessor:
         georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
         if all([not rp.exists() for rp in self.rad_gc_im_paths]):
-            warnings.warn(f"No radiance images found in {self.radiance_gc_dir}")
+            logger.warning(f"No radiance images found in {self.radiance_gc_dir}")
 
         for rad_gc_path, geotrans_path, geotiff_path in zip(
             self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
