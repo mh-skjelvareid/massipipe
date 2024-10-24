@@ -142,7 +142,7 @@ class MassipipeOptions(BaseModel):
 class Config(BaseModel):
     grouping: str
     area: str
-    datetime: str | datetime
+    datetime: str
     nfiles: PositiveInt
     organisation: str
     creator_name: str
