@@ -628,7 +628,9 @@ class PipelineProcessor:
         # Calculate glint corrected reflectance based on assumption of flat glint spectrum
         elif self.config.reflectance_gc.method == "flat_spec":
             logger.info("Using flat spectrum method for reflectance glint correction")
-            glint_corrector = FlatSpecGlintCorrector()
+            glint_corrector = FlatSpecGlintCorrector(
+                smooth_with_savitsky_golay=self.config.reflectance_gc.smooth_spectra
+            )
 
             if all([not rp.exists() for rp in self.refl_im_paths]):
                 raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")

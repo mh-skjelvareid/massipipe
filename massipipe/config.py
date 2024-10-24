@@ -101,8 +101,6 @@ class MpReflectanceGc(BaseModel):
     overwrite: bool = False
     smooth_spectra: bool = False
     method: Literal["from_rad_gc", "flat_spec"] = "from_rad_gc"
-    wl_min: Optional[float] = None
-    wl_max: Optional[float] = None
 
 
 class MpReflectanceGcRgb(BaseModel):
