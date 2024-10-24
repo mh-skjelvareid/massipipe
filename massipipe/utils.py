@@ -157,6 +157,11 @@ def array_to_header_string(num_array: ArrayLike, decimals: int = 3) -> str:
     return header_str
 
 
+def header_string_to_array(header_string: str) -> NDArray:
+    """Convert header string with numeric array to NumPy array"""
+    return np.array([float(irrad) for irrad in header_string])
+
+
 def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str]) -> None:
     """Update ENVI header wavelengths
 
@@ -177,14 +182,10 @@ def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str
 def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) -> None:
     """Add irradiance information to ENVI header ("solar irradiance")
 
-    The irradiance is converted to unit W/(m2*um) (i.e., input irradiance is divided by
-    1000), since this is standard for ENVI files. The values are written to the header
-    field "solar irradiance".
-
     Parameters
     ----------
     irradiance : NDArray
-        Downwelling irradiance, shape (n_bands,), in units W/(m2*nm).
+        Downwelling irradiance, shape (n_bands,), in units W/(m2*um).
         The number of bands and the corresponding wavelengths for these bands
         should match that of the hyperspectral image (see "wavelength" in header file).
     header_path : Union[Path, str]
@@ -193,7 +194,7 @@ def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) ->
     """
     header_path = Path(header_path)
     header_dict = spectral.io.envi.read_envi_header(header_path)
-    irrad_str = array_to_header_string(irradiance / 1000)
+    irrad_str = array_to_header_string(irradiance, decimals=6)
     header_dict["solar irradiance"] = irrad_str
     spectral.io.envi.write_envi_header(header_path, header_dict)
 

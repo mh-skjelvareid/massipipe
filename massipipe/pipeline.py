@@ -474,9 +474,9 @@ class PipelineProcessor:
 
         if not (ref_im_nums):
             raise ValueError("No reference image numbers for sun glint correction specified.")
-        if not (ref_im_ranges):
-            raise ValueError("No reference image ranges for sun glint correction specified.")
-        if len(ref_im_nums) != len(ref_im_ranges):
+        # if not (ref_im_ranges):
+        #     raise ValueError("No reference image ranges for sun glint correction specified.")
+        if (ref_im_ranges is not None) and (len(ref_im_nums) != len(ref_im_ranges)):
             raise ValueError(
                 "The number of reference image numbers and reference image ranges do not match."
             )
@@ -600,7 +600,14 @@ class PipelineProcessor:
         # Calculate reflectance based on glint corrected radiance
         if self.config.reflectance_gc.method == "from_rad_gc":
             logger.info("Calculating glint corrected reflectance from glint corrected radiance")
-            reflectance_converter = ReflectanceConverter()
+            reflectance_converter = ReflectanceConverter(
+                wl_min=self.config.reflectance.wl_min, wl_max=self.config.reflectance.wl_max
+            )
+
+            if all([not rp.exists() for rp in self.rad_gc_im_paths]):
+                logger.warning(
+                    f"No glint corrected radiance images found in {self.radiance_gc_dir}"
+                )
 
             for rad_gc_path, refl_gc_path in zip(self.rad_gc_im_paths, self.refl_gc_im_paths):
                 if refl_gc_path.exists() and not self.config.reflectance_gc.overwrite:
@@ -654,7 +661,7 @@ class PipelineProcessor:
         georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
         if all([not rp.exists() for rp in self.refl_gc_im_paths]):
-            warnings.warn(f"No reflectance images found in {self.reflectance_gc_dir}")
+            logger.warning(f"No reflectance images found in {self.reflectance_gc_dir}")
 
         for refl_gc_path, geotrans_path, geotiff_path in zip(
             self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths

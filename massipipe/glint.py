@@ -314,6 +314,17 @@ class HedleyGlintCorrector:
             Path for saving output image (ENVI header file)
 
         """
-        image, _, metadata = mpu.read_envi(image_path)
+        # Glint correction
+        image, wl, metadata = mpu.read_envi(image_path)
         glint_corr_image = self.glint_correct_image(image)
+
+        # Limit wavelengths to only visible
+        wl = wl[self.vis_ind]
+        metadata["wavelength"] = mpu.array_to_header_string(wl)
+        if "solar irradiance" in metadata:
+            irrad_spec = mpu.header_string_to_array(metadata["solar irradiance"])
+            irrad_spec = irrad_spec[self.vis_ind]
+            metadata["solar irradiance"] = mpu.array_to_header_string(irrad_spec)
+
+        # Save
         mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)

@@ -68,7 +68,7 @@ class MpRadianceGc(BaseModel):
     smooth_spectra: bool = False
     subtract_dark_spec: bool = True
     set_negative_values_to_zero: bool = True
-    reference_image_numbers: Optional[List[PositiveInt]] = None
+    reference_image_numbers: Optional[List[NonNegativeInt]] = None
     reference_image_ranges: Optional[
         List[Tuple[NonNegativeInt, PositiveInt, NonNegativeInt, PositiveInt]]
     ] = None
@@ -87,8 +87,8 @@ class MpIrradiance(BaseModel):
 class MpReflectance(BaseModel):
     create: bool = True
     overwrite: bool = False
-    wl_min: Optional[float] = None
-    wl_max: Optional[float] = None
+    wl_min: Optional[float] = 400
+    wl_max: Optional[float] = 930
     conv_irrad_with_gauss: bool = True
     fwhm_irrad_smooth: Optional[float] = None
     smooth_spectra: bool = False

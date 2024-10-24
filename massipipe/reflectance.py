@@ -179,17 +179,24 @@ class ReflectanceConverter:
         assert irrad_spec.ndim == 1
 
         # Limit output wavelength range
-        valid_image_wl_ind = (rad_wl >= self.wl_min) & (rad_wl <= self.wl_max)
+        valid_image_wl_ind = (
+            (rad_wl >= self.wl_min)
+            & (rad_wl <= self.wl_max)
+            & (rad_wl >= irrad_wl[0])
+            & (rad_wl <= irrad_wl[-1])
+        )
         rad_wl = rad_wl[valid_image_wl_ind]
         rad_image = rad_image[:, :, valid_image_wl_ind]
 
         # Make irradiance spectrum compatible with image
-        # TODO: Fix scaling factor below, not correct(?)
         irrad_spec = irrad_spec * 100_000  # Convert from W/(m2*nm) to uW/(cm2*um)
         if self.conv_irrad_with_gauss:
             irrad_spec = self.conv_spec_with_gaussian(irrad_spec, irrad_wl)
         irrad_spec = self._interpolate_irrad_to_image_wl(irrad_spec, irrad_wl, rad_wl)
         irrad_spec = np.expand_dims(irrad_spec, axis=(0, 1))
+
+        # Set zero-valued irradiance elements to small value to avoid divide-by-zero
+        irrad_spec[irrad_spec < 1.0] = 1.0  # <= 1 uW/(cm2*um)
 
         # Convert to reflectance, assuming Lambertian (perfectly diffuse) surface
         refl_image = np.pi * (rad_image.astype(np.float32) / irrad_spec.astype(np.float32))
@@ -259,6 +266,7 @@ class ReflectanceConverter:
             irrad_wl = self.ref_irrad_spec_wl
         elif irradiance_header is not None:
             irrad_spec, irrad_wl, _ = mpu.read_envi(irradiance_header)
+            irrad_spec = np.squeeze(irrad_spec)  # Convert to 1D array
         else:
             raise ValueError("Must specify irradiance spectrum file if not using mean irradiance.")
 
@@ -292,8 +300,7 @@ class ReflectanceConverter:
         rad_image, rad_wl, rad_meta = mpu.read_envi(radiance_image_header)
 
         # Convert irradiance spectrum string to numeric array
-        irrad_str_list = rad_meta["solar irradiance"].strip("{}").split(",")
-        irrad_spec = np.array((float(irrad) for irrad in irrad_str_list))
+        irrad_spec = mpu.header_string_to_array(rad_meta["solar irradiance"])
         assert len(irrad_spec) == len(rad_wl)
 
         # Limit output wavelength range
