@@ -153,6 +153,7 @@ class Config(BaseModel):
     massipipe_options: MassipipeOptions
 
     @field_validator("datetime", mode="before")
+    @classmethod
     def datetime_validate(cls, datetime_str: str):
         if len(datetime_str) == 8:  # Expect YYYYmmdd
             return datetime.strptime(datetime_str, "%Y%m%d")
