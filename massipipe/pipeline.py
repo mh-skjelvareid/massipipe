@@ -133,7 +133,7 @@ class PipelineProcessor:
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
         # Create mosaic file path
-        self.mosaic_path = self.mosaic_dir / (self.dataset_base_name + "_rgb.tiff")
+        self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
         # Configure logging
         self._configure_file_logging()
@@ -633,71 +633,13 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
-    def mosaic_geotiffs(self, overview_factors=(2, 4, 6, 8, 16)):
+    def mosaic_refl_gc_geotiffs(self):
         """Merge non-rotated geotiffs into mosaic with overviews (rasterio)"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
 
-        # Open images
-        images_to_merge = []
-        for image_path in self.refl_gc_rgb_paths:
-            try:
-                if image_path.exists():
-                    images_to_merge.append(rasterio.open(image_path, "r"))
-            except IOError as e:
-                logger.warning(f"Error while reading {image_path} - skipping. ")
-
-        # Merge
-        try:
-            rasterio.merge.merge(images_to_merge, dst_path=self.mosaic_path)
-        except Exception:
-            logger.error("Error while mosaicing geotiffs", exc_info=True)
-            raise
-        finally:
-            for opened_image in images_to_merge:
-                opened_image.close()
-
-        # Add overviews
-        logger.info(f"Adding overviews to mosaic {self.mosaic_path.name}")
-        try:
-            with rasterio.open(self.mosaic_path, "r+") as mosaic_dataset:
-                mosaic_dataset.build_overviews(overview_factors)
-        except Exception:
-            logger.error("Error while adding overviews to mosaic", exc_info=True)
-            raise
-
-    def mosaic_geotiffs_gdal_cli(self):
-        """Merge rotated geotiffs into single mosaic with overviews (GDAL CLI)"""
-        logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
-        self.mosaic_dir.mkdir(exist_ok=True)
-
-        # Explanation of gdalwarp options used:
-        # -overwrite: Overwrite existing files without error / warning
-        # -q: Suppress GDAL output (quiet)
-        # -r near: Resampling method: Nearest neighbor
-        # -of GTiff: Output format: GeoTiff
-
-        # Run as subprocess without invoking shell. Note input file unpacking.
-        gdalwarp_args = [
-            "gdalwarp",
-            "-overwrite",
-            "-q",
-            "-r",
-            "near",
-            "-of",
-            "GTiff",
-            *[str(p) for p in self.refl_gc_rgb_paths if p.exists()],
-            str(self.mosaic_path),
-        ]
-        subprocess.run(gdalwarp_args)
-
-        # Add image pyramids to file
-        logger.info(f"Adding image pyramids to mosaic {self.mosaic_path.name}")
-        # Explanation of gdaladdo options used:
-        # -r average: Use averaging when resampling to lower spatial resolution
-        # -q: Suppress output (be quiet)
-        gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(self.mosaic_path)]
-        subprocess.run(gdaladdo_args)
+        mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
+        add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
 
     def delete_existing_products(
         self,

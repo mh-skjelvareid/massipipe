@@ -3,7 +3,7 @@ import logging
 import subprocess
 import warnings
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Iterable, Sequence, Union
 
 import rasterio
 import rasterio.merge
@@ -43,9 +43,7 @@ def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path):
             opened_image.close()
 
 
-def add_geotiff_overviews(
-    image_path: Path, overview_factors: tuple = (2, 4, 8, 16, 32)
-):
+def add_geotiff_overviews(image_path: Path, overview_factors: Sequence[int] = (2, 4, 8, 16, 32)):
     """Add lower-resolution "overviews" to image file
 
     Parameters
@@ -63,9 +61,7 @@ def add_geotiff_overviews(
         with rasterio.open(image_path, "r+") as mosaic_dataset:
             mosaic_dataset.build_overviews(overview_factors)
     except Exception:
-        logger.error(
-            f"Error while adding overviews to mosaic {image_path.name}", exc_info=True
-        )
+        logger.error(f"Error while adding overviews to mosaic {image_path.name}", exc_info=True)
         raise
 
 
