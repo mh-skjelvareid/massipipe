@@ -327,4 +327,4 @@ class HedleyGlintCorrector:
             metadata["solar irradiance"] = mpu.array_to_header_string(irrad_spec)
 
         # Save
-        mpu.save_envi(glint_corr_image_path, glint_corr_image.astype(image.dtype), metadata)
+        mpu.save_envi(glint_corr_image_path, glint_corr_image, metadata)
