@@ -26,7 +26,6 @@ class ReflectanceConverter:
         conv_irrad_with_gauss: Union[bool, None] = True,
         fwhm_irrad_smooth: Union[float, None] = 3.5,
         smooth_spectra: Union[bool, None] = False,
-        add_map_info: Union[bool, None] = True,
         refl_from_mean_irrad: Union[bool, None] = False,
         irrad_spec_paths: Union[Iterable[Union[Path, str]], None] = None,
     ):
@@ -77,7 +76,6 @@ class ReflectanceConverter:
         )
         self.fwhm_irrad_smooth = fwhm_irrad_smooth if fwhm_irrad_smooth else 3.5
         self.smooth_spectra = bool(smooth_spectra)
-        self.add_map_info = True if add_map_info or (add_map_info is None) else False
 
         if refl_from_mean_irrad:
             self.refl_from_mean_irrad = True
