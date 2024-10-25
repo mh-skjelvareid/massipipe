@@ -539,7 +539,6 @@ class PipelineProcessor:
             wl_max=self.config.reflectance.wl_max,
             conv_irrad_with_gauss=self.config.reflectance.conv_irrad_with_gauss,
             smooth_spectra=self.config.reflectance.smooth_spectra,
-            add_map_info=self.config.reflectance.add_map_info,
             refl_from_mean_irrad=self.config.reflectance.refl_from_mean_irrad,
             irrad_spec_paths=self.irrad_spec_paths,
         )
@@ -573,7 +572,6 @@ class PipelineProcessor:
             wl_max=None,  # ... original radiance wavelengths are not modified.
             conv_irrad_with_gauss=self.config.reflectance.conv_irrad_with_gauss,
             smooth_spectra=self.config.reflectance.smooth_spectra,
-            add_map_info=self.config.reflectance.add_map_info,
             refl_from_mean_irrad=self.config.reflectance.refl_from_mean_irrad,
             irrad_spec_paths=self.irrad_spec_paths,
         )
@@ -692,6 +690,16 @@ class PipelineProcessor:
         """Merge non-rotated geotiffs into mosaic with overviews (rasterio)"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
+
+        if (self.mosaic_refl_gc_path.exists()) and (
+            not self.config.mosaic.reflectance_gc_rgb.overwrite
+        ):
+            logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
+            return
+
+        if all([not rp.exists() for rp in self.refl_gc_rgb_paths]):
+            logger.error(f"No images found in {self.reflectance_gc_dir}")
+            return
 
         mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
         add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
@@ -856,10 +864,21 @@ class PipelineProcessor:
                     "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
                 )
 
+    def run_mosaics(self):
+        """Run all mosaicing operations"""
+        if self.config.mosaic.reflectance_gc_rgb.create:
+            try:
+                self.mosaic_reflectance_gc_geotiffs()
+            except Exception:
+                logger.error(
+                    f"Error occured while mosaicing glint corrected reflectance", exc_info=True
+                )
+
     def run(self):
         """Run all processing steps"""
         self.run_basic()
         self.run_glint_correction()
+        self.mosaic_reflectance_gc_geotiffs()
 
     def create_template_yaml_config(self):
         """Create YAML file"""
