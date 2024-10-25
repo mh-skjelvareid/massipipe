@@ -53,7 +53,6 @@ class MpRadiance(BaseModel):
     create: bool = True
     overwrite: bool = False
     set_saturated_pixels_to_zero: bool = True
-    add_map_info: bool = True
     add_irradiance_to_header: bool = True
 
 
@@ -66,8 +65,8 @@ class MpRadianceGc(BaseModel):
     create: bool = True
     overwrite: bool = False
     smooth_spectra: bool = False
-    subtract_dark_spec: bool = True
-    set_negative_values_to_zero: bool = True
+    subtract_dark_spec: bool = False
+    set_negative_values_to_zero: bool = False
     reference_image_numbers: Optional[List[NonNegativeInt]] = None
     reference_image_ranges: Optional[
         List[Tuple[NonNegativeInt, PositiveInt, NonNegativeInt, PositiveInt]]
@@ -92,7 +91,6 @@ class MpReflectance(BaseModel):
     conv_irrad_with_gauss: bool = True
     fwhm_irrad_smooth: float = 3.5
     smooth_spectra: bool = False
-    add_map_info: bool = True
     refl_from_mean_irrad: bool = False
 
 
@@ -116,7 +114,7 @@ class MpMosaicCreateOverwrite(BaseModel):
 class MpMosaic(BaseModel):
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     # radiance_rgb: MpMosaicCreateOverwrite # Not yet implemented
-    radiance_gc_rgb: MpMosaicCreateOverwrite
+    # radiance_gc_rgb: MpMosaicCreateOverwrite
     # reflectance_rgb: MpMosaicCreateOverwrite # Not yet implemented
     reflectance_gc_rgb: MpMosaicCreateOverwrite
 
@@ -194,7 +192,7 @@ def get_config_template():
             reflectance_gc_rgb=MpReflectanceGcRgb(),
             mosaic=MpMosaic(
                 # radiance_rgb=MpMosaicCreateOverwrite(),
-                radiance_gc_rgb=MpMosaicCreateOverwrite(),
+                # radiance_gc_rgb=MpMosaicCreateOverwrite(),
                 # reflectance_rgb=MpMosaicCreateOverwrite(),
                 reflectance_gc_rgb=MpMosaicCreateOverwrite(),
             ),
