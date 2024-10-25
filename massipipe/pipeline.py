@@ -600,7 +600,9 @@ class PipelineProcessor:
         if self.config.reflectance_gc.method == "from_rad_gc":
             logger.info("Calculating glint corrected reflectance from glint corrected radiance")
             reflectance_converter = ReflectanceConverter(
-                wl_min=self.config.reflectance.wl_min, wl_max=self.config.reflectance.wl_max
+                wl_min=self.config.reflectance.wl_min,
+                wl_max=self.config.reflectance.wl_max,
+                smooth_spectra=self.config.reflectance_gc.smooth_spectra,
             )
 
             if all([not rp.exists() for rp in self.rad_gc_im_paths]):
