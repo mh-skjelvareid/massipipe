@@ -12,11 +12,11 @@
       
       
       
-        <link rel="next" href="pipeline_ref/">
+        <link rel="next" href="example_usage/">
       
       
       <link rel="icon" href="assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.28">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.29">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.6543a935.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.76a95c52.min.css">
       
       
 
@@ -263,6 +263,46 @@
   
   
     <li class="md-nav__item">
+      <a href="example_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="config_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Configuration reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="pipeline_ref/" class="md-nav__link">
         
   
@@ -283,11 +323,111 @@
   
   
     <li class="md-nav__item">
-      <a href="processors_ref/" class="md-nav__link">
+      <a href="quicklook_ref/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
-    Processors reference
+    Quicklook reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="radiance_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Radiance calibration reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="irradiance_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Irradiance calibration reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="reflectance_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reflectance calculation reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="georeferencing_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    IMU data processing and simple georeferencing reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="mosaic_ref/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Mosaicing reference
   </span>
   
 
@@ -308,26 +448,6 @@
   
   <span class="md-ellipsis">
     Utilities reference
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="example_usage/" class="md-nav__link">
-        
-  
-  <span class="md-ellipsis">
-    Example Usage
   </span>
   
 
@@ -430,6 +550,10 @@ pip install .
 </code></pre></div>
 <p>If you're a developer, you may want to install massipipe in "editable" mode instead, and also install optional dependencies that are used in development:</p>
 <div class="language-text highlight"><pre><span></span><code>pip install -e .[dev]
+</code></pre></div>
+<p>To register the virtual environment for use with Jupyter notebooks, run</p>
+<div class="language-text highlight"><pre><span></span><code>conda activate massipipe
+python -m ipykernel install --user --name=massipipe
 </code></pre></div>
 <h2 id="quick-start">Quick start</h2>
 <p>The dataset shold be organized as follows:

@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../example_usage/">
       
       
-        <link rel="next" href="../config_ref/">
+        <link rel="next" href="../pipeline_ref/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Example Usage - MassiPipe Documentation</title>
+        <title>Configuration reference - MassiPipe Documentation</title>
       
     
     
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#example-usage" class="md-skip">
+        <a href="#massipipe.config" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Example Usage
+              Configuration reference
             
           </span>
         </div>
@@ -199,6 +199,26 @@
       
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Example Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
     
   
   
@@ -208,31 +228,19 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
-        
       
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
-        
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
   
   <span class="md-ellipsis">
-    Example Usage
+    Configuration reference
   </span>
   
 
-      </a>
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../config_ref/" class="md-nav__link">
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -241,6 +249,69 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config" class="md-nav__link">
+    <span class="md-ellipsis">
+      config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.parse_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.write_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      write_yaml
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.nested_config_to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      nested_config_to_dict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.export_template_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      export_template_yaml
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -422,8 +493,59 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config" class="md-nav__link">
+    <span class="md-ellipsis">
+      config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.parse_config" class="md-nav__link">
+    <span class="md-ellipsis">
+      parse_config
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.write_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      write_yaml
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.nested_config_to_dict" class="md-nav__link">
+    <span class="md-ellipsis">
+      nested_config_to_dict
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.config.export_template_yaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      export_template_yaml
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -441,8 +563,102 @@
   
 
 
-<h1 id="example-usage">Example usage</h1>
-<p>(not yet written)</p>
+  <h1>Configuration reference</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="massipipe.config"></a>
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.config.parse_config" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse_config</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Parse YAML config file, accepting only basic YAML tags</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.config.write_yaml" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">write_yaml</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">yaml_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Write data formatted as dictionary to YAML file</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.config.nested_config_to_dict" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">nested_config_to_dict</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Convert nested Pydantic configuration to nested dictionary (recursively)</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.config.export_template_yaml" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">export_template_yaml</span><span class="p">(</span><span class="n">yaml_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Export YAML template based on Pydantic schema</p>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 

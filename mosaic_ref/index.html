@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../georeferencing_ref/">
       
       
-        <link rel="next" href="../config_ref/">
+        <link rel="next" href="../utils_ref/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Example Usage - MassiPipe Documentation</title>
+        <title>Mosaicing reference - MassiPipe Documentation</title>
       
     
     
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#example-usage" class="md-skip">
+        <a href="#massipipe.mosaic" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Example Usage
+              Mosaicing reference
             
           </span>
         </div>
@@ -199,19 +199,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -220,7 +211,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -369,10 +359,28 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../mosaic_ref/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Mosaicing reference
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -381,6 +389,69 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.mosaic_geotiffs" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic_geotiffs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.add_geotiff_overviews" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_geotiff_overviews
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.mosaic_geotiffs_gdal_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic_geotiffs_gdal_cli
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.add_overviews_gdal_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_overviews_gdal_cli
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -422,8 +493,59 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.mosaic_geotiffs" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic_geotiffs
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.add_geotiff_overviews" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_geotiff_overviews
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.mosaic_geotiffs_gdal_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      mosaic_geotiffs_gdal_cli
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.mosaic.add_overviews_gdal_cli" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_overviews_gdal_cli
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -441,8 +563,226 @@
   
 
 
-<h1 id="example-usage">Example usage</h1>
-<p>(not yet written)</p>
+  <h1>Mosaicing reference</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="massipipe.mosaic"></a>
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.mosaic.mosaic_geotiffs" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mosaic_geotiffs</span><span class="p">(</span><span class="n">image_paths</span><span class="p">,</span> <span class="n">mosaic_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Merge non-rotated geotiffs into mosaic with overviews (rasterio)</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image_paths</code></td>
+            <td>
+                  <code><span title="typing.Iterable">Iterable</span>[<span title="pathlib.Path">Path</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Paths to images to merge.
+Note that images with rotated geotransforms can NOT be merged.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>mosaic_path</code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to output GeoTIFF.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.mosaic.add_geotiff_overviews" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_geotiff_overviews</span><span class="p">(</span><span class="n">image_path</span><span class="p">,</span> <span class="n">overview_factors</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Add lower-resolution "overviews" to image file</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image_path</code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to image to which overviews will be added (in-place in same file)
+WARNING: Adding overviews can corrupt the file, make sure that the file
+is backed up or can be easily recreated.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>overview_factors</code></td>
+            <td>
+                  <code>tuple</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Factors by which to downsample original image when creating overviews
+Typically factors of 2 (2,4,8, etc.).</p>
+              </div>
+            </td>
+            <td>
+                  <code>(2, 4, 8, 16, 32)</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.mosaic.mosaic_geotiffs_gdal_cli" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">mosaic_geotiffs_gdal_cli</span><span class="p">(</span><span class="n">image_paths</span><span class="p">,</span> <span class="n">mosaic_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Merge rotated geotiffs into single mosaic with overviews (GDAL CLI)</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="massipipe.mosaic.add_overviews_gdal_cli" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">add_overviews_gdal_cli</span><span class="p">(</span><span class="n">image_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Add overviews to geotiff using GDAL CLI</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>image_path</code></td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to image to which overviews will be added, typically a mosaicked geotiff.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<details class="note" open>
+  <summary>Notes</summary>
+  <p>Overview factors are automatically calculated by GDAL CLI</p>
+</details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 

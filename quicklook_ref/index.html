@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../pipeline_ref/">
       
       
-        <link rel="next" href="../config_ref/">
+        <link rel="next" href="../radiance_ref/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Example Usage - MassiPipe Documentation</title>
+        <title>Quicklook reference - MassiPipe Documentation</title>
       
     
     
@@ -66,7 +66,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#example-usage" class="md-skip">
+        <a href="#massipipe.quicklook" class="md-skip">
           Skip to content
         </a>
       
@@ -102,7 +102,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Example Usage
+              Quicklook reference
             
           </span>
         </div>
@@ -199,19 +199,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -220,7 +211,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -269,10 +259,28 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../quicklook_ref/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Quicklook reference
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -281,6 +289,42 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.quicklook" class="md-nav__link">
+    <span class="md-ellipsis">
+      quicklook
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.quicklook.QuickLookProcessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      QuickLookProcessor
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -422,8 +466,32 @@
   
   
   
-    
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.quicklook" class="md-nav__link">
+    <span class="md-ellipsis">
+      quicklook
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#massipipe.quicklook.QuickLookProcessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      QuickLookProcessor
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -441,8 +509,190 @@
   
 
 
-<h1 id="example-usage">Example usage</h1>
-<p>(not yet written)</p>
+  <h1>Quicklook reference</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="massipipe.quicklook"></a>
+    <div class="doc doc-contents first">
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="massipipe.quicklook.QuickLookProcessor" class="doc doc-heading">
+            <code>QuickLookProcessor</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.quicklook.QuickLookProcessor.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">rgb_wl</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">percentiles</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>rgb_wl</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[tuple[float, float, float], None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Wavelengths (in nm) for generating RGB images
+If None, uses default (640.0, 550.0, 460.0)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>percentiles</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[tuple[float, float], None]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Percentile limits for percentile stretching of images.
+If None, uses default (2, 98)</p>
+              </div>
+            </td>
+            <td>
+                  <code>None</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="massipipe.quicklook.QuickLookProcessor.create_quicklook_image_file" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">create_quicklook_image_file</span><span class="p">(</span><span class="n">raw_path</span><span class="p">,</span> <span class="n">quicklook_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Create per-band percentile stretched RGB image file from raw hyspec image</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td><code>raw_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to raw hyperspectral image (header file)</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td><code>quicklook_path</code></td>
+            <td>
+                  <code><span title="typing.Union">Union</span>[<span title="pathlib.Path">Path</span>, str]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to output PNG image file</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
 
 
 
