@@ -511,6 +511,10 @@ class PipelineProcessor:
         for rad_gc_path, geotrans_path, geotiff_path in zip(
             self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
         ):
+            if geotiff_path.exists() and not self.config.radiance_gc_rgb.overwrite:
+                logger.info(f"Image {geotiff_path.name} exists - skipping.")
+                continue
+
             if rad_gc_path.exists() and geotrans_path.exists():
                 logger.info(f"Georeferencing and exporting RGB version of {rad_gc_path.name}.")
                 try:
