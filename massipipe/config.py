@@ -40,12 +40,12 @@ class MpImuData(BaseModel):
 class MpGeoTransform(BaseModel):
     create: bool = True
     overwrite: bool = True
-    camera_opening_angle_deg: Optional[PositiveFloat] = None
-    pitch_offset_deg: Optional[float] = None
-    roll_offset_deg: Optional[float] = None
-    altitude_offset_m: Optional[float] = None
-    utm_x_offset_m: Optional[float] = None
-    utm_y_offset_m: Optional[float] = None
+    camera_opening_angle_deg: PositiveFloat = 36.5
+    pitch_offset_deg: float = 0.0
+    roll_offset_deg: float = 0.0
+    altitude_offset_m: float = 0.0
+    utm_x_offset_m: float = 0.0
+    utm_y_offset_m: float = 0.0
     assume_square_pixels: bool = True
 
 
@@ -90,7 +90,7 @@ class MpReflectance(BaseModel):
     wl_min: float = 400
     wl_max: float = 930
     conv_irrad_with_gauss: bool = True
-    fwhm_irrad_smooth: Optional[float] = None
+    fwhm_irrad_smooth: float = 3.5
     smooth_spectra: bool = False
     add_map_info: bool = True
     refl_from_mean_irrad: bool = False
@@ -99,7 +99,7 @@ class MpReflectance(BaseModel):
 class MpReflectanceGc(BaseModel):
     create: bool = True
     overwrite: bool = False
-    smooth_spectra: bool = False
+    smooth_spectra: bool = True
     method: Literal["from_rad_gc", "flat_spec"] = "from_rad_gc"
 
 
