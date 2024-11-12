@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Union
 
+from pydantic import ValidationError
+
 from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
@@ -137,7 +139,15 @@ class PipelineProcessor:
         except IOError:
             logger.error(f"Error parsing config file {self.config_file_path}")
             raise
-        full_config = Config(**full_config_dict)
+
+        try:
+            full_config = Config(**full_config_dict)
+        except ValidationError:
+            logger.warning(
+                "Validation error while processing {self.config_file_path}"
+                + " - no configuration loaded."
+            )
+            return
         self.config = full_config.massipipe_options
 
     def _configure_file_logging(self):
