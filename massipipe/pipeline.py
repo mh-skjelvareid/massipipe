@@ -875,3 +875,9 @@ class PipelineProcessor:
 
     def create_template_yaml_config(self):
         """Create YAML file"""
+
+
+def find_hsi_datasets(base_dir: Path, dataset_subdir_search_str="0_raw"):
+    """Find HSI dataset paths based on expected subdirectory in dataset"""
+    subdirs = base_dir.rglob(dataset_subdir_search_str)
+    return [subdir.parent for subdir in subdirs]
