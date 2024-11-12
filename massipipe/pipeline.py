@@ -1,17 +1,12 @@
 # Imports
 import logging
 import shutil
-import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Union
 
-import rasterio
-import rasterio.merge
-import yaml
-
-from massipipe.config import Config, export_template_yaml, parse_config
+from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
@@ -19,8 +14,6 @@ from massipipe.mosaic import add_geotiff_overviews, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
 from massipipe.reflectance import ReflectanceConverter
-
-# import massipipe.processors as mpp
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -140,7 +133,7 @@ class PipelineProcessor:
     def load_config_from_file(self):
         """Load or re-load configuration from YAML file"""
         try:
-            full_config_dict = parse_config(self.config_file_path)
+            full_config_dict = read_config(self.config_file_path)
         except IOError:
             logger.error(f"Error parsing config file {self.config_file_path}")
             raise

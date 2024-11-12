@@ -6,17 +6,17 @@ import yaml
 from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, field_validator
 
 
-def parse_config(yaml_path: Union[Path, str]):
+def read_config(yaml_path: Union[Path, str]):
     """Parse YAML config file, accepting only basic YAML tags"""
     with open(yaml_path, "r") as stream:
         config = yaml.safe_load(stream)
     return config
 
 
-def write_yaml(data: dict, yaml_path: Union[Path, str]):
-    """Write data formatted as dictionary to YAML file"""
+def write_config(data: dict, yaml_path: Union[Path, str]):
+    """Write config data formatted as dictionary to YAML file"""
     with open(yaml_path, "w") as yaml_file:
-        yaml.dump(data, yaml_file, default_flow_style=False, sort_keys=False)
+        yaml.safe_dump(data, yaml_file, default_flow_style=False, sort_keys=False)
 
 
 #### DEFINE PYDANTIC CONFIG STRUCTURE ####
@@ -214,7 +214,7 @@ def export_template_yaml(yaml_path: Union[Path, str]):
     """Export YAML template based on Pydantic schema"""
     template_config = get_config_template()
     template_dict = nested_config_to_dict(template_config)
-    write_yaml(template_dict, yaml_path)
+    write_config(template_dict, yaml_path)
 
 
 if __name__ == "__main__":
