@@ -141,6 +141,7 @@ class Config(BaseModel):
     datetime: str
     nfiles: PositiveInt
     organisation: str
+    project: str
     creator_name: str
     mosaic: bool = False
     classify: bool = False
@@ -176,6 +177,7 @@ def get_config_template():
         datetime="197001010000",
         nfiles=1,
         organisation="organization_name",
+        project="project_name",
         creator_name="creator_name",
         massipipe_options=MassipipeOptions(
             general=MpGeneral(),
