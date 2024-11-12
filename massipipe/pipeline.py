@@ -143,10 +143,9 @@ class PipelineProcessor:
         try:
             full_config = Config(**full_config_dict)
         except ValidationError:
-            logger.warning(
-                f"Validation error while processing {self.config_file_path}"
-                + " - no configuration loaded."
-            )
+            logger.warning(f"Validation error while processing {self.config_file_path}")
+            logger.warning(str(ValidationError))
+            logger.warning(f"No configuration loaded for {self.dataset_dir}.")
             return
         self.config = full_config.massipipe_options
 
