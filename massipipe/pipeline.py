@@ -730,20 +730,28 @@ class PipelineProcessor:
             If true, delete mosaics folder (if it exists)
         """
         if self.quicklook_dir.exists() and delete_quicklook:
+            logger.info(f"Deleting {self.quicklook_dir}")
             shutil.rmtree(self.quicklook_dir)
         if self.radiance_dir.exists() and delete_radiance:
+            logger.info(f"Deleting {self.radiance_dir}")
             shutil.rmtree(self.radiance_dir)
         if self.radiance_gc_dir.exists() and delete_radiance_gc:
+            logger.info(f"Deleting {self.radiance_gc_dir}")
             shutil.rmtree(self.radiance_gc_dir)
         if self.reflectance_dir.exists() and delete_reflectance:
+            logger.info(f"Deleting {self.reflectance_dir}")
             shutil.rmtree(self.reflectance_dir)
         if self.reflectance_gc_dir.exists() and delete_reflectance_gc:
+            logger.info(f"Deleting {self.reflectance_gc_dir}")
             shutil.rmtree(self.reflectance_gc_dir)
         if self.geotransform_dir.exists() and delete_geotransform:
+            logger.info(f"Deleting {self.geotransform_dir}")
             shutil.rmtree(self.geotransform_dir)
         if self.imudata_dir.exists() and delete_imudata:
+            logger.info(f"Deleting {self.imudata_dir}")
             shutil.rmtree(self.imudata_dir)
         if self.mosaic_dir.exists() and delete_mosaics:
+            logger.info(f"Deleting {self.mosaic_dir}")
             shutil.rmtree(self.mosaic_dir)
 
     def run_basic(self):
