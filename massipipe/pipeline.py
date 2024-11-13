@@ -897,4 +897,4 @@ class PipelineProcessor:
 def find_datasets(base_dir: Path, dataset_subdir_search_str="0_raw"):
     """Find dataset paths based on expected subdirectory in dataset"""
     subdirs = base_dir.rglob(dataset_subdir_search_str)
-    return [subdir.parent for subdir in subdirs]
+    return sorted([subdir.parent for subdir in subdirs])
