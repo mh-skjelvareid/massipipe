@@ -108,7 +108,7 @@ class MpReflectanceGcRgb(BaseModel):
 
 class MpMosaicCreateOverwrite(BaseModel):
     create: bool = False
-    overwrite: bool = True
+    overwrite: bool = False
 
 
 class MpMosaic(BaseModel):
