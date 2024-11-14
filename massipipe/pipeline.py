@@ -127,6 +127,7 @@ class PipelineProcessor:
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
         # Create mosaic file path
+        self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
         # Configure logging
@@ -688,8 +689,26 @@ class PipelineProcessor:
                     )
                     logger.error("Skipping file")
 
+    def mosaic_radiance_gc_geotiffs(self):
+        """Merge radiance_gc RGB images into mosaic with overviews"""
+        logger.info(f"Mosaicing GeoTIFFs in {self.radiance_gc_rgb_dir}")
+        self.mosaic_dir.mkdir(exist_ok=True)
+
+        if (self.mosaic_rad_gc_path.exists()) and (
+            not self.config.mosaic.radiance_gc_rgb.overwrite
+        ):
+            logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
+            return
+
+        if all([not rp.exists() for rp in self.rad_gc_rgb_im_paths]):
+            logger.error(f"No images found in {self.radiance_gc_rgb_dir}")
+            return
+
+        mosaic_geotiffs(self.rad_gc_rgb_im_paths, self.mosaic_rad_gc_path)
+        add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
+
     def mosaic_reflectance_gc_geotiffs(self):
-        """Merge non-rotated geotiffs into mosaic with overviews (rasterio)"""
+        """Merge reflectance_gc RGB images into mosaic with overviews"""
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
 
@@ -876,6 +895,14 @@ class PipelineProcessor:
 
     def run_mosaics(self):
         """Run all mosaicing operations"""
+        if self.config.mosaic.radiance_gc_rgb.create:
+            try:
+                self.mosaic_radiance_gc_geotiffs()
+            except Exception:
+                logger.error(
+                    f"Error occured while mosaicing glint corrected radiance", exc_info=True
+                )
+
         if self.config.mosaic.reflectance_gc_rgb.create:
             try:
                 self.mosaic_reflectance_gc_geotiffs()

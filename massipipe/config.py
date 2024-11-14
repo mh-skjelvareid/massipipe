@@ -114,7 +114,7 @@ class MpMosaicCreateOverwrite(BaseModel):
 class MpMosaic(BaseModel):
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     # radiance_rgb: MpMosaicCreateOverwrite # Not yet implemented
-    # radiance_gc_rgb: MpMosaicCreateOverwrite
+    radiance_gc_rgb: MpMosaicCreateOverwrite
     # reflectance_rgb: MpMosaicCreateOverwrite # Not yet implemented
     reflectance_gc_rgb: MpMosaicCreateOverwrite
 
@@ -194,7 +194,7 @@ def get_config_template():
             reflectance_gc_rgb=MpReflectanceGcRgb(),
             mosaic=MpMosaic(
                 # radiance_rgb=MpMosaicCreateOverwrite(),
-                # radiance_gc_rgb=MpMosaicCreateOverwrite(),
+                radiance_gc_rgb=MpMosaicCreateOverwrite(),
                 # reflectance_rgb=MpMosaicCreateOverwrite(),
                 reflectance_gc_rgb=MpMosaicCreateOverwrite(),
             ),
