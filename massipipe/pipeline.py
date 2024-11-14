@@ -674,6 +674,10 @@ class PipelineProcessor:
         for refl_gc_path, geotrans_path, geotiff_path in zip(
             self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
         ):
+            if geotiff_path.exists() and not self.config.reflectance_gc_rgb.overwrite:
+                logger.info(f"Image {geotiff_path.name} exists - skipping.")
+                continue
+
             if refl_gc_path.exists() and geotrans_path.exists():
                 logger.info(f"Georeferencing and exporting RGB version of {refl_gc_path.name}.")
                 try:
