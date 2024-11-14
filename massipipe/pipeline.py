@@ -915,7 +915,7 @@ class PipelineProcessor:
         """Run all processing steps"""
         self.run_basic()
         self.run_glint_correction()
-        self.mosaic_reflectance_gc_geotiffs()
+        self.run_mosaics()
 
     def create_template_yaml_config(self):
         """Create YAML file"""
