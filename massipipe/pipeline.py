@@ -178,7 +178,7 @@ class PipelineProcessor:
         else:
             if self.radiance_dir.exists():
                 logger.info(
-                    f"No raw files found, but radiance directory {self.radiance_dir} found"
+                    f"No raw files found, but radiance directory {self.radiance_dir.name} found"
                     + " - processing based on radiance data."
                 )
                 data_starting_point = "radiance"
@@ -254,7 +254,10 @@ class PipelineProcessor:
             ]
         else:  # Radiance as data starting point
             base_file_names = sorted(
-                [file.name.split(".")[0] for file in self.radiance_dir.glob("*_radiance*.hdr")]
+                [
+                    file.name.split("_radiance")[0]
+                    for file in self.radiance_dir.glob("*_radiance*.hdr")
+                ]
             )
         return base_file_names
 
@@ -770,6 +773,8 @@ class PipelineProcessor:
             If true, delete 0b_quicklook folder (if it exists)
         delete_radiance : bool, optional
             If true, delete 1a_radiance folder (if it exists)
+            If data "starting point" is radiance and not raw files,
+            radiance will not be deleted (delete manually if needed).
         delete_radiance_gc : bool, optional
             If true, delete 1b_radiance folder (if it exists)
         delete_reflectance : bool, optional
@@ -786,7 +791,11 @@ class PipelineProcessor:
         if self.quicklook_dir.exists() and delete_quicklook:
             logger.info(f"Deleting {self.quicklook_dir}")
             shutil.rmtree(self.quicklook_dir)
-        if self.radiance_dir.exists() and delete_radiance:
+        if (
+            self.radiance_dir.exists()
+            and delete_radiance
+            and not (self.data_starting_point == "radiance")
+        ):
             logger.info(f"Deleting {self.radiance_dir}")
             shutil.rmtree(self.radiance_dir)
         if self.radiance_gc_dir.exists() and delete_radiance_gc:
@@ -876,7 +885,9 @@ class PipelineProcessor:
                 self.convert_radiance_images_to_reflectance()
             except FileNotFoundError:
                 logger.warning(
-                    "Missing input radiance / irradiance files, " "skipping reflectance conversion."
+                    "Missing input radiance / irradiance files, "
+                    "skipping reflectance conversion.",
+                    exc_info=True,
                 )
             except Exception:
                 logger.error("Error while converting from radiance to reflectance", exc_info=True)
