@@ -91,24 +91,28 @@ class PipelineProcessor:
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
 
-        if not self.raw_dir.exists():
-            raise FileNotFoundError(f'Folder "0_raw" not found in {self.dataset_dir}')
-        if not self.calibration_dir.exists():
-            raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
+        # Configure logging
+        self._configure_file_logging()
 
-        # Get calibration file paths
-        self.radiance_calibration_file = self._get_radiance_calibration_path()
-        self.irradiance_calibration_file = self._get_irradiance_calibration_path()
+        # Check if data source is raw data or radiance
+        self.data_starting_point = self._check_data_starting_point()
 
-        # Search for raw files, sort and validate
-        self.raw_image_paths = list(self.raw_dir.rglob("*.bil.hdr"))
-        self.raw_image_paths = sorted(self.raw_image_paths, key=self._get_image_number)
-        times_paths, lcf_paths = self._validate_raw_files()
-        self.times_paths = times_paths
-        self.lcf_paths = lcf_paths
+        if self.data_starting_point == "raw":
+            # Get calibration file paths
+            if not self.calibration_dir.exists():
+                raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
+            self.radiance_calibration_file = self._get_radiance_calibration_path()
+            self.irradiance_calibration_file = self._get_irradiance_calibration_path()
 
-        # Search for raw irradiance spectrum files (not always present)
-        self.raw_spec_paths = self._get_raw_spectrum_paths()
+            # Search for raw files, sort and validate
+            self.raw_image_paths = list(self.raw_dir.rglob("*.bil.hdr"))
+            self.raw_image_paths = sorted(self.raw_image_paths, key=self._get_image_number)
+            times_paths, lcf_paths = self._validate_raw_files()
+            self.times_paths = times_paths
+            self.lcf_paths = lcf_paths
+
+            # Search for raw irradiance spectrum files (not always present)
+            self.raw_spec_paths = self._get_raw_spectrum_paths()
 
         # Create "base" file names numbered from 0
         self.base_file_names = self._create_base_file_names()
@@ -129,9 +133,6 @@ class PipelineProcessor:
         # Create mosaic file paths
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
-
-        # Configure logging
-        self._configure_file_logging()
 
     def load_config_from_file(self):
         """Load or re-load configuration from YAML file"""
@@ -168,6 +169,22 @@ class PipelineProcessor:
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
         logger.info(f"File logging for {self.dataset_base_name} initialized.")
+
+    def _check_data_starting_point(self):
+        """Determine whether processing starts from raw or radiance data"""
+        if self.raw_dir.exists():
+            logger.info(f"Found directory {self.raw_dir.name} - processing from raw files.")
+            data_starting_point = "raw"
+        else:
+            if self.radiance_dir.exists():
+                logger.info(
+                    f"No raw files found, but radiance directory {self.radiance_dir} found"
+                    + " - processing based on radiance data."
+                )
+                data_starting_point = "radiance"
+            else:
+                raise FileNotFoundError(f"Found neither raw or radiance files in dataset dir.")
+        return data_starting_point
 
     def _validate_raw_files(self):
         """Check that all expected raw files exist
@@ -231,9 +248,14 @@ class PipelineProcessor:
 
     def _create_base_file_names(self):
         """Create numbered base names for processed files"""
-        base_file_names = [
-            f"{self.dataset_base_name}_{i:03d}" for i in range(len(self.raw_image_paths))
-        ]
+        if self.data_starting_point == "raw":
+            base_file_names = [
+                f"{self.dataset_base_name}_{i:03d}" for i in range(len(self.raw_image_paths))
+            ]
+        else:  # Radiance as data starting point
+            base_file_names = sorted(
+                [file.name.split(".")[0] for file in self.radiance_dir.glob("*_radiance*.hdr")]
+            )
         return base_file_names
 
     def _create_processed_file_paths(self):
@@ -787,7 +809,7 @@ class PipelineProcessor:
             shutil.rmtree(self.mosaic_dir)
 
     def run_basic(self):
-        """Run pipeline using parameters defined in YAML file
+        """Run basic calibration steps using parameters defined in YAML file
 
         Run basic processing steps based on parameters defined in YAML file. These steps
         can all be run without manually interpreting any of the data (such
@@ -847,6 +869,8 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while adding irradiance to radiance header", exc_info=True)
 
+    def run_reflectance(self):
+        """Create reflectance images based on parameters in YAML file"""
         if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
@@ -917,7 +941,9 @@ class PipelineProcessor:
 
     def run(self):
         """Run all processing steps"""
-        self.run_basic()
+        if self.data_starting_point == "raw":
+            self.run_basic()
+        self.run_reflectance()
         self.run_glint_correction()
         self.run_mosaics()
 
