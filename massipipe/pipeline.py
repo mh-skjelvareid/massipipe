@@ -554,6 +554,8 @@ class PipelineProcessor:
 
         if not any([rp.exists() for rp in self.rad_gc_im_paths]):
             logger.warning(f"No radiance images found in {self.radiance_gc_dir}")
+        if not any([gtp.exists() for gtp in self.geotransform_paths]):
+            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
 
         for rad_gc_path, geotrans_path, geotiff_path in zip(
             self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
@@ -714,6 +716,8 @@ class PipelineProcessor:
 
         if not any([rp.exists() for rp in self.refl_gc_im_paths]):
             logger.warning(f"No reflectance images found in {self.reflectance_gc_dir}")
+        if not any([gtp.exists() for gtp in self.geotransform_paths]):
+            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
 
         for refl_gc_path, geotrans_path, geotiff_path in zip(
             self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
@@ -804,6 +808,8 @@ class PipelineProcessor:
             If true, delete geotransform folder (if it exists)
         delete_imudata : bool, optional
             If true, delete imudata folder (if it exists)
+            If data "starting point" is radiance and not raw files,
+            imu data will not be deleted (delete manually if needed).
         delete_mosaics : bool, optional
             If true, delete mosaics folder (if it exists)
         """
@@ -829,7 +835,11 @@ class PipelineProcessor:
         if self.geotransform_dir.exists() and delete_geotransform:
             logger.info(f"Deleting {self.geotransform_dir}")
             shutil.rmtree(self.geotransform_dir)
-        if self.imudata_dir.exists() and delete_imudata:
+        if (
+            self.imudata_dir.exists()
+            and delete_imudata
+            and not (self.data_starting_point == "radiance")
+        ):
             logger.info(f"Deleting {self.imudata_dir}")
             shutil.rmtree(self.imudata_dir)
         if self.mosaic_dir.exists() and delete_mosaics:
