@@ -126,7 +126,7 @@ class PipelineProcessor:
         self.refl_gc_im_paths = proc_file_paths.reflectance_gc
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
-        # Create mosaic file path
+        # Create mosaic file paths
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
@@ -167,7 +167,7 @@ class PipelineProcessor:
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
-        logger.info("File logging initialized.")
+        logger.info(f"File logging for {self.dataset_base_name} initialized.")
 
     def _validate_raw_files(self):
         """Check that all expected raw files exist
