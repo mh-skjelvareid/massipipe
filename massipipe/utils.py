@@ -664,3 +664,26 @@ def irrad_si_nm_to_si_um(irrad: NDArray) -> NDArray:
 def irrad_si_um_to_uflicklike(irrad: NDArray) -> NDArray:
     """Convert irradiance from W/(m2*um) to uW/(cm2*um)"""
     return irrad * 100
+
+
+def resample_cube_spectrally(image: NDArray, old_wl: NDArray, new_wl: NDArray) -> NDArray:
+    """Resample datacube to new set of wavelengths (linear interp.)
+
+    Parameters
+    ----------
+    image : NDArray
+        Hyperspectral image, shape (n_lines, n_samples, n_bands_old)
+    old_wl : NDArray
+        Array of old (original) wavelengths, shape (n_bands_old,)
+    new_wl : NDArray
+        Array of new wavelengths, shape (n_bands_new)
+
+    Returns
+    -------
+    image_interp: NDArray
+        Datacube interpolated to new_wl, shape (n_lines, n_samples, n_bands_new)
+    """
+    image_interp = np.apply_along_axis(
+        lambda spec: np.interp(x=new_wl, xp=old_wl, fp=spec), axis=2, arr=image
+    )  # np.interp() only accepts 1d arrays, use apply_along_axis for full 3D cube
+    return image_interp

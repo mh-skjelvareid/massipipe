@@ -78,7 +78,7 @@ class PipelineProcessor:
         # Define dataset folder structure
         self.dataset_base_name = self.dataset_dir.name
         self.raw_dir = self.dataset_dir / "0_raw"
-        self.quicklook_dir = self.dataset_dir / "0b_quicklook"
+        self.quicklook_dir = self.dataset_dir / "quicklook"
         self.radiance_dir = self.dataset_dir / "1a_radiance"
         self.radiance_gc_dir = self.dataset_dir / "1b_radiance_gc"
         self.radiance_gc_rgb_dir = self.radiance_gc_dir / "rgb"
@@ -91,24 +91,28 @@ class PipelineProcessor:
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
 
-        if not self.raw_dir.exists():
-            raise FileNotFoundError(f'Folder "0_raw" not found in {self.dataset_dir}')
-        if not self.calibration_dir.exists():
-            raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
+        # Configure logging
+        self._configure_file_logging()
 
-        # Get calibration file paths
-        self.radiance_calibration_file = self._get_radiance_calibration_path()
-        self.irradiance_calibration_file = self._get_irradiance_calibration_path()
+        # Check if data source is raw data or radiance
+        self.data_starting_point = self._check_data_starting_point()
 
-        # Search for raw files, sort and validate
-        self.raw_image_paths = list(self.raw_dir.rglob("*.bil.hdr"))
-        self.raw_image_paths = sorted(self.raw_image_paths, key=self._get_image_number)
-        times_paths, lcf_paths = self._validate_raw_files()
-        self.times_paths = times_paths
-        self.lcf_paths = lcf_paths
+        if self.data_starting_point == "raw":
+            # Get calibration file paths
+            if not self.calibration_dir.exists():
+                raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
+            self.radiance_calibration_file = self._get_radiance_calibration_path()
+            self.irradiance_calibration_file = self._get_irradiance_calibration_path()
 
-        # Search for raw irradiance spectrum files (not always present)
-        self.raw_spec_paths = self._get_raw_spectrum_paths()
+            # Search for raw files, sort and validate
+            self.raw_image_paths = list(self.raw_dir.rglob("*.bil.hdr"))
+            self.raw_image_paths = sorted(self.raw_image_paths, key=self._get_image_number)
+            times_paths, lcf_paths = self._validate_raw_files()
+            self.times_paths = times_paths
+            self.lcf_paths = lcf_paths
+
+            # Search for raw irradiance spectrum files (not always present)
+            self.raw_spec_paths = self._get_raw_spectrum_paths()
 
         # Create "base" file names numbered from 0
         self.base_file_names = self._create_base_file_names()
@@ -126,12 +130,9 @@ class PipelineProcessor:
         self.refl_gc_im_paths = proc_file_paths.reflectance_gc
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
-        # Create mosaic file path
+        # Create mosaic file paths
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
-
-        # Configure logging
-        self._configure_file_logging()
 
     def load_config_from_file(self):
         """Load or re-load configuration from YAML file"""
@@ -167,7 +168,23 @@ class PipelineProcessor:
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
-        logger.info("File logging initialized.")
+        logger.info(f"File logging for {self.dataset_base_name} initialized.")
+
+    def _check_data_starting_point(self):
+        """Determine whether processing starts from raw or radiance data"""
+        if self.raw_dir.exists():
+            logger.info(f"Found directory {self.raw_dir.name} - processing from raw files.")
+            data_starting_point = "raw"
+        else:
+            if self.radiance_dir.exists():
+                logger.info(
+                    f"No raw files found, but radiance directory {self.radiance_dir.name} found"
+                    + " - processing based on radiance data."
+                )
+                data_starting_point = "radiance"
+            else:
+                raise FileNotFoundError(f"Found neither raw or radiance files in dataset dir.")
+        return data_starting_point
 
     def _validate_raw_files(self):
         """Check that all expected raw files exist
@@ -231,9 +248,17 @@ class PipelineProcessor:
 
     def _create_base_file_names(self):
         """Create numbered base names for processed files"""
-        base_file_names = [
-            f"{self.dataset_base_name}_{i:03d}" for i in range(len(self.raw_image_paths))
-        ]
+        if self.data_starting_point == "raw":
+            base_file_names = [
+                f"{self.dataset_base_name}_{i:03d}" for i in range(len(self.raw_image_paths))
+            ]
+        else:  # Radiance as data starting point
+            base_file_names = sorted(
+                [
+                    file.name.split("_radiance")[0]
+                    for file in self.radiance_dir.glob("*_radiance*.hdr")
+                ]
+            )
         return base_file_names
 
     def _create_processed_file_paths(self):
@@ -332,25 +357,33 @@ class PipelineProcessor:
             )
 
     def create_quicklook_images(self):
-        """Create quicklook versions of raw images"""
+        """Create quicklook versions of hyperspectral images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
         quicklook_processor = QuickLookProcessor(
             rgb_wl=self.config.general.rgb_wl, percentiles=self.config.quicklook.percentiles
         )
 
-        for raw_image_path, quicklook_image_path in zip(self.raw_image_paths, self.ql_im_paths):
+        # Determine whether raw or radiance images are used for quicklook
+        if self.raw_dir.exists():
+            hyspec_image_paths = self.raw_image_paths
+            logger.info(f"Creating quicklook images from raw images")
+        else:
+            hyspec_image_paths = self.rad_im_paths
+            logger.info(f"Creating quicklook images from radiance images")
+
+        for hyspec_image_path, quicklook_image_path in zip(hyspec_image_paths, self.ql_im_paths):
             if quicklook_image_path.exists() and not self.config.quicklook.overwrite:
                 logger.info(f"Image {quicklook_image_path.name} exists - skipping.")
                 continue
 
-            logger.info(f"Creating quicklook version of {raw_image_path.name}")
+            logger.info(f"Creating quicklook version of {hyspec_image_path.name}")
             try:
                 quicklook_processor.create_quicklook_image_file(
-                    raw_image_path, quicklook_image_path
+                    hyspec_image_path, quicklook_image_path
                 )
             except Exception as e:
-                logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
+                logger.warning(f"Error occured while processing {hyspec_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
     def parse_and_save_imu_data(self):
@@ -375,8 +408,19 @@ class PipelineProcessor:
     def create_and_save_geotransform(self):
         logger.info("---- GEOTRANSFORM CALCULATION ----")
         self.geotransform_dir.mkdir(exist_ok=True)
-        for raw_im_path, imu_data_path, geotrans_path in zip(
-            self.raw_image_paths, self.imu_data_paths, self.geotransform_paths
+
+        if not any([imu_file.exists() for imu_file in self.imu_data_paths]):
+            raise FileNotFoundError("No IMU data files found.")
+
+        # Determine whether raw or radiance images are used
+        if self.raw_dir.exists():
+            hyspec_image_paths = self.raw_image_paths
+        else:
+            hyspec_image_paths = self.rad_im_paths
+
+        # Create geotransform for each image
+        for hyspec_im_path, imu_data_path, geotrans_path in zip(
+            hyspec_image_paths, self.imu_data_paths, self.geotransform_paths
         ):
             if geotrans_path.exists() and not self.config.geotransform.overwrite:
                 logger.info(f"Image {geotrans_path.name} exists - skipping.")
@@ -384,10 +428,10 @@ class PipelineProcessor:
 
             logger.info(f"Creating and saving geotransform based on {imu_data_path.name}")
             try:
-                if imu_data_path.exists() and raw_im_path.exists():
+                if imu_data_path.exists() and hyspec_im_path.exists():
                     geotransformer = GeoTransformer(
                         imu_data_path,
-                        raw_im_path,
+                        hyspec_im_path,
                         camera_opening_angle=self.config.geotransform.camera_opening_angle_deg,
                         pitch_offset=self.config.geotransform.pitch_offset_deg,
                         roll_offset=self.config.geotransform.roll_offset_deg,
@@ -504,12 +548,14 @@ class PipelineProcessor:
 
     def create_glint_corrected_radiance_rgb_geotiff(self):
         """Create georeferenced GeoTIFF versions of glint corrected radiance"""
-        logger.info("---- GEOREFERENCING GLINT CORRECTED RADIANCE ----")
+        logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED RADIANCE ----")
         self.radiance_gc_rgb_dir.mkdir(exist_ok=True)
         georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
-        if all([not rp.exists() for rp in self.rad_gc_im_paths]):
+        if not any([rp.exists() for rp in self.rad_gc_im_paths]):
             logger.warning(f"No radiance images found in {self.radiance_gc_dir}")
+        if not any([gtp.exists() for gtp in self.geotransform_paths]):
+            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
 
         for rad_gc_path, geotrans_path, geotiff_path in zip(
             self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
@@ -546,9 +592,9 @@ class PipelineProcessor:
             irrad_spec_paths=self.irrad_spec_paths,
         )
 
-        if all([not rp.exists() for rp in self.rad_im_paths]):
+        if not any([rp.exists() for rp in self.rad_im_paths]):
             raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
-        if all([not irp.exists() for irp in self.irrad_spec_paths]):
+        if not any([irp.exists() for irp in self.irrad_spec_paths]):
             raise FileNotFoundError(f"No irradiance spectra found in {self.radiance_dir}")
 
         for rad_path, irrad_path, refl_path in zip(
@@ -579,9 +625,9 @@ class PipelineProcessor:
             irrad_spec_paths=self.irrad_spec_paths,
         )
 
-        if all([not rp.exists() for rp in self.rad_im_paths]):
+        if not any([rp.exists() for rp in self.rad_im_paths]):
             raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
-        if all([not irp.exists() for irp in self.irrad_spec_paths]):
+        if not any([irp.exists() for irp in self.irrad_spec_paths]):
             raise FileNotFoundError(f"No irradiance spectra found in {self.radiance_dir}")
 
         for rad_path, irrad_path in zip(self.rad_im_paths, self.irrad_spec_paths):
@@ -610,7 +656,7 @@ class PipelineProcessor:
                 smooth_spectra=self.config.reflectance_gc.smooth_spectra,
             )
 
-            if all([not rp.exists() for rp in self.rad_gc_im_paths]):
+            if not any([rp.exists() for rp in self.rad_gc_im_paths]):
                 logger.warning(
                     f"No glint corrected radiance images found in {self.radiance_gc_dir}"
                 )
@@ -639,7 +685,7 @@ class PipelineProcessor:
                 smooth_with_savitsky_golay=self.config.reflectance_gc.smooth_spectra
             )
 
-            if all([not rp.exists() for rp in self.refl_im_paths]):
+            if not any([rp.exists() for rp in self.refl_im_paths]):
                 raise FileNotFoundError(f"No reflectance images found in {self.reflectance_dir}")
 
             for refl_path, refl_gc_path in zip(self.refl_im_paths, self.refl_gc_im_paths):
@@ -664,16 +710,22 @@ class PipelineProcessor:
 
     def create_glint_corrected_reflectance_rgb_geotiff(self):
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
-        logger.info("---- GEOREFERENCING GLINT CORRECTED REFLECTANCE ----")
+        logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
         georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
-        if all([not rp.exists() for rp in self.refl_gc_im_paths]):
+        if not any([rp.exists() for rp in self.refl_gc_im_paths]):
             logger.warning(f"No reflectance images found in {self.reflectance_gc_dir}")
+        if not any([gtp.exists() for gtp in self.geotransform_paths]):
+            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
 
         for refl_gc_path, geotrans_path, geotiff_path in zip(
             self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
         ):
+            if geotiff_path.exists() and not self.config.reflectance_gc_rgb.overwrite:
+                logger.info(f"Image {geotiff_path.name} exists - skipping.")
+                continue
+
             if refl_gc_path.exists() and geotrans_path.exists():
                 logger.info(f"Georeferencing and exporting RGB version of {refl_gc_path.name}.")
                 try:
@@ -700,7 +752,7 @@ class PipelineProcessor:
             logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
             return
 
-        if all([not rp.exists() for rp in self.rad_gc_rgb_im_paths]):
+        if not any([rp.exists() for rp in self.rad_gc_rgb_im_paths]):
             logger.error(f"No images found in {self.radiance_gc_rgb_dir}")
             return
 
@@ -718,7 +770,7 @@ class PipelineProcessor:
             logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
             return
 
-        if all([not rp.exists() for rp in self.refl_gc_rgb_paths]):
+        if not any([rp.exists() for rp in self.refl_gc_rgb_paths]):
             logger.error(f"No images found in {self.reflectance_gc_dir}")
             return
 
@@ -744,6 +796,8 @@ class PipelineProcessor:
             If true, delete 0b_quicklook folder (if it exists)
         delete_radiance : bool, optional
             If true, delete 1a_radiance folder (if it exists)
+            If data "starting point" is radiance and not raw files,
+            radiance will not be deleted (delete manually if needed).
         delete_radiance_gc : bool, optional
             If true, delete 1b_radiance folder (if it exists)
         delete_reflectance : bool, optional
@@ -754,13 +808,19 @@ class PipelineProcessor:
             If true, delete geotransform folder (if it exists)
         delete_imudata : bool, optional
             If true, delete imudata folder (if it exists)
+            If data "starting point" is radiance and not raw files,
+            imu data will not be deleted (delete manually if needed).
         delete_mosaics : bool, optional
             If true, delete mosaics folder (if it exists)
         """
         if self.quicklook_dir.exists() and delete_quicklook:
             logger.info(f"Deleting {self.quicklook_dir}")
             shutil.rmtree(self.quicklook_dir)
-        if self.radiance_dir.exists() and delete_radiance:
+        if (
+            self.radiance_dir.exists()
+            and delete_radiance
+            and not (self.data_starting_point == "radiance")
+        ):
             logger.info(f"Deleting {self.radiance_dir}")
             shutil.rmtree(self.radiance_dir)
         if self.radiance_gc_dir.exists() and delete_radiance_gc:
@@ -775,48 +835,23 @@ class PipelineProcessor:
         if self.geotransform_dir.exists() and delete_geotransform:
             logger.info(f"Deleting {self.geotransform_dir}")
             shutil.rmtree(self.geotransform_dir)
-        if self.imudata_dir.exists() and delete_imudata:
+        if (
+            self.imudata_dir.exists()
+            and delete_imudata
+            and not (self.data_starting_point == "radiance")
+        ):
             logger.info(f"Deleting {self.imudata_dir}")
             shutil.rmtree(self.imudata_dir)
         if self.mosaic_dir.exists() and delete_mosaics:
             logger.info(f"Deleting {self.mosaic_dir}")
             shutil.rmtree(self.mosaic_dir)
 
-    def run_basic(self):
-        """Run pipeline using parameters defined in YAML file
-
-        Run basic processing steps based on parameters defined in YAML file. These steps
-        can all be run without manually interpreting any of the data (such
-        intepretation may be needed for other steps such as glint correction).
-
-        The steps include:
-            - Creating "quicklook" RGB versions of images
-            - Converting raw hyperspectral images to radiance
-            - Converting raw downwelling spectra to irradiance
-            - Parsing and processing IMU data
-            - Creating basic "geotransform" and adding basic "map info" to
-            radiance file for rough georeferencing.
-            - Converting radiance to reflectance
-
-        See massipipe.config.Config and template YAML file for all options.
-
-        """
-
-        if self.config.quicklook.create:
-            try:
-                self.create_quicklook_images()
-            except Exception:
-                logger.error("Error while creating quicklook images", exc_info=True)
+    def run_raw_data_processing(self):
+        """Run all data processing steps based on raw data"""
 
         if self.config.imu_data.create:
             try:
                 self.parse_and_save_imu_data()
-            except Exception:
-                logger.error("Error while parsing and saving IMU data", exc_info=True)
-
-        if self.config.geotransform.create:
-            try:
-                self.create_and_save_geotransform()
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
 
@@ -843,12 +878,32 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while adding irradiance to radiance header", exc_info=True)
 
+    def run_quicklook(self):
+        """Create quicklook versions of images (percentile stretched)"""
+        if self.config.quicklook.create:
+            try:
+                self.create_quicklook_images()
+            except Exception:
+                logger.error("Error while creating quicklook images", exc_info=True)
+
+    def run_geotransform(self):
+        """Create geotransform based on IMU data and shape of hyperspectral image"""
+        if self.config.geotransform.create:
+            try:
+                self.create_and_save_geotransform()
+            except Exception:
+                logger.error("Error while parsing and saving IMU data", exc_info=True)
+
+    def run_reflectance(self):
+        """Create reflectance images based on parameters in YAML file"""
         if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
             except FileNotFoundError:
                 logger.warning(
-                    "Missing input radiance / irradiance files, " "skipping reflectance conversion."
+                    "Missing input radiance / irradiance files, "
+                    "skipping reflectance conversion.",
+                    exc_info=True,
                 )
             except Exception:
                 logger.error("Error while converting from radiance to reflectance", exc_info=True)
@@ -913,7 +968,11 @@ class PipelineProcessor:
 
     def run(self):
         """Run all processing steps"""
-        self.run_basic()
+        if self.data_starting_point == "raw":
+            self.run_raw_data_processing()
+        self.run_quicklook()
+        self.run_geotransform()
+        self.run_reflectance()
         self.run_glint_correction()
         self.run_mosaics()
 
