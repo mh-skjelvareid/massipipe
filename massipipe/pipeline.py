@@ -460,6 +460,9 @@ class PipelineProcessor:
                 logger.info(f"Image {radiance_image_path.name} exists - skipping.")
                 continue
 
+            if not self.config.radiance.add_envi_mapinfo_to_header:
+                geotransform_path = None  # path = None -> Mapinfo won't be added/modified
+
             logger.info(f"Converting {raw_image_path.name} to radiance")
             try:
                 radiance_converter.convert_raw_file_to_radiance(

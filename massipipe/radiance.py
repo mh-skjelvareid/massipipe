@@ -456,7 +456,7 @@ class RadianceConverter:
             (default: bip), e.g. 'radiance_image.bip.hdr'
         geotransform_path: Path | str | None
             Path to JSON file with geotransform information.
-            If not None, the "envi_map_info" from the grotransform file
+            If not None, the "envi_map_info" from the geotransform file
             is inserted into the header of the radiance file (as "map info").
         interleave: str, {'bip','bil','bsq'}, default 'bip'
             String indicating how binary image file is organized.

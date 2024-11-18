@@ -53,6 +53,7 @@ class MpRadiance(BaseModel):
     create: bool = True
     overwrite: bool = False
     set_saturated_pixels_to_zero: bool = True
+    add_envi_mapinfo_to_header: bool = True
     add_irradiance_to_header: bool = True
 
 
