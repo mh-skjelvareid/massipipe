@@ -20,8 +20,8 @@ class IrradianceConverter:
         self,
         irrad_cal_file: Union[Path, str],
         irrad_cal_dir_name: str = "downwelling_calibration_spectra",
-        wl_min: Union[float, None] = 370,
-        wl_max: Union[float, None] = 1000,
+        wl_min: Union[float, None] = None,
+        wl_max: Union[float, None] = None,
     ):
         """Initialize irradiance converter
 
