@@ -12,7 +12,7 @@ from massipipe.config import Config, export_template_yaml, read_config, write_co
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
-from massipipe.mosaic import add_geotiff_overviews, mosaic_geotiffs
+from massipipe.mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
 from massipipe.reflectance import ReflectanceConverter
@@ -770,6 +770,9 @@ class PipelineProcessor:
             return
 
         mosaic_geotiffs(self.rad_gc_rgb_im_paths, self.mosaic_rad_gc_path)
+        convert_geotiff_to_8bit(
+            input_image_path=self.mosaic_rad_gc_path, output_image_path=self.mosaic_rad_gc_path
+        )
         add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
 
     def mosaic_reflectance_gc_geotiffs(self):

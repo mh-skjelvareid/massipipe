@@ -5,6 +5,7 @@ import warnings
 from pathlib import Path
 from typing import Iterable, Sequence, Union
 
+import numpy as np
 import rasterio
 import rasterio.merge
 
@@ -103,8 +104,71 @@ def add_overviews_gdal_cli(image_path: Path):
 
     # Add image pyramids to file
     logger.info(f"Adding image pyramids to mosaic {image_path.name}")
+
     # Explanation of gdaladdo options used:
     # -r average: Use averaging when resampling to lower spatial resolution
     # -q: Suppress output (be quiet)
     gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(image_path)]
     subprocess.run(gdaladdo_args)
+
+
+def convert_geotiff_to_8bit(
+    input_image_path: Path,
+    output_image_path: Path,
+    lower_percentile: float = 2,
+    upper_percentile: float = 98,
+    require_positive: bool = True,
+):
+    """Convert geotiff to 8-bit using percentile stretching
+
+    Parameters
+    ----------
+    input_image_path : Path
+        Path to original geotiff
+    output_image_path : Path
+        Path to output geotiff (8-bit)
+    lower_percentile : float, default 2
+        Percentile value from input image, used to set lower end of
+        range used when scaling data to 8-bit output.
+    upper_percentile : float, default 98
+        Percentile value from input image, used to set upper end of
+        range used when scaling data to 8-bit output.
+    require_positive : bool, default True
+        Whether to set a hard limit on the input values (must be positive)
+        If True, the minimum value in range included for output is given by
+        max(0,lower_percentile_value)
+    """
+    logger.info(f"Converting {input_image_path.name} to 8-bit geotiff")
+    if output_image_path is None:
+        output_image_path = input_image_path
+
+    try:
+        with rasterio.open(input_image_path) as input_file:
+            input_image = input_file.read()
+            output_image = np.zeros(input_image.shape, dtype=np.uint8)
+
+            for band_index in range(input_image.count):
+                input_image_band = input_image[band_index]
+
+                # Determine input range to use in outut
+                range_min, range_max = np.percentile(
+                    input_image_band, (lower_percentile, upper_percentile)
+                )
+                if require_positive:
+                    range_min = max(0, range_min)
+
+                # Scale using linear interpolation from input to output range
+                output_image[band_index] = np.interp(
+                    input_image_band, (range_min, range_max), (0, 255)
+                )
+
+            # Copy metadata, changing only data type
+            output_profile = input_file.profile.copy()
+            output_profile["dtype"] = "uint8"
+
+        with rasterio.open(output_image_path, "w", output_profile) as output_file:
+            output_file.write(output_image)
+
+    except Exception:
+        logger.error(f"Error while converting {input_image_path.name} to 8-bit", exc_info=True)
+        raise
