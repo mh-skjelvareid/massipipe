@@ -138,36 +138,46 @@ def convert_geotiff_to_8bit(
         If True, the minimum value in range included for output is given by
         max(0,lower_percentile_value)
     """
+    no_data_value_8bit = 255
+
     logger.info(f"Converting {input_image_path.name} to 8-bit geotiff")
     if output_image_path is None:
         output_image_path = input_image_path
 
     try:
-        with rasterio.open(input_image_path) as input_file:
-            input_image = input_file.read()
+        with rasterio.open(input_image_path) as input_dataset:
+            input_image = input_dataset.read()
             output_image = np.zeros(input_image.shape, dtype=np.uint8)
 
-            for band_index in range(input_image.count):
-                input_image_band = input_image[band_index]
+            for band_index in range(input_dataset.count):
+                input_band = input_image[band_index]
+                nodata_mask = input_band == input_dataset.nodata
 
                 # Determine input range to use in outut
                 range_min, range_max = np.percentile(
-                    input_image_band, (lower_percentile, upper_percentile)
+                    input_band[~nodata_mask], (lower_percentile, upper_percentile)
                 )
                 if require_positive:
                     range_min = max(0, range_min)
 
                 # Scale using linear interpolation from input to output range
-                output_image[band_index] = np.interp(
-                    input_image_band, (range_min, range_max), (0, 255)
+                output_band = np.interp(
+                    input_band, (range_min, range_max), (0, no_data_value_8bit - 1)
                 )
 
-            # Copy metadata, changing only data type
-            output_profile = input_file.profile.copy()
-            output_profile["dtype"] = "uint8"
+                # Transfer nodata mask
+                output_band[nodata_mask] = no_data_value_8bit
 
-        with rasterio.open(output_image_path, "w", output_profile) as output_file:
-            output_file.write(output_image)
+                # Set output band as slice
+                output_image[band_index] = output_band
+
+            # Copy metadata, changing only data type and nodata value
+            output_profile = input_dataset.profile.copy()
+            output_profile["dtype"] = output_image.dtype
+            output_profile["nodata"] = no_data_value_8bit
+
+        with rasterio.open(output_image_path, "w", **output_profile) as output_dataset:
+            output_dataset.write(output_image)
 
     except Exception:
         logger.error(f"Error while converting {input_image_path.name} to 8-bit", exc_info=True)
