@@ -755,6 +755,7 @@ class PipelineProcessor:
 
     def mosaic_radiance_gc_geotiffs(self):
         """Merge radiance_gc RGB images into mosaic with overviews"""
+        logger.info("---- RADIANCE MOSAICING ----")
         logger.info(f"Mosaicing GeoTIFFs in {self.radiance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
 
@@ -765,7 +766,7 @@ class PipelineProcessor:
             return
 
         if not any([rp.exists() for rp in self.rad_gc_rgb_im_paths]):
-            logger.error(f"No images found in {self.radiance_gc_rgb_dir}")
+            logger.warning(f"No images found in {self.radiance_gc_rgb_dir}")
             return
 
         mosaic_geotiffs(self.rad_gc_rgb_im_paths, self.mosaic_rad_gc_path)
@@ -773,6 +774,7 @@ class PipelineProcessor:
 
     def mosaic_reflectance_gc_geotiffs(self):
         """Merge reflectance_gc RGB images into mosaic with overviews"""
+        logger.info("---- REFLECTANCE MOSAICING ----")
         logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
         self.mosaic_dir.mkdir(exist_ok=True)
 
@@ -995,7 +997,7 @@ class PipelineProcessor:
 
 
 def find_datasets(
-    base_dir: Path, subdir_search_strings: list[str] = ["0_raw", "1a_radiance"]
+    base_dir: Union[Path, str], subdir_search_strings: list[str] = ["0_raw", "1a_radiance"]
 ) -> list[Path]:
     """Find dataset paths based on expected subdirectories in dataset
 
@@ -1012,6 +1014,7 @@ def find_datasets(
     dataset_dirs
         List of dataset dirctories mathcing search criteria.
     """
+    base_dir = Path(base_dir)
     dataset_dirs = set()  # Use set to avoid duplicates
     for subdir_search_str in subdir_search_strings:
         dataset_dirs.update(p.parent for p in base_dir.rglob(subdir_search_str))
