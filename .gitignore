@@ -165,4 +165,4 @@ cython_debug/
 tests/example_data/massimal_larvik_olbergholmen_202308301001-test_hsi/
 notebooks/debugging/
 notebooks/develop_features/
-notebooks/develop_tests/
+notebooks/prelim_tests/
