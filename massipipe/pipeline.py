@@ -477,7 +477,7 @@ class PipelineProcessor:
                 logger.info(f"Image {irrad_spec_path.name} exists - skipping.")
                 continue
 
-            if raw_spec_path.exists():
+            if raw_spec_path is not None and raw_spec_path.exists():
                 logger.info(f"Converting {raw_spec_path.name} to downwelling irradiance")
                 try:
                     irradiance_converter.convert_raw_file_to_irradiance(
@@ -681,6 +681,8 @@ class PipelineProcessor:
                         reflectance_converter.convert_radiance_file_with_irradiance_to_reflectance(
                             rad_gc_path, refl_gc_path
                         )
+                    except KeyError:
+                        logger.error(f"Irradiance spectrum missing in {rad_gc_path}")
                     except Exception as e:
                         logger.error(
                             f"Error occured while glint correcting {rad_gc_path}",
