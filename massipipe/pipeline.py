@@ -16,6 +16,7 @@ from massipipe.mosaic import add_geotiff_overviews, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
 from massipipe.reflectance import ReflectanceConverter
+from massipipe.utils import add_header_mapinfo
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -453,21 +454,14 @@ class PipelineProcessor:
             self.radiance_calibration_file,
             set_saturated_pixels_to_zero=self.config.radiance.set_saturated_pixels_to_zero,
         )
-        for raw_image_path, radiance_image_path, geotransform_path in zip(
-            self.raw_image_paths, self.rad_im_paths, self.geotransform_paths
-        ):
+        for raw_image_path, radiance_image_path in zip(self.raw_image_paths, self.rad_im_paths):
             if radiance_image_path.exists() and not self.config.radiance.overwrite:
                 logger.info(f"Image {radiance_image_path.name} exists - skipping.")
                 continue
 
-            if not self.config.radiance.add_envi_mapinfo_to_header:
-                geotransform_path = None  # path = None -> Mapinfo won't be added/modified
-
             logger.info(f"Converting {raw_image_path.name} to radiance")
             try:
-                radiance_converter.convert_raw_file_to_radiance(
-                    raw_image_path, radiance_image_path, geotransform_path=geotransform_path
-                )
+                radiance_converter.convert_raw_file_to_radiance(raw_image_path, radiance_image_path)
             except Exception as e:
                 logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
@@ -644,6 +638,21 @@ class PipelineProcessor:
                 except Exception as e:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
+
+    def add_mapinfo_to_radiance_header(self):
+        """Add ENVI mapinfo (geotransform) to radiance header"""
+        logger.info("---- WRITING MAP INFO TO RADIANCE HEADER ----")
+        if not any([rp.exists() for rp in self.rad_im_paths]):
+            raise FileNotFoundError(f"No radiance images found in {self.radiance_dir}")
+        if not any([gtp.exists() for gtp in self.geotransform_paths]):
+            raise FileNotFoundError(f"No geotransform JSON files found in {self.geotransform_dir}")
+        for rad_path, geotrans_path in zip(self.rad_im_paths, self.geotransform_paths):
+            logger.info(f"Adding map info from {geotrans_path.name} to {rad_path.name}")
+            try:
+                add_header_mapinfo(rad_path, geotrans_path)
+            except Exception:
+                logger.error(f"Error occured while adding map info to {rad_path}", exc_info=True)
+                logger.error("Skipping file")
 
     def glint_correct_reflectance_images(self):
         """Correct for sun and sky glint in reflectance images"""
@@ -849,6 +858,14 @@ class PipelineProcessor:
             logger.info(f"Deleting {self.mosaic_dir}")
             shutil.rmtree(self.mosaic_dir)
 
+    def run_quicklook(self):
+        """Create quicklook versions of images (percentile stretched)"""
+        if self.config.quicklook.create:
+            try:
+                self.create_quicklook_images()
+            except Exception:
+                logger.error("Error while creating quicklook images", exc_info=True)
+
     def run_raw_data_processing(self):
         """Run all data processing steps based on raw data"""
 
@@ -875,30 +892,25 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
 
-        if self.config.radiance.add_irradiance_to_header:
-            try:
-                self.add_irradiance_to_radiance_header()
-            except Exception:
-                logger.error("Error while adding irradiance to radiance header", exc_info=True)
-
-    def run_quicklook(self):
-        """Create quicklook versions of images (percentile stretched)"""
-        if self.config.quicklook.create:
-            try:
-                self.create_quicklook_images()
-            except Exception:
-                logger.error("Error while creating quicklook images", exc_info=True)
-
-    def run_geotransform(self):
-        """Create geotransform based on IMU data and shape of hyperspectral image"""
+    def run_secondary_processing(self):
         if self.config.geotransform.create:
             try:
                 self.create_and_save_geotransform()
             except Exception:
                 logger.error("Error while parsing and saving IMU data", exc_info=True)
 
-    def run_reflectance(self):
-        """Create reflectance images based on parameters in YAML file"""
+        if self.config.radiance.add_irradiance_to_header:
+            try:
+                self.add_irradiance_to_radiance_header()
+            except Exception:
+                logger.error("Error while adding irradiance to radiance header", exc_info=True)
+
+        if self.config.radiance.add_envi_mapinfo_to_header:
+            try:
+                self.add_mapinfo_to_radiance_header()
+            except Exception:
+                logger.error("Error while adding map info to radiance header", exc_info=True)
+
         if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
@@ -971,11 +983,10 @@ class PipelineProcessor:
 
     def run(self):
         """Run all processing steps"""
+        self.run_quicklook()
         if self.data_starting_point == "raw":
             self.run_raw_data_processing()
-        self.run_quicklook()
-        self.run_geotransform()
-        self.run_reflectance()
+        self.run_secondary_processing()
         self.run_glint_correction()
         self.run_mosaics()
 

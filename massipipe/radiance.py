@@ -441,7 +441,6 @@ class RadianceConverter:
         self,
         raw_header_path: Union[Path, str],
         radiance_header_path: Union[Path, str],
-        geotransform_path: Union[Path, str, None] = None,
         interleave: str = "bip",
     ) -> None:
         """Read raw image file, convert to radiance, and save to file
@@ -454,10 +453,6 @@ class RadianceConverter:
             Path to save converted radiance image to.
             The name of the header file should match the 'interleave' argument
             (default: bip), e.g. 'radiance_image.bip.hdr'
-        geotransform_path: Path | str | None
-            Path to JSON file with geotransform information.
-            If not None, the "envi_map_info" from the geotransform file
-            is inserted into the header of the radiance file (as "map info").
         interleave: str, {'bip','bil','bsq'}, default 'bip'
             String indicating how binary image file is organized.
             See spectral.io.envi.save_image()
@@ -468,9 +463,6 @@ class RadianceConverter:
         """
         raw_image, _, metadata = mpu.read_envi(raw_header_path)
         radiance_image = self.convert_raw_image_to_radiance(raw_image, metadata)
-        if geotransform_path:
-            geotransform_data = mpu.read_json(geotransform_path)
-            metadata["map info"] = geotransform_data["envi_map_info"]
 
         mpu.save_envi(
             radiance_header_path,

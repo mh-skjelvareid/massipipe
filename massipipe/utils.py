@@ -111,6 +111,11 @@ def read_envi_header(header_path: Union[Path, str]) -> tuple[dict, NDArray]:
     return metadata, wl
 
 
+def write_envi_header(header_path: Union[Path, str], metadata: dict):
+    """Write metadata dictionary to ENVI header (simple wrapper)"""
+    spectral.io.envi.write_envi_header(header_path, metadata)
+
+
 def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs) -> None:
     """Save ENVI file with parameters compatible with Spectronon
 
@@ -197,6 +202,22 @@ def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) ->
     irrad_str = array_to_header_string(irradiance, decimals=6)
     header_dict["solar irradiance"] = irrad_str
     spectral.io.envi.write_envi_header(header_path, header_dict)
+
+
+def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[Path, str]):
+    """Add mapinfo from from geotransform JSON to ENVI header file
+
+    Parameters
+    ----------
+    header_path : Union[Path,str]
+        Path to ENVI header file
+    geotransform_path : Union[Path, str]
+        Path to JSON file with geotransform field "envi_map_info"
+    """
+    metadata = spectral.io.envi.read_envi_header(header_path)
+    geotransform_data = read_json(geotransform_path)
+    metadata["map info"] = geotransform_data["envi_map_info"]
+    spectral.io.envi.write_envi_header(header_path, metadata)
 
 
 def get_image_shape(image_path: Union[Path, str]) -> tuple[int, int, int]:
