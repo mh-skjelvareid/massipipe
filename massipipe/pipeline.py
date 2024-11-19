@@ -525,6 +525,13 @@ class PipelineProcessor:
                 "The number of reference image numbers and reference image ranges do not match."
             )
 
+        if (
+            all([rp.exists() for rp in self.rad_gc_im_paths])
+            and not self.config.radiance_gc.overwrite
+        ):
+            logger.info("Glint corrected radiance images already exist - skipping")
+            return
+
         # Fit glint corrector
         ref_im_paths = [self.rad_im_paths[im_num] for im_num in ref_im_nums]
         glint_corrector = HedleyGlintCorrector(
