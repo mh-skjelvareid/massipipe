@@ -298,7 +298,10 @@ class ReflectanceConverter:
         rad_image, rad_wl, rad_meta = mpu.read_envi(radiance_image_header)
 
         # Convert irradiance spectrum string to numeric array
-        irrad_spec = mpu.header_string_to_array(rad_meta["solar irradiance"])
+        if "solar irradiance" in rad_meta:
+            irrad_spec = mpu.header_string_to_array(rad_meta["solar irradiance"])
+        else:
+            raise KeyError("Field 'solar irradiance' missing from radiance header")
         assert len(irrad_spec) == len(rad_wl)
 
         # Limit output wavelength range
