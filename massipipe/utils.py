@@ -1,6 +1,7 @@
 # Imports
 import json
 import logging
+import warnings
 from pathlib import Path
 from typing import Union
 
@@ -514,17 +515,19 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
         Path to output PNG file.
     """
     assert (rgb_image.ndim == 3) and (rgb_image.shape[2] == 3)
-    with rasterio.Env():
-        with rasterio.open(
-            png_path,
-            "w",
-            driver="PNG",
-            height=rgb_image.shape[0],
-            width=rgb_image.shape[1],
-            count=3,
-            dtype="uint8",
-        ) as dst:
-            dst.write(reshape_as_raster(rgb_image))
+    with warnings.catch_warnings():  # Catch warnings for this block of code
+        warnings.filterwarnings("ignore")  # Ignore warning about missing geotransform
+        with rasterio.Env():
+            with rasterio.open(
+                png_path,
+                "w",
+                driver="PNG",
+                height=rgb_image.shape[0],
+                width=rgb_image.shape[1],
+                count=3,
+                dtype="uint8",
+            ) as dst:
+                dst.write(reshape_as_raster(rgb_image))
 
 
 def read_json(json_path: Union[Path, str]) -> dict:
