@@ -169,6 +169,7 @@ class PipelineProcessor:
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.INFO)
         logger.addHandler(file_handler)
+        logger.info("-" * 64)
         logger.info(f"File logging for {self.dataset_base_name} initialized.")
 
     def _check_data_starting_point(self):
@@ -562,7 +563,7 @@ class PipelineProcessor:
                 continue
 
             if rad_gc_path.exists() and geotrans_path.exists():
-                logger.info(f"Georeferencing and exporting RGB version of {rad_gc_path.name}.")
+                logger.info(f"Exporting RGB GeoTIFF from {rad_gc_path.name}.")
                 try:
                     georeferencer.georeference_hyspec_save_geotiff(
                         rad_gc_path,
@@ -629,10 +630,7 @@ class PipelineProcessor:
 
         for rad_path, irrad_path in zip(self.rad_im_paths, self.irrad_spec_paths):
             if rad_path.exists() and irrad_path.exists():
-                logger.info(
-                    f"Writing irradiance from {irrad_path.name} "
-                    + f"to radiance header {rad_path.name}."
-                )
+                logger.info(f"Writing irradiance to radiance header {rad_path.name}.")
                 try:
                     reflectance_converter.add_irradiance_spectrum_to_header(rad_path, irrad_path)
                 except Exception as e:
@@ -647,7 +645,7 @@ class PipelineProcessor:
         if not any([gtp.exists() for gtp in self.geotransform_paths]):
             raise FileNotFoundError(f"No geotransform JSON files found in {self.geotransform_dir}")
         for rad_path, geotrans_path in zip(self.rad_im_paths, self.geotransform_paths):
-            logger.info(f"Adding map info from {geotrans_path.name} to {rad_path.name}")
+            logger.info(f"Adding map info to {rad_path.name}")
             try:
                 add_header_mapinfo(rad_path, geotrans_path)
             except Exception:
@@ -739,7 +737,7 @@ class PipelineProcessor:
                 continue
 
             if refl_gc_path.exists() and geotrans_path.exists():
-                logger.info(f"Georeferencing and exporting RGB version of {refl_gc_path.name}.")
+                logger.info(f"Exporting RGB GeoTIFF from {refl_gc_path.name}.")
                 try:
                     georeferencer.georeference_hyspec_save_geotiff(
                         refl_gc_path,
@@ -994,7 +992,25 @@ class PipelineProcessor:
         """Create YAML file"""
 
 
-def find_datasets(base_dir: Path, dataset_subdir_search_str="0_raw"):
-    """Find dataset paths based on expected subdirectory in dataset"""
-    subdirs = base_dir.rglob(dataset_subdir_search_str)
-    return sorted([subdir.parent for subdir in subdirs])
+def find_datasets(
+    base_dir: Path, subdir_search_strings: list[str] = ["0_raw", "1a_radiance"]
+) -> list[Path]:
+    """Find dataset paths based on expected subdirectories in dataset
+
+    Parameters
+    ----------
+    base_dir : Path
+        Filesystem starting point (searching tree below this point)
+    subdir_search_strings : list[str], default ["0_raw", "1a_radiance"]
+        List with names of subdirectories that are expected to be within a dataset
+        directory. If any of the names match, the dataset directory is included.
+
+    Returns
+    -------
+    dataset_dirs
+        List of dataset dirctories mathcing search criteria.
+    """
+    dataset_dirs = set()  # Use set to avoid duplicates
+    for subdir_search_str in subdir_search_strings:
+        dataset_dirs.update(p.parent for p in base_dir.rglob(subdir_search_str))
+    return sorted(dataset_dirs)
