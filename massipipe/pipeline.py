@@ -856,21 +856,6 @@ class PipelineProcessor:
             mosaic_overwrite=self.config.mosaic.radiance_gc_rgb.overwrite,
             overview_factors=self.config.mosaic.overview_factors,
         )
-        # if (self.mosaic_rad_gc_path.exists()) and (
-        #     not self.config.mosaic.radiance_gc_rgb.overwrite
-        # ):
-        #     logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
-        #     return
-
-        # if not any([rp.exists() for rp in self.rad_gc_rgb_paths]):
-        #     logger.warning(f"No images found in {self.radiance_gc_rgb_dir}")
-        #     return
-
-        # mosaic_geotiffs(self.rad_gc_rgb_paths, self.mosaic_rad_gc_path)
-        # convert_geotiff_to_8bit(
-        #     input_image_path=self.mosaic_rad_gc_path, output_image_path=self.mosaic_rad_gc_path
-        # )
-        # add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
 
     def mosaic_reflectance_gc_geotiffs(self):
         """Merge reflectance_gc RGB images into mosaic with overviews"""
@@ -883,19 +868,6 @@ class PipelineProcessor:
             mosaic_overwrite=self.config.mosaic.reflectance_gc_rgb.overwrite,
             overview_factors=self.config.mosaic.overview_factors,
         )
-
-        # if (self.mosaic_refl_gc_path.exists()) and (
-        #     not self.config.mosaic.reflectance_gc_rgb.overwrite
-        # ):
-        #     logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
-        #     return
-
-        # if not any([rp.exists() for rp in self.refl_gc_rgb_paths]):
-        #     logger.error(f"No images found in {self.reflectance_gc_dir}")
-        #     return
-
-        # mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
-        # add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
 
     def delete_existing_products(
         self,
