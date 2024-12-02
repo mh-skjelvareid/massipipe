@@ -1,6 +1,7 @@
 # Imports
 import logging
 import shutil
+import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -138,6 +139,14 @@ class PipelineProcessor:
         self.mosaic_rad_path = self.mosaic_dir / (self.dataset_base_name + "_rad_rgb.tiff")
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
+
+        # Create readme and license paths
+        self.readme_file_path = self.dataset_dir / "readme.md"
+        self.license_file_path = self.dataset_dir / "license.md"
+
+        # Create zip file export paths
+        self.zip_dir = self.dataset_dir / "processed"  # Standard folder for SeaBee processed files
+        self.zip_file_path = self.zip_dir / (self.dataset_base_name + ".zip")
 
     def load_config_from_file(self):
         """Load or re-load configuration from YAML file"""
@@ -1085,6 +1094,33 @@ class PipelineProcessor:
 
     def create_template_yaml_config(self):
         """Create YAML file"""
+
+    def _add_element_to_archive(self, archive: zipfile.ZipFile, element: Path):
+        """Add element in dataset (file/dir) to opened archive (zip file)"""
+        try:
+            if element.exists():
+                if element.is_dir():
+                    for file_path in element.rglob("*"):
+                        archive.write(file_path, arcname=file_path.relative_to(self.dataset_dir))
+                else:
+                    archive.write(element, arcname=element.relative_to(self.dataset_dir))
+            else:
+                logger.warning(f"Directory {element.relative_to(self.dataset_dir)} does not exist.")
+        except Exception:
+            logger.error(f"Error while writing {element.relative_to(self.dataset_dir)} to archive.")
+
+    def export_dataset_zip(self):
+        """Export selected parts of dataset to zip file"""
+        logger.info("---- EXPORTING DATASET TO ZIP ARCHIVE ----")
+        self.zip_dir.mkdir(exist_ok=True)
+
+        with zipfile.ZipFile(self.zip_file_path, mode="w") as archive:
+            self._add_element_to_archive(archive, self.quicklook_dir)
+            self._add_element_to_archive(archive, self.radiance_dir)
+            self._add_element_to_archive(archive, self.imudata_dir)
+            self._add_element_to_archive(archive, self.config_file_path)
+
+        logger.info(f"Dataset exported to {self.zip_file_path}")
 
 
 def find_datasets(
