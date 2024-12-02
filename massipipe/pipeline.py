@@ -135,6 +135,7 @@ class PipelineProcessor:
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
         # Create mosaic file paths
+        self.mosaic_rad_path = self.mosaic_dir / (self.dataset_base_name + "_rad_rgb.tiff")
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
@@ -793,46 +794,108 @@ class PipelineProcessor:
             rgb_wl=self.config.general.rgb_wl,
         )
 
-    def mosaic_radiance_gc_geotiffs(self):
-        """Merge radiance_gc RGB images into mosaic with overviews"""
-        logger.info("---- RADIANCE MOSAICING ----")
-        logger.info(f"Mosaicing GeoTIFFs in {self.radiance_gc_rgb_dir}")
+    @staticmethod
+    def _mosaic_geotiffs(
+        geotiff_paths: list[Path],
+        mosaic_path: Path,
+        mosaic_overwrite: bool,
+        overview_factors: Sequence[int],
+        convert_to_8bit: bool = True,
+    ):
+        """Mosaic GeoTIFF images into single GeoTIFF with overviews
+
+        Parameters
+        ----------
+        geotiff_paths : list[Path]
+            List of GeoTIFFs to mosaic
+        mosaic_path : Path
+            Path to output GeoTIFF
+        mosaic_overwrite : bool
+            Whether to overwrite existing output GeoTIFF.
+        overview_factors : Sequence[int]
+            GeoTIFF overview factors, typically powers of 2
+            Used to add "pyramid" of lower-resolution images for faster image browsing.
+        convert_to_8bit : bool, optional
+            If true, the mosaic is percentile stretched and converted to 8-bit.
+            This decreases file size and enhances contrast, at the cost of losing the
+            (physical) units of the original image.
+        """
+        if (mosaic_path.exists()) and (not mosaic_overwrite):
+            logger.info(f"Mosaic {mosaic_path} already exists - skipping.")
+            return
+
+        if not any([gtp.exists() for gtp in geotiff_paths]):
+            logger.warning(f"None of the listed GeoTIFFs exist.")
+            return
+
+        mosaic_geotiffs(geotiff_paths, mosaic_path)
+        if convert_to_8bit:
+            convert_geotiff_to_8bit(input_image_path=mosaic_path, output_image_path=mosaic_path)
+        add_geotiff_overviews(mosaic_path, overview_factors)
+
+    def mosaic_radiance_geotiffs(self):
+        """Merge radiance RGB images into mosaic with overviews"""
+        logger.info("---- MOSAICING RADIANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
 
-        if (self.mosaic_rad_gc_path.exists()) and (
-            not self.config.mosaic.radiance_gc_rgb.overwrite
-        ):
-            logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
-            return
-
-        if not any([rp.exists() for rp in self.rad_gc_rgb_paths]):
-            logger.warning(f"No images found in {self.radiance_gc_rgb_dir}")
-            return
-
-        mosaic_geotiffs(self.rad_gc_rgb_paths, self.mosaic_rad_gc_path)
-        convert_geotiff_to_8bit(
-            input_image_path=self.mosaic_rad_gc_path, output_image_path=self.mosaic_rad_gc_path
+        self._mosaic_geotiffs(
+            geotiff_paths=self.rad_rgb_paths,
+            mosaic_path=self.mosaic_rad_path,
+            mosaic_overwrite=self.config.mosaic.radiance_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
         )
-        add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
+
+    def mosaic_radiance_gc_geotiffs(self):
+        """Merge radiance_gc RGB images into mosaic with overviews"""
+        logger.info("---- MOSAICING GLINT CORRECTED RADIANCE ----")
+        self.mosaic_dir.mkdir(exist_ok=True)
+
+        self._mosaic_geotiffs(
+            geotiff_paths=self.rad_gc_rgb_paths,
+            mosaic_path=self.mosaic_rad_gc_path,
+            mosaic_overwrite=self.config.mosaic.radiance_gc_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
+        )
+        # if (self.mosaic_rad_gc_path.exists()) and (
+        #     not self.config.mosaic.radiance_gc_rgb.overwrite
+        # ):
+        #     logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
+        #     return
+
+        # if not any([rp.exists() for rp in self.rad_gc_rgb_paths]):
+        #     logger.warning(f"No images found in {self.radiance_gc_rgb_dir}")
+        #     return
+
+        # mosaic_geotiffs(self.rad_gc_rgb_paths, self.mosaic_rad_gc_path)
+        # convert_geotiff_to_8bit(
+        #     input_image_path=self.mosaic_rad_gc_path, output_image_path=self.mosaic_rad_gc_path
+        # )
+        # add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
 
     def mosaic_reflectance_gc_geotiffs(self):
         """Merge reflectance_gc RGB images into mosaic with overviews"""
-        logger.info("---- REFLECTANCE MOSAICING ----")
-        logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
+        logger.info("---- MOSAICING GLINT CORRECTED REFLECTANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
 
-        if (self.mosaic_refl_gc_path.exists()) and (
-            not self.config.mosaic.reflectance_gc_rgb.overwrite
-        ):
-            logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
-            return
+        self._mosaic_geotiffs(
+            geotiff_paths=self.refl_gc_rgb_paths,
+            mosaic_path=self.mosaic_refl_gc_path,
+            mosaic_overwrite=self.config.mosaic.reflectance_gc_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
+        )
 
-        if not any([rp.exists() for rp in self.refl_gc_rgb_paths]):
-            logger.error(f"No images found in {self.reflectance_gc_dir}")
-            return
+        # if (self.mosaic_refl_gc_path.exists()) and (
+        #     not self.config.mosaic.reflectance_gc_rgb.overwrite
+        # ):
+        #     logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
+        #     return
 
-        mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
-        add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
+        # if not any([rp.exists() for rp in self.refl_gc_rgb_paths]):
+        #     logger.error(f"No images found in {self.reflectance_gc_dir}")
+        #     return
+
+        # mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
+        # add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
 
     def delete_existing_products(
         self,
@@ -1016,6 +1079,13 @@ class PipelineProcessor:
 
     def run_mosaics(self):
         """Run all mosaicing operations"""
+
+        if self.config.mosaic.radiance_rgb.create:
+            try:
+                self.mosaic_radiance_geotiffs()
+            except Exception:
+                logger.error(f"Error occured while mosaicing radiance", exc_info=True)
+
         if self.config.mosaic.radiance_gc_rgb.create:
             try:
                 self.mosaic_radiance_gc_geotiffs()
