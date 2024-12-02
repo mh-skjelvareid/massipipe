@@ -4,7 +4,7 @@ import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Sequence, Union
 
 from pydantic import ValidationError
 
@@ -28,6 +28,7 @@ class ProcessedFilePaths:
 
     quicklook: list[Path] = field(default_factory=list)
     radiance: list[Path] = field(default_factory=list)
+    radiance_rgb: list[Path] = field(default_factory=list)
     radiance_gc: list[Path] = field(default_factory=list)
     radiance_gc_rgb: list[Path] = field(default_factory=list)
     irradiance: list[Path] = field(default_factory=list)
@@ -81,6 +82,7 @@ class PipelineProcessor:
         self.raw_dir = self.dataset_dir / "0_raw"
         self.quicklook_dir = self.dataset_dir / "quicklook"
         self.radiance_dir = self.dataset_dir / "1a_radiance"
+        self.radiance_rgb_dir = self.radiance_dir / "rgb"
         self.radiance_gc_dir = self.dataset_dir / "1b_radiance_gc"
         self.radiance_gc_rgb_dir = self.radiance_gc_dir / "rgb"
         self.reflectance_dir = self.dataset_dir / "2a_reflectance"
@@ -122,8 +124,9 @@ class PipelineProcessor:
         proc_file_paths = self._create_processed_file_paths()
         self.ql_im_paths = proc_file_paths.quicklook
         self.rad_im_paths = proc_file_paths.radiance
+        self.rad_rgb_paths = proc_file_paths.radiance_rgb
         self.rad_gc_im_paths = proc_file_paths.radiance_gc
-        self.rad_gc_rgb_im_paths = proc_file_paths.radiance_gc_rgb
+        self.rad_gc_rgb_paths = proc_file_paths.radiance_gc_rgb
         self.irrad_spec_paths = proc_file_paths.irradiance
         self.imu_data_paths = proc_file_paths.imudata
         self.geotransform_paths = proc_file_paths.geotransform
@@ -132,6 +135,7 @@ class PipelineProcessor:
         self.refl_gc_rgb_paths = proc_file_paths.reflectance_gc_rgb
 
         # Create mosaic file paths
+        self.mosaic_rad_path = self.mosaic_dir / (self.dataset_base_name + "_rad_rgb.tiff")
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
@@ -275,6 +279,10 @@ class PipelineProcessor:
             # Radiance
             rad_path = self.radiance_dir / (base_file_name + "_radiance.bip.hdr")
             proc_file_paths.radiance.append(rad_path)
+
+            # Radiance, RGB version
+            rad_rgb_path = self.radiance_rgb_dir / (base_file_name + "_radiance_rgb.tiff")
+            proc_file_paths.radiance_rgb.append(rad_rgb_path)
 
             # Radiance, glint corrected
             rad_gc_path = self.radiance_gc_dir / (base_file_name + "_radiance_gc.bip.hdr")
@@ -467,6 +475,73 @@ class PipelineProcessor:
                 logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
+    @staticmethod
+    def _create_rgb_geotiff(
+        hyspec_paths: list[Path],
+        geotransform_paths: list[Path],
+        geotiff_paths: list[Path],
+        geotiff_overwrite: bool,
+        rgb_wl: Union[tuple[float, float, float], None],
+    ):
+        """Create georeferenced RGB GeoTIFF versions of hyperspectral image
+
+        Parameters
+        ----------
+        hyspec_paths : list[Path]
+            Paths to hyperspectral files from which to create RGB images.
+            If the file does not exist, the corresponding image is skipped.
+        geotransform_paths : list[Path]
+            Paths to geotransform files with affine transform for images.
+            If the file does not exist, the corresponding image is skipped.
+        geotiff_paths : list[Path]
+            Paths for output ((GeoTIFF) files
+        geotiff_overwrite : bool
+            Boolean indicating if existing GeoTIFF files should be overwritten.
+        rgb_wl : tuple[float, float, float]
+            Wavelengths (in nm) to use for red, green and blue.
+        """
+
+        georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=rgb_wl)
+
+        if not any([image_path.exists() for image_path in hyspec_paths]):
+            logger.warning(f"None of the listed hyperspectral files exist")
+        if not any([geotrans_path.exists() for geotrans_path in geotransform_paths]):
+            logger.warning(f"None of the listed geotransform files exist")
+
+        for hyspec_path, geotrans_path, geotiff_path in zip(
+            hyspec_paths, geotransform_paths, geotiff_paths
+        ):
+            if geotiff_path.exists() and not geotiff_overwrite:
+                logger.info(f"Image {geotiff_path.name} exists - skipping.")
+                continue
+
+            if hyspec_path.exists() and geotrans_path.exists():
+                logger.info(f"Exporting RGB GeoTIFF from {hyspec_path.name}.")
+                try:
+                    georeferencer.georeference_hyspec_save_geotiff(
+                        hyspec_path,
+                        geotrans_path,
+                        geotiff_path,
+                    )
+                except Exception:
+                    logger.error(
+                        f"Error occured while georeferencing RGB version of {hyspec_path}",
+                        exc_info=True,
+                    )
+                    logger.error("Skipping file")
+
+    def create_radiance_rgb_geotiff(self):
+        """Create georeferenced RGB GeoTIFF versions of radiance"""
+        logger.info("---- EXPORTING RGB GEOTIFF FOR RADIANCE ----")
+        self.radiance_rgb_dir.mkdir(exist_ok=True)
+        self._create_rgb_geotiff(
+            hyspec_paths=self.rad_im_paths,
+            geotransform_paths=self.geotransform_paths,
+            geotiff_paths=self.rad_rgb_paths,
+            geotiff_overwrite=self.config.radiance_rgb.overwrite,
+            rgb_wl=self.config.general.rgb_wl,
+        )
+
     def convert_raw_spectra_to_irradiance(self):
         """Convert raw spectra (DN) to irradiance (W/(m2*nm))"""
         logger.info("---- IRRADIANCE CONVERSION ----")
@@ -555,34 +630,13 @@ class PipelineProcessor:
         """Create georeferenced GeoTIFF versions of glint corrected radiance"""
         logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED RADIANCE ----")
         self.radiance_gc_rgb_dir.mkdir(exist_ok=True)
-        georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
-
-        if not any([rp.exists() for rp in self.rad_gc_im_paths]):
-            logger.warning(f"No radiance images found in {self.radiance_gc_dir}")
-        if not any([gtp.exists() for gtp in self.geotransform_paths]):
-            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
-
-        for rad_gc_path, geotrans_path, geotiff_path in zip(
-            self.rad_gc_im_paths, self.geotransform_paths, self.rad_gc_rgb_im_paths
-        ):
-            if geotiff_path.exists() and not self.config.radiance_gc_rgb.overwrite:
-                logger.info(f"Image {geotiff_path.name} exists - skipping.")
-                continue
-
-            if rad_gc_path.exists() and geotrans_path.exists():
-                logger.info(f"Exporting RGB GeoTIFF from {rad_gc_path.name}.")
-                try:
-                    georeferencer.georeference_hyspec_save_geotiff(
-                        rad_gc_path,
-                        geotrans_path,
-                        geotiff_path,
-                    )
-                except Exception:
-                    logger.error(
-                        "Error occured while georeferencing RGB version of " f"{rad_gc_path}",
-                        exc_info=True,
-                    )
-                    logger.error("Skipping file")
+        self._create_rgb_geotiff(
+            hyspec_paths=self.rad_gc_im_paths,
+            geotransform_paths=self.geotransform_paths,
+            geotiff_paths=self.rad_gc_rgb_paths,
+            geotiff_overwrite=self.config.radiance_gc_rgb.overwrite,
+            rgb_wl=self.config.general.rgb_wl,
+        )
 
     def convert_radiance_images_to_reflectance(self):
         """Convert radiance images (microflicks) to reflectance (unitless)"""
@@ -731,75 +785,89 @@ class PipelineProcessor:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
-        georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=self.config.general.rgb_wl)
 
-        if not any([rp.exists() for rp in self.refl_gc_im_paths]):
-            logger.warning(f"No reflectance images found in {self.reflectance_gc_dir}")
-        if not any([gtp.exists() for gtp in self.geotransform_paths]):
-            logger.warning(f"No geotransform files found in {self.geotransform_dir}")
+        self._create_rgb_geotiff(
+            hyspec_paths=self.refl_gc_im_paths,
+            geotransform_paths=self.geotransform_paths,
+            geotiff_paths=self.refl_gc_rgb_paths,
+            geotiff_overwrite=self.config.reflectance_gc.overwrite,
+            rgb_wl=self.config.general.rgb_wl,
+        )
 
-        for refl_gc_path, geotrans_path, geotiff_path in zip(
-            self.refl_gc_im_paths, self.geotransform_paths, self.refl_gc_rgb_paths
-        ):
-            if geotiff_path.exists() and not self.config.reflectance_gc_rgb.overwrite:
-                logger.info(f"Image {geotiff_path.name} exists - skipping.")
-                continue
+    @staticmethod
+    def _mosaic_geotiffs(
+        geotiff_paths: list[Path],
+        mosaic_path: Path,
+        mosaic_overwrite: bool,
+        overview_factors: Sequence[int],
+        convert_to_8bit: bool = True,
+    ):
+        """Mosaic GeoTIFF images into single GeoTIFF with overviews
 
-            if refl_gc_path.exists() and geotrans_path.exists():
-                logger.info(f"Exporting RGB GeoTIFF from {refl_gc_path.name}.")
-                try:
-                    georeferencer.georeference_hyspec_save_geotiff(
-                        refl_gc_path,
-                        geotrans_path,
-                        geotiff_path,
-                    )
-                except Exception:
-                    logger.error(
-                        "Error occured while georeferencing RGB version of " f"{refl_gc_path}",
-                        exc_info=True,
-                    )
-                    logger.error("Skipping file")
+        Parameters
+        ----------
+        geotiff_paths : list[Path]
+            List of GeoTIFFs to mosaic
+        mosaic_path : Path
+            Path to output GeoTIFF
+        mosaic_overwrite : bool
+            Whether to overwrite existing output GeoTIFF.
+        overview_factors : Sequence[int]
+            GeoTIFF overview factors, typically powers of 2
+            Used to add "pyramid" of lower-resolution images for faster image browsing.
+        convert_to_8bit : bool, optional
+            If true, the mosaic is percentile stretched and converted to 8-bit.
+            This decreases file size and enhances contrast, at the cost of losing the
+            (physical) units of the original image.
+        """
+        if (mosaic_path.exists()) and (not mosaic_overwrite):
+            logger.info(f"Mosaic {mosaic_path} already exists - skipping.")
+            return
+
+        if not any([gtp.exists() for gtp in geotiff_paths]):
+            logger.warning(f"None of the listed GeoTIFFs exist.")
+            return
+
+        mosaic_geotiffs(geotiff_paths, mosaic_path)
+        if convert_to_8bit:
+            convert_geotiff_to_8bit(input_image_path=mosaic_path, output_image_path=mosaic_path)
+        add_geotiff_overviews(mosaic_path, overview_factors)
+
+    def mosaic_radiance_geotiffs(self):
+        """Merge radiance RGB images into mosaic with overviews"""
+        logger.info("---- MOSAICING RADIANCE ----")
+        self.mosaic_dir.mkdir(exist_ok=True)
+
+        self._mosaic_geotiffs(
+            geotiff_paths=self.rad_rgb_paths,
+            mosaic_path=self.mosaic_rad_path,
+            mosaic_overwrite=self.config.mosaic.radiance_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
+        )
 
     def mosaic_radiance_gc_geotiffs(self):
         """Merge radiance_gc RGB images into mosaic with overviews"""
-        logger.info("---- RADIANCE MOSAICING ----")
-        logger.info(f"Mosaicing GeoTIFFs in {self.radiance_gc_rgb_dir}")
+        logger.info("---- MOSAICING GLINT CORRECTED RADIANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
 
-        if (self.mosaic_rad_gc_path.exists()) and (
-            not self.config.mosaic.radiance_gc_rgb.overwrite
-        ):
-            logger.info(f"Mosaic {self.mosaic_rad_gc_path} already exists - skipping.")
-            return
-
-        if not any([rp.exists() for rp in self.rad_gc_rgb_im_paths]):
-            logger.warning(f"No images found in {self.radiance_gc_rgb_dir}")
-            return
-
-        mosaic_geotiffs(self.rad_gc_rgb_im_paths, self.mosaic_rad_gc_path)
-        convert_geotiff_to_8bit(
-            input_image_path=self.mosaic_rad_gc_path, output_image_path=self.mosaic_rad_gc_path
+        self._mosaic_geotiffs(
+            geotiff_paths=self.rad_gc_rgb_paths,
+            mosaic_path=self.mosaic_rad_gc_path,
+            mosaic_overwrite=self.config.mosaic.radiance_gc_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
         )
-        add_geotiff_overviews(self.mosaic_rad_gc_path, self.config.mosaic.overview_factors)
 
     def mosaic_reflectance_gc_geotiffs(self):
         """Merge reflectance_gc RGB images into mosaic with overviews"""
-        logger.info("---- REFLECTANCE MOSAICING ----")
-        logger.info(f"Mosaicing GeoTIFFs in {self.reflectance_gc_rgb_dir}")
+        logger.info("---- MOSAICING GLINT CORRECTED REFLECTANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
 
-        if (self.mosaic_refl_gc_path.exists()) and (
-            not self.config.mosaic.reflectance_gc_rgb.overwrite
-        ):
-            logger.info(f"Mosaic {self.mosaic_refl_gc_path} already exists - skipping.")
-            return
-
-        if not any([rp.exists() for rp in self.refl_gc_rgb_paths]):
-            logger.error(f"No images found in {self.reflectance_gc_dir}")
-            return
-
-        mosaic_geotiffs(self.refl_gc_rgb_paths, self.mosaic_refl_gc_path)
-        add_geotiff_overviews(self.mosaic_refl_gc_path, self.config.mosaic.overview_factors)
+        self._mosaic_geotiffs(
+            geotiff_paths=self.refl_gc_rgb_paths,
+            mosaic_path=self.mosaic_refl_gc_path,
+            mosaic_overwrite=self.config.mosaic.reflectance_gc_rgb.overwrite,
+            overview_factors=self.config.mosaic.overview_factors,
+        )
 
     def delete_existing_products(
         self,
@@ -923,6 +991,12 @@ class PipelineProcessor:
             except Exception:
                 logger.error("Error while adding map info to radiance header", exc_info=True)
 
+        if self.config.radiance_rgb.create:
+            try:
+                self.create_radiance_rgb_geotiff()
+            except Exception:
+                logger.error("Error while creating RGB GeoTOFFs from radiance", exc_info=True)
+
         if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
@@ -977,6 +1051,13 @@ class PipelineProcessor:
 
     def run_mosaics(self):
         """Run all mosaicing operations"""
+
+        if self.config.mosaic.radiance_rgb.create:
+            try:
+                self.mosaic_radiance_geotiffs()
+            except Exception:
+                logger.error(f"Error occured while mosaicing radiance", exc_info=True)
+
         if self.config.mosaic.radiance_gc_rgb.create:
             try:
                 self.mosaic_radiance_gc_geotiffs()
