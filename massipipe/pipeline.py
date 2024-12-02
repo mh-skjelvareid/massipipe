@@ -1128,6 +1128,8 @@ class PipelineProcessor:
             self._add_element_to_archive(archive, self.radiance_dir)
             self._add_element_to_archive(archive, self.imudata_dir)
             self._add_element_to_archive(archive, self.config_file_path)
+            self._add_element_to_archive(archive, self.readme_file_path)
+            self._add_element_to_archive(archive, self.license_file_path)
 
         logger.info(f"Dataset exported to {self.zip_file_path}")
 
