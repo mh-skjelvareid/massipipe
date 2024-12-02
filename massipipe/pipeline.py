@@ -13,9 +13,11 @@ from massipipe.config import Config, export_template_yaml, read_config, write_co
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
+from massipipe.license import write_license
 from massipipe.mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
+from massipipe.readme import write_readme
 from massipipe.reflectance import ReflectanceConverter
 from massipipe.utils import add_header_mapinfo
 
@@ -878,6 +880,14 @@ class PipelineProcessor:
             overview_factors=self.config.mosaic.overview_factors,
         )
 
+    def create_readme_file(self):
+        """Create a default readme file for the dataset"""
+        write_readme(self.readme_file_path)
+
+    def create_license_file(self):
+        """Create a default license file for the dataset"""
+        write_license(self.license_file_path)
+
     def delete_existing_products(
         self,
         delete_quicklook: bool = True,
@@ -1091,9 +1101,8 @@ class PipelineProcessor:
         self.run_secondary_processing()
         self.run_glint_correction()
         self.run_mosaics()
-
-    def create_template_yaml_config(self):
-        """Create YAML file"""
+        self.create_readme_file()
+        self.create_license_file()
 
     def _add_element_to_archive(self, archive: zipfile.ZipFile, element: Path):
         """Add element in dataset (file/dir) to opened archive (zip file)"""
