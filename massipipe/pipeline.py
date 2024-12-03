@@ -94,6 +94,7 @@ class PipelineProcessor:
         self.imudata_dir = self.dataset_dir / "imudata"
         self.geotransform_dir = self.dataset_dir / "geotransform"
         self.mosaic_dir = self.dataset_dir / "mosaics"
+        self.mosaic_visualization_dir = self.dataset_dir / "orthomosaic"
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
 
@@ -880,6 +881,25 @@ class PipelineProcessor:
             overview_factors=self.config.mosaic.overview_factors,
         )
 
+    def copy_visualization_mosaic(self):
+        """Copy mosaic best suited for visualization to separate directory"""
+        logger.info("---- COPYING MOSAIC USED FOR VISUALIZATION ----")
+        if self.config.mosaic.visualization_mosaic == "radiance":
+            if self.mosaic_rad_path.exists():
+                shutil.copy(
+                    self.mosaic_rad_path, self.mosaic_visualization_dir / self.mosaic_rad_path.name
+                )
+            else:
+                logger.error(f"Mosaic {self.mosaic_rad_path} does not exist")
+        else:
+            if self.mosaic_rad_gc_path.exists():
+                shutil.copy(
+                    self.mosaic_rad_gc_path,
+                    self.mosaic_visualization_dir / self.mosaic_rad_gc_path.name,
+                )
+            else:
+                logger.error(f"Mosaic {self.mosaic_rad_gc_path} does not exist")
+
     def create_readme_file(self):
         """Create a default readme file for the dataset"""
         write_readme(self.readme_file_path)
@@ -1101,8 +1121,6 @@ class PipelineProcessor:
         self.run_secondary_processing()
         self.run_glint_correction()
         self.run_mosaics()
-        self.create_readme_file()
-        self.create_license_file()
 
     def _add_element_to_archive(self, archive: zipfile.ZipFile, element: Path):
         """Add element in dataset (file/dir) to opened archive (zip file)"""
@@ -1121,12 +1139,19 @@ class PipelineProcessor:
     def export_dataset_zip(self):
         """Export selected parts of dataset to zip file"""
         logger.info("---- EXPORTING DATASET TO ZIP ARCHIVE ----")
+
+        self.mosaic_visualization_dir.mkdir(exist_ok=True)
+        self.copy_visualization_mosaic()
+        self.create_readme_file()
+        self.create_license_file()
+
         self.zip_dir.mkdir(exist_ok=True)
 
         with zipfile.ZipFile(self.zip_file_path, mode="w") as archive:
             self._add_element_to_archive(archive, self.quicklook_dir)
             self._add_element_to_archive(archive, self.radiance_dir)
             self._add_element_to_archive(archive, self.imudata_dir)
+            self._add_element_to_archive(archive, self.mosaic_visualization_dir)
             self._add_element_to_archive(archive, self.config_file_path)
             self._add_element_to_archive(archive, self.readme_file_path)
             self._add_element_to_archive(archive, self.license_file_path)

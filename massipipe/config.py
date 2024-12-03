@@ -114,6 +114,7 @@ class MpMosaicCreateOverwrite(BaseModel):
 
 class MpMosaic(BaseModel):
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
+    visualization_mosaic: Literal["radiance", "radiance_gc"] = "radiance_gc"
     radiance_rgb: MpMosaicCreateOverwrite
     radiance_gc_rgb: MpMosaicCreateOverwrite
     # reflectance_rgb: MpMosaicCreateOverwrite # Not yet implemented
