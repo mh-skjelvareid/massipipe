@@ -1,7 +1,6 @@
 # Imports
 import logging
 import shutil
-import zipfile
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -10,14 +9,13 @@ from typing import Sequence, Union
 from pydantic import ValidationError
 
 from massipipe.config import Config, export_template_yaml, read_config, write_config
+from massipipe.export import copy_visualization_mosaic, export_dataset_zip
 from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
-from massipipe.license import write_license
 from massipipe.mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
-from massipipe.readme import write_readme
 from massipipe.reflectance import ReflectanceConverter
 from massipipe.utils import add_header_mapinfo
 
@@ -142,14 +140,6 @@ class PipelineProcessor:
         self.mosaic_rad_path = self.mosaic_dir / (self.dataset_base_name + "_rad_rgb.tiff")
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
-
-        # Create readme and license paths
-        self.readme_file_path = self.dataset_dir / "readme.md"
-        self.license_file_path = self.dataset_dir / "license.md"
-
-        # Create zip file export paths
-        self.zip_dir = self.dataset_dir / "processed"  # Standard folder for SeaBee processed files
-        self.zip_file_path = self.zip_dir / (self.dataset_base_name + ".zip")
 
     def load_config_from_file(self):
         """Load or re-load configuration from YAML file"""
@@ -881,33 +871,6 @@ class PipelineProcessor:
             overview_factors=self.config.mosaic.overview_factors,
         )
 
-    def copy_visualization_mosaic(self):
-        """Copy mosaic best suited for visualization to separate directory"""
-        logger.info("---- COPYING MOSAIC USED FOR VISUALIZATION ----")
-        if self.config.mosaic.visualization_mosaic == "radiance":
-            if self.mosaic_rad_path.exists():
-                shutil.copy(
-                    self.mosaic_rad_path, self.mosaic_visualization_dir / self.mosaic_rad_path.name
-                )
-            else:
-                logger.error(f"Mosaic {self.mosaic_rad_path} does not exist")
-        else:
-            if self.mosaic_rad_gc_path.exists():
-                shutil.copy(
-                    self.mosaic_rad_gc_path,
-                    self.mosaic_visualization_dir / self.mosaic_rad_gc_path.name,
-                )
-            else:
-                logger.error(f"Mosaic {self.mosaic_rad_gc_path} does not exist")
-
-    def create_readme_file(self):
-        """Create a default readme file for the dataset"""
-        write_readme(self.readme_file_path)
-
-    def create_license_file(self):
-        """Create a default license file for the dataset"""
-        write_license(self.license_file_path)
-
     def delete_existing_products(
         self,
         delete_quicklook: bool = True,
@@ -1122,41 +1085,23 @@ class PipelineProcessor:
         self.run_glint_correction()
         self.run_mosaics()
 
-    def _add_element_to_archive(self, archive: zipfile.ZipFile, element: Path):
-        """Add element in dataset (file/dir) to opened archive (zip file)"""
-        try:
-            if element.exists():
-                if element.is_dir():
-                    for file_path in element.rglob("*"):
-                        archive.write(file_path, arcname=file_path.relative_to(self.dataset_dir))
-                else:
-                    archive.write(element, arcname=element.relative_to(self.dataset_dir))
-            else:
-                logger.warning(f"Directory {element.relative_to(self.dataset_dir)} does not exist.")
-        except Exception:
-            logger.error(f"Error while writing {element.relative_to(self.dataset_dir)} to archive.")
+    def export(self):
+        """Export dataset to ZIP file for archival / publishing"""
+        # Copy "best" mosaic to separate directory
+        if self.config.mosaic.visualization_mosaic == "radiance":
+            copy_visualization_mosaic(self.mosaic_rad_path, self.mosaic_visualization_dir)
+        else:
+            copy_visualization_mosaic(self.mosaic_rad_gc_path, self.mosaic_visualization_dir)
 
-    def export_dataset_zip(self):
-        """Export selected parts of dataset to zip file"""
-        logger.info("---- EXPORTING DATASET TO ZIP ARCHIVE ----")
-
-        self.mosaic_visualization_dir.mkdir(exist_ok=True)
-        self.copy_visualization_mosaic()
-        self.create_readme_file()
-        self.create_license_file()
-
-        self.zip_dir.mkdir(exist_ok=True)
-
-        with zipfile.ZipFile(self.zip_file_path, mode="w") as archive:
-            self._add_element_to_archive(archive, self.quicklook_dir)
-            self._add_element_to_archive(archive, self.radiance_dir)
-            self._add_element_to_archive(archive, self.imudata_dir)
-            self._add_element_to_archive(archive, self.mosaic_visualization_dir)
-            self._add_element_to_archive(archive, self.config_file_path)
-            self._add_element_to_archive(archive, self.readme_file_path)
-            self._add_element_to_archive(archive, self.license_file_path)
-
-        logger.info(f"Dataset exported to {self.zip_file_path}")
+        # Package selected processed data as ZIP file
+        export_dataset_zip(
+            self.dataset_dir,
+            self.quicklook_dir,
+            self.radiance_dir,
+            self.imudata_dir,
+            self.mosaic_visualization_dir,
+            self.config_file_path,
+        )
 
 
 def find_datasets(
