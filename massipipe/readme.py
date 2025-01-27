@@ -5,7 +5,7 @@ from pathlib import Path
 # Get logger
 logger = logging.getLogger(__name__)
 
-README_TEXT = "Example readme text."
+README_TEXT = """Example readme text."""
 
 
 def write_readme(readme_file_path: Path):
