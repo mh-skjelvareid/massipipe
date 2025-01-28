@@ -792,42 +792,67 @@ class SimpleGeoreferencer:
                             dataset.set_band_description(i + 1, band_names[i])
                     dataset.write(image)
 
-    # @staticmethod
-    # def update_image_file_transform(
-    #     geotiff_path: Union[Path, str], imu_data_path: Union[Path, str], **kwargs
-    # ):
-    #     """Update the affine transform of an image
 
-    #     Parameters
-    #     ----------
-    #     geotiff_path:
-    #         Path to existing GeoTIFF file.
-    #     imu_data_path:
-    #         Path to JSON file with IMU data.
-    #     **kwargs:
-    #         Keyword arguments are passed along to create an GeoTransformer object
-    #         Options include e.g. 'altitude_offset'. This can be useful in case
-    #         the shape of the existing GeoTIFF indicates that some adjustments
-    #         should be made to the image transform (which can be re-generated using
-    #         an GeoTransformer object).
+def envi_map_info_to_geotransform(envi_map_info: str):
+    """Parse ENVI map info to extract affine transform and EPSG code
 
-    #     References:
-    #     -----------
-    #     - https://rasterio.readthedocs.io/en/latest/api/rasterio.rio.edit_info.html
-    #     """
-    #     imu_data = ImuDataParser.read_imu_json_file(imu_data_path)
-    #     with rasterio.open(geotiff_path, "r") as dataset:
-    #         im_width = dataset.width
-    #         im_height = dataset.height
-    #     image_flight_meta = GeoTransformer(
-    #         imu_data, image_shape=(im_height, im_width), **kwargs
-    #     )
-    #     new_transform = image_flight_meta.get_image_transform()
-    #     rio_cmd = [
-    #         "rio",
-    #         "edit-info",
-    #         "--transform",
-    #         str(list(new_transform)),
-    #         str(geotiff_path),
-    #     ]
-    #     subprocess.run(rio_cmd)
+    This function makes several limiting assumptions:
+    - The image uses UTM CRS
+    - The geotransform is not rotated (B and D in affine transform are zero)
+
+    Example map info:
+    map info = "{UTM, 1.000, 1.000, 497827.4184469187, 7454593.548431687, 0.05, 0.05,
+        33, North, WGS-84, units  meters, rotation  0.000}"
+    """
+
+    map_info = envi_map_info.lstrip("{").rstrip("}").replace(" ", "").split(",")
+    C = float(map_info[3])  # x origin
+    F = float(map_info[4])  # y origin
+    A = float(map_info[5])  # x pixel size
+    E = -float(map_info[6])  # y pixel size
+    B, D = 0.0, 0.0
+    transform = Affine(A, B, C, D, E, F)
+
+    utm_zone = int(map_info[7])
+    utm_south = str.lower(map_info[8]) == "south"
+    crs = pyproj.CRS.from_dict({"proj": "utm", "zone": utm_zone, "south": utm_south})
+    epsg = crs.to_epsg()
+
+    return transform, epsg
+
+
+def georeferenced_hyspec_to_rgb_geotiff(
+    hyspec_path: Union[Path, str],
+    geotiff_path: Union[Path, str],
+    rgb_wl: tuple[float, float, float],
+):
+    """Extract RGB bands from georeferenced hyperspectral image and save as GeoTIFF
+
+    Parameters
+    ----------
+    hyspec_path : Union[Path, str]
+        Path to hyperspectral image
+    geotiff_path : Union[Path, str]
+        Path to (output) GeoTIFF
+    rgb_wl : tuple[float, float, float]
+        Target wavelengths for RGB bands
+        (closest available bands will be used)
+    """
+
+    _, wl = mpu.read_envi_header(hyspec_path)
+    wl_ind = [mpu.closest_wl_index(wl, target_wl) for target_wl in rgb_wl]
+    band_names = [f"{actual_wl:.3f}" for actual_wl in wl[wl_ind]]
+
+    with rasterio.open(hyspec_path) as src:
+        # Read the selected bands
+        bands_data = [src.read(band) for band in wl_ind]
+
+        # Modify profile for the output file
+        profile = src.meta.copy()
+        profile.update({"count": len(wl_ind), "driver": "GTiff", "dtype": bands_data[0].dtype})
+
+        # Write the bands to a new GeoTIFF file
+        with rasterio.open(geotiff_path, "w", **profile) as dst:
+            for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
+                dst.write(band_data, i)
+                dst.set_band_description(i, band_name)
