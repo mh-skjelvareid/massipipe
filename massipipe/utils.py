@@ -221,6 +221,12 @@ def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[P
     spectral.io.envi.write_envi_header(header_path, metadata)
 
 
+def header_contains_mapinfo(header_path: Union[Path, str]) -> bool:
+    """Check if hyperspectral header file contains map info field"""
+    metadata, _ = read_envi_header(header_path)
+    return "map info" in metadata
+
+
 def get_image_shape(image_path: Union[Path, str]) -> tuple[int, int, int]:
     """Get shape of image cube (lines, samples, bands)"""
     header = spectral.envi.read_envi_header(image_path)
