@@ -10,14 +10,19 @@ from pydantic import ValidationError
 
 from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.export import copy_visualization_mosaic, export_dataset_zip
-from massipipe.georeferencing import GeoTransformer, ImuDataParser, SimpleGeoreferencer
+from massipipe.georeferencing import (
+    GeoTransformer,
+    ImuDataParser,
+    SimpleGeoreferencer,
+    georeferenced_hyspec_to_rgb_geotiff,
+)
 from massipipe.glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from massipipe.irradiance import IrradianceConverter, WavelengthCalibrator
 from massipipe.mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
 from massipipe.quicklook import QuickLookProcessor
 from massipipe.radiance import RadianceConverter
 from massipipe.reflectance import ReflectanceConverter
-from massipipe.utils import add_header_mapinfo
+from massipipe.utils import add_header_mapinfo, header_contains_mapinfo
 
 # Get logger
 logger = logging.getLogger(__name__)
@@ -517,20 +522,36 @@ class PipelineProcessor:
                 logger.info(f"Image {geotiff_path.name} exists - skipping.")
                 continue
 
-            if hyspec_path.exists() and geotrans_path.exists():
+            if hyspec_path.exists():
                 logger.info(f"Exporting RGB GeoTIFF from {hyspec_path.name}.")
-                try:
-                    georeferencer.georeference_hyspec_save_geotiff(
-                        hyspec_path,
-                        geotrans_path,
-                        geotiff_path,
-                    )
-                except Exception:
-                    logger.error(
-                        f"Error occured while georeferencing RGB version of {hyspec_path}",
-                        exc_info=True,
-                    )
-                    logger.error("Skipping file")
+                if geotrans_path.exists():
+                    logger.info(f"Using geotransform in file {geotrans_path.name}")
+                    try:
+                        georeferencer.georeference_hyspec_save_geotiff(
+                            hyspec_path,
+                            geotrans_path,
+                            geotiff_path,
+                        )
+                    except Exception:
+                        logger.error(
+                            f"Error occured while georeferencing RGB version of {hyspec_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
+                elif header_contains_mapinfo(hyspec_path):
+                    logger.info(f"GeoTiff generated using ENVI header map info and rasterio")
+                    try:
+                        georeferenced_hyspec_to_rgb_geotiff(
+                            hyspec_path, geotiff_path, rgb_wl=rgb_wl
+                        )
+                    except Exception:
+                        logger.error(
+                            f"Error occured while creating RGB version of {hyspec_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
+                else:
+                    logger.error("No geotransform file or ENVI header map info - skipping.")
 
     def create_radiance_rgb_geotiff(self):
         """Create georeferenced RGB GeoTIFF versions of radiance"""
