@@ -542,7 +542,9 @@ class PipelineProcessor:
                     logger.info(f"GeoTiff generated using ENVI header map info and rasterio")
                     try:
                         georeferenced_hyspec_to_rgb_geotiff(
-                            hyspec_path, geotiff_path, rgb_wl=rgb_wl
+                            hyspec_path.stem,  # stem -> path to binary file
+                            geotiff_path,
+                            rgb_wl=rgb_wl,
                         )
                     except Exception:
                         logger.error(

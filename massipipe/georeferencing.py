@@ -831,7 +831,7 @@ def georeferenced_hyspec_to_rgb_geotiff(
     Parameters
     ----------
     hyspec_path : Union[Path, str]
-        Path to hyperspectral image
+        Path to hyperspectral image (Note: Image file, not header file!)
     geotiff_path : Union[Path, str]
         Path to (output) GeoTIFF
     rgb_wl : tuple[float, float, float]
