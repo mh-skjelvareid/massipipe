@@ -831,7 +831,8 @@ def georeferenced_hyspec_to_rgb_geotiff(
     Parameters
     ----------
     hyspec_path : Union[Path, str]
-        Path to hyperspectral image (Note: Image file, not header file!)
+        Path to hyperspectral image header.
+        Assumes that path to binary image is the same, but without .hdr suffix
     geotiff_path : Union[Path, str]
         Path to (output) GeoTIFF
     rgb_wl : tuple[float, float, float]
@@ -841,11 +842,13 @@ def georeferenced_hyspec_to_rgb_geotiff(
 
     rgb_wl = (460, 550, 640) if rgb_wl is None else rgb_wl  # Default wavelengths
 
+    hyspec_path = Path(hyspec_path)
+
     _, wl = mpu.read_envi_header(hyspec_path)
     wl_ind = [mpu.closest_wl_index(wl, target_wl) for target_wl in rgb_wl]
     band_names = [f"{actual_wl:.3f}" for actual_wl in wl[wl_ind]]
 
-    with rasterio.open(hyspec_path) as src:
+    with rasterio.open(hyspec_path.stem) as src:  # stem -> path to binary file
         # Read the selected bands
         bands_data = [src.read(band) for band in wl_ind]
 

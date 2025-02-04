@@ -539,10 +539,10 @@ class PipelineProcessor:
                         )
                         logger.error("Skipping file")
                 elif header_contains_mapinfo(hyspec_path):
-                    logger.info(f"GeoTiff generated using ENVI header map info and rasterio")
+                    logger.info(f"Generating GeoTiff using ENVI header map info and rasterio")
                     try:
                         georeferenced_hyspec_to_rgb_geotiff(
-                            hyspec_path.stem,  # stem -> path to binary file
+                            hyspec_path,
                             geotiff_path,
                             rgb_wl=rgb_wl,
                         )
