@@ -824,7 +824,7 @@ def envi_map_info_to_geotransform(envi_map_info: str):
 def georeferenced_hyspec_to_rgb_geotiff(
     hyspec_path: Union[Path, str],
     geotiff_path: Union[Path, str],
-    rgb_wl: tuple[float, float, float],
+    rgb_wl: Union[tuple[float, float, float], None],
 ):
     """Extract RGB bands from georeferenced hyperspectral image and save as GeoTIFF
 
@@ -838,6 +838,8 @@ def georeferenced_hyspec_to_rgb_geotiff(
         Target wavelengths for RGB bands
         (closest available bands will be used)
     """
+
+    rgb_wl = (460, 550, 640) if rgb_wl is None else rgb_wl  # Default wavelengths
 
     _, wl = mpu.read_envi_header(hyspec_path)
     wl_ind = [mpu.closest_wl_index(wl, target_wl) for target_wl in rgb_wl]
