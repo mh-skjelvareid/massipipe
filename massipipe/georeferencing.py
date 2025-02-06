@@ -824,7 +824,7 @@ def envi_map_info_to_geotransform(envi_map_info: str):
 def georeferenced_hyspec_to_rgb_geotiff(
     hyspec_path: Union[Path, str],
     geotiff_path: Union[Path, str],
-    rgb_wl: Union[tuple[float, float, float], None],
+    rgb_wl: Union[tuple[float, float, float], None] = None,
 ):
     """Extract RGB bands from georeferenced hyperspectral image and save as GeoTIFF
 
@@ -848,7 +848,7 @@ def georeferenced_hyspec_to_rgb_geotiff(
     wl_ind = [mpu.closest_wl_index(wl, target_wl) for target_wl in rgb_wl]
     band_names = [f"{actual_wl:.3f}" for actual_wl in wl[wl_ind]]
 
-    with rasterio.open(hyspec_path.stem) as src:  # stem -> path to binary file
+    with rasterio.open(hyspec_path.with_suffix("")) as src:  # path to binary file
         # Read the selected bands
         bands_data = [src.read(band) for band in wl_ind]
 
