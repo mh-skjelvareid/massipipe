@@ -507,13 +507,16 @@ class PipelineProcessor:
         rgb_wl : tuple[float, float, float]
             Wavelengths (in nm) to use for red, green and blue.
         """
+        # TODO: Clean up the two possible ways to generate geotiffs
+        # (via ENVI header map info or via geotransform file)
 
         georeferencer = SimpleGeoreferencer(rgb_only=True, rgb_wl=rgb_wl)
 
         if not any([image_path.exists() for image_path in hyspec_paths]):
             logger.warning(f"None of the listed hyperspectral files exist")
+            return
         if not any([geotrans_path.exists() for geotrans_path in geotransform_paths]):
-            logger.warning(f"None of the listed geotransform files exist")
+            logger.info(f"No geotransform files exist for the hyperspectral images.")
 
         for hyspec_path, geotrans_path, geotiff_path in zip(
             hyspec_paths, geotransform_paths, geotiff_paths
@@ -524,21 +527,7 @@ class PipelineProcessor:
 
             if hyspec_path.exists():
                 logger.info(f"Exporting RGB GeoTIFF from {hyspec_path.name}.")
-                if geotrans_path.exists():
-                    logger.info(f"Using geotransform in file {geotrans_path.name}")
-                    try:
-                        georeferencer.georeference_hyspec_save_geotiff(
-                            hyspec_path,
-                            geotrans_path,
-                            geotiff_path,
-                        )
-                    except Exception:
-                        logger.error(
-                            f"Error occured while georeferencing RGB version of {hyspec_path}",
-                            exc_info=True,
-                        )
-                        logger.error("Skipping file")
-                elif header_contains_mapinfo(hyspec_path):
+                if header_contains_mapinfo(hyspec_path):
                     logger.info(f"Generating GeoTiff using ENVI header map info and rasterio")
                     try:
                         georeferenced_hyspec_to_rgb_geotiff(
@@ -552,8 +541,23 @@ class PipelineProcessor:
                             exc_info=True,
                         )
                         logger.error("Skipping file")
+                elif geotrans_path.exists():
+                    logger.info(f"Using geotransform in file {geotrans_path.name}")
+                    try:
+                        georeferencer.georeference_hyspec_save_geotiff(
+                            hyspec_path,
+                            geotrans_path,
+                            geotiff_path,
+                        )
+                    except Exception:
+                        logger.error(
+                            f"Error occured while georeferencing RGB version of {hyspec_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
+
                 else:
-                    logger.error("No geotransform file or ENVI header map info - skipping.")
+                    logger.error("No ENVI header map info or geotransform file - skipping.")
 
     def create_radiance_rgb_geotiff(self):
         """Create georeferenced RGB GeoTIFF versions of radiance"""
