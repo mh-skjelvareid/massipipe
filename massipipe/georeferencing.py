@@ -847,17 +847,17 @@ def georeferenced_hyspec_to_rgb_geotiff(
     _, wl = mpu.read_envi_header(hyspec_path)
     wl_ind = [mpu.closest_wl_index(wl, target_wl) for target_wl in rgb_wl]
     band_names = [f"{actual_wl:.3f}" for actual_wl in wl[wl_ind]]
+    with rasterio.Env():
+        with rasterio.open(hyspec_path.with_suffix("")) as src:  # path to binary file
+            # Read the selected bands
+            bands_data = [src.read(band) for band in wl_ind]
 
-    with rasterio.open(hyspec_path.with_suffix("")) as src:  # path to binary file
-        # Read the selected bands
-        bands_data = [src.read(band) for band in wl_ind]
+            # Modify profile for the output file
+            profile = src.meta.copy()
+            profile.update({"count": len(wl_ind), "driver": "GTiff", "dtype": bands_data[0].dtype})
 
-        # Modify profile for the output file
-        profile = src.meta.copy()
-        profile.update({"count": len(wl_ind), "driver": "GTiff", "dtype": bands_data[0].dtype})
-
-        # Write the bands to a new GeoTIFF file
-        with rasterio.open(geotiff_path, "w", **profile) as dst:
-            for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
-                dst.write(band_data, i)
-                dst.set_band_description(i, band_name)
+            # Write the bands to a new GeoTIFF file
+            with rasterio.open(geotiff_path, "w", **profile) as dst:
+                for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
+                    dst.write(band_data, i)
+                    dst.set_band_description(i, band_name)
