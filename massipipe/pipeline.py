@@ -527,21 +527,8 @@ class PipelineProcessor:
 
             if hyspec_path.exists():
                 logger.info(f"Exporting RGB GeoTIFF from {hyspec_path.name}.")
-                if header_contains_mapinfo(hyspec_path):
-                    logger.info(f"Generating GeoTiff using ENVI header map info and rasterio")
-                    try:
-                        georeferenced_hyspec_to_rgb_geotiff(
-                            hyspec_path,
-                            geotiff_path,
-                            rgb_wl=rgb_wl,
-                        )
-                    except Exception:
-                        logger.error(
-                            f"Error occured while creating RGB version of {hyspec_path}",
-                            exc_info=True,
-                        )
-                        logger.error("Skipping file")
-                elif geotrans_path.exists():
+
+                if geotrans_path.exists():
                     logger.info(f"Using geotransform in file {geotrans_path.name}")
                     try:
                         georeferencer.georeference_hyspec_save_geotiff(
@@ -552,6 +539,21 @@ class PipelineProcessor:
                     except Exception:
                         logger.error(
                             f"Error occured while georeferencing RGB version of {hyspec_path}",
+                            exc_info=True,
+                        )
+                        logger.error("Skipping file")
+
+                elif header_contains_mapinfo(hyspec_path):
+                    logger.info(f"Generating GeoTiff using ENVI header map info and rasterio")
+                    try:
+                        georeferenced_hyspec_to_rgb_geotiff(
+                            hyspec_path,
+                            geotiff_path,
+                            rgb_wl=rgb_wl,
+                        )
+                    except Exception:
+                        logger.error(
+                            f"Error occured while creating RGB version of {hyspec_path}",
                             exc_info=True,
                         )
                         logger.error("Skipping file")
