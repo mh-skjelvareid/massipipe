@@ -825,6 +825,7 @@ def georeferenced_hyspec_to_rgb_geotiff(
     hyspec_path: Union[Path, str],
     geotiff_path: Union[Path, str],
     rgb_wl: Union[tuple[float, float, float], None] = None,
+    nodata_value: float = 0.0,
 ):
     """Extract RGB bands from georeferenced hyperspectral image and save as GeoTIFF
 
@@ -838,6 +839,10 @@ def georeferenced_hyspec_to_rgb_geotiff(
     rgb_wl : tuple[float, float, float]
         Target wavelengths for RGB bands
         (closest available bands will be used)
+
+    Notes
+    -----
+    A nodata value of zero is assumed for the hyperspectral image.
     """
 
     rgb_wl = (460, 550, 640) if rgb_wl is None else rgb_wl  # Default wavelengths
@@ -854,7 +859,14 @@ def georeferenced_hyspec_to_rgb_geotiff(
 
             # Modify profile for the output file
             profile = src.meta.copy()
-            profile.update({"count": len(wl_ind), "driver": "GTiff", "dtype": bands_data[0].dtype})
+            profile.update(
+                {
+                    "count": len(wl_ind),
+                    "driver": "GTiff",
+                    "dtype": bands_data[0].dtype,
+                    "nodata": nodata_value,
+                }
+            )
 
             # Write the bands to a new GeoTIFF file
             with rasterio.open(geotiff_path, "w", **profile) as dst:
