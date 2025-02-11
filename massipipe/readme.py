@@ -124,6 +124,15 @@ A small on-board computer made by Resonon was used for controlling the camera, l
 An SBG Ellipse 2N inertial measurement unit was connected to the onboard computer. The IMU consists of 3 accelerometers and 3 gyroscopes to measure translational and angular accelerations of the camera, a GNSS receiver for measuring position and velocity, a barometric altimeter for aiding altitude measurement, and a magnetometer aiding in measurement of heading. The sensor data are combined in an extended Kalman filter to produce estimates of camera position (latitude, longitude, altitude) and orientation (pitch, roll, yaw). The specified accuracy for the GNSS receiver was 2.0 m CEP. Note that the GNSS receiver was not able to use real-time post-processing kinematic positioning (RTK/PPK). 
 
 ### Downwelling irradiance measurement
+The (spectral) downwelling irradiance is a measurement of the total intensity of light
+coming from the sky, measured as power per area per wavelength (typically W/(m$^2$*nm)).
+The downwelling irradiance can be used as part of a calculation of the how much light is
+reflected from the ground (or sea), for different wavelengths. While the amount of
+reflected light from an object can vary drastically, depending on weather, time of day
+etc., the reflectance of the object can remain more or less constant. This makes
+reflectance useful for habitat mapping. In the Massimal project, downwelling irradiance
+was measured with the purpose of calculating hyperspectral reflectance images. 
+ 
 A Flame-S-VIS-NIR spectrometer with a CC-3-DA cosine collector manufactured by Ocean
 Insight was used to measure downwelling spectral irradiance for each hyperspectral image
 that was acquired. The spectrometer has a spectral range of 350-1000 nm, with optical
@@ -256,7 +265,7 @@ IMU data is stored as JSON files with 7 fields:
 - **roll**: Camera roll measured in radians. Positive values correspond to
   "right wing up", or pointing the camera to the right side of the flight line. 
 - **pitch**: Camera pitch measured in radians. 
-- **yaw**: Camera heading, measured in radians. Zero at due north, $\pi/2$ at due east.
+- **yaw**: Camera heading, measured in radians. Zero at due north, pi/2 at due east.
 - **longitude**: Longitude in decimal degrees, positive for east longitude
 - **latitude**: Latitude in decimal degrees, positive for northern hemisphere
 - **altitude**: Altitude in meters relative to the WGS-84 ellipsiod.
@@ -315,9 +324,51 @@ Note that the raw data is not distributed as part of the dataset, as calibrated 
 data was considered more generally useful than raw data. Due to storage and
 bandwidth concerns, only one version of the image was included in the dataset. 
 
+#### Georeferencing
+
+
+#### Downwelling irradiance
+For the hyperspectral images where downwelling irradiance was also measured, the
+downwelling irradiance spectrum has been included in the header file of the radiance
+image, under the field "[solar
+irradiance](https://www.nv5geospatialsoftware.com/docs/EnterOptionalHeaderInformation.html#SolarIrradiance)".
+This field is one of the standard (but optional) fields of the ENVI data format, and is
+usually used to specify the "top of atmosphere" irradiance for satellite imaging. The
+units of solar irradiance are W/(m$^2$*µm), and the number of spectral channels and the
+wavelengths of the irradiance values correspond to those of the hyperspectral image. To
+achieve this, the original irradiance measurements have been smoothed using a Gaussian
+kernel with FWHM of 3.5 nm, and then resampled to match the wavelegths of the
+hyperspectral camera. Note that spectral smoothing is needed for the shape of irradiance
+spectrum to be closer to that of the spectra in the hyperspectral images. Because of its higher
+spectral resolution, the original irradiance spectrum has some very deep valleys caused
+by Fraunhofer lines. 
+
+Under the simplifying assumption that all objects in the image act as a Lambertian
+reflector, i.e. that an incoming ray of light is reflected equally in all directions,
+reflectance $R$ can be calculated as $R = (pi*L)/(E)$, where $L$ denotes radiance (i.e.
+hyperspectral image) and $E$ denotes downwelling irradiance. 
+
+**Example calculation of reflectance using Python**:
+
+**CHECK**
+
+Assuming that the radiance image has been loaded as a array called $L$, of size
+(n_lines,n_samples,n_bands), and the irradiance spectrum $E$ has been read from the header
+file and converted to a NumPy array of shape (n_bands,), the reflectance hyperspectral
+image can be calculated as
+
+  import numpy as np
+  R = np.pi*(L/E)
+
+Because the number of spectral channels match (n_bands), the NumPy "broadcasting" rule
+automatically repeats the irradiance spectrum for every line and sample of the
+hyperspectral image.  
+
 
 
 ### Mosaic
+
+
 
 
 
