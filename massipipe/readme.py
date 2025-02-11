@@ -5,7 +5,8 @@ from pathlib import Path
 # Get logger
 logger = logging.getLogger(__name__)
 
-TEXT = """# MASSIMAL hyperspectral image dataset
+TEXT = """
+# MASSIMAL hyperspectral image dataset
 
 ## Table of contents
 1. [The MASSIMAL research project](#the-massimal-research-project)
@@ -242,9 +243,10 @@ wavelengths" set in the config file. Each color channel has also been individual
 contrast stretched, using the 2nd and 98th percentiles of the original data to set the
 lower and upper ends of the range of values displayed. Note that since the image
 statistics change from image to image, identical objects or nature types may appear
-different in different images. The images are also not georeferenced. It is not
-recommended to use the quicklook images for any type of analysis - use the hyperspectral
-data instead. 
+different in different images. The images are also not georeferenced. 
+
+It is not recommended to use the quicklook images for any type of analysis - use the
+radiance data (or further processed image products) instead. 
 
 ### IMU data
 IMU data is stored as JSON files with 7 fields:
@@ -270,12 +272,53 @@ estimating altitude from GPS / GNSS. However, relative altitude values for the s
 flight (same dataset) are fairly consistent, probably because altitude estimation was
 aided by a barometric pressure sensor.  
 
+### Downwelling irradiance spectra
+For many of the datasets recorded in the project, the downwelling irradiance has also
+been collced using a cosine collctor and a spectrometer, both mounted on top of the UAV
+with the hyperspectral camera. In these cases, a downwelling irradiance spectrum has
+been recorded for each hyperspectral image. 
+
+The raw irradiance spectrum has been calibrated and converted to units of W/(m2*nm) by
+subtracting a dark current spectrum and multiplying with a gain spectrum. The
+wavelengths of the irradiance spectrum have also been calibrated
+by detecting [Fraunhofer lines](https://en.wikipedia.org/wiki/Fraunhofer_lines) in the
+recorded spectra. A polynomial was fitted to the detected Fraunhofer lines, for which
+the wavelengths are well-known, and the polynomial was used to calculate calibrated
+wavelengths for every channel of the irradiance spectrum. 
+
+For additional details regarding the calibration, see
+[massipipe.irradiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/irradiance.py)
+
 
 ### Radiance hyperspectral images
 
-### Downwelling irradiance
+#### File format
+The radiance hyperspectral images are placed in the folder called 1a_radiance, and
+consitute the largest and most important part of the dataset. The radiance images are
+saved in the [ENVI
+format](https://www.nv5geospatialsoftware.com/docs/ENVIImageFiles.html), which splits
+the data into two parts: A binary file, typically with file extension *.bil , *.bip or
+*.bsq, and a pure text file with metadata, typically with the same file name as the
+binary file, but with an additional *.hdr extension.
+
+#### Calibration and physical units
+The radiance image has been converted from a raw image with digital numbers to a
+calibrated image with units of
+[microflicks](https://en.wikipedia.org/wiki/Flick_(physics)). The calibration consists
+of two steps; subtracting the dark current noise
+from every image frame, and then multiplying every frame with a "gain"
+frame which converts digital numbers to microflicks. For a more in-depth view of the
+calibration process, see the code at
+[massipipe.radiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/radiance.py).
+
+Note that the raw data is not distributed as part of the dataset, as calibrated radiance
+data was considered more generally useful than raw data. Due to storage and
+bandwidth concerns, only one version of the image was included in the dataset. 
+
+
 
 ### Mosaic
+
 
 
  
