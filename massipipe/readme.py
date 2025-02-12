@@ -13,15 +13,16 @@ TEXT = """
 2. [Hyperspectral imaging system](#hyperspectral-imaging-system)
 3. [UAV platform for hyperspectral imaging](#uav-platform-for-hyperspectral-imaging)
 4. [Field operations](#field-operations)
+5. [Dataset contents](#dataset-contents)
 
 ## The MASSIMAL research project 
-This dataset was collected as part of the "MASSIMAL" project (Mapping of Algae
-and Seagrass using Spectral Imaging and Machine Learning). The project was
-conducted in the period 2020-2024, and data collection and field work was
-performed at various locations along the Norwegian coast in the period 2021-2023. 
+This dataset was collected as part of the "MASSIMAL" project (Mapping of Algae and
+Seagrass using Spectral Imaging and Machine Learning). The project was conducted in the
+period 2020-2024, and data collection and field work was performed at various locations
+along the Norwegian coast in the period 2021-2023. 
 
-The project was financed by the Norwegian Research Council (8 MNOK) and by UiT
-the Arctic University of Norway (600 kNOK), and was a collaboration between 
+The project was financed by the Norwegian Research Council (8 MNOK) and by UiT the
+Arctic University of Norway (600 kNOK), and was a collaboration between 
 
 - UiT the Arctic University of Norway ("UiT")
 - Norwegian Institute for Water Research ("NIVA")
@@ -40,14 +41,17 @@ All UAV flights were piloted by Sigfinn Andersen at FlyLavt AS, Bodø.
 
 Additional information about the project can be found on the following websites:
 - [UiT project page](https://en.uit.no/project/massimal)
-- [Cristin research database project page](https://app.cristin.no/projects/show.jsf?id=2054355)
+- [Cristin research database project
+  page](https://app.cristin.no/projects/show.jsf?id=2054355)
 - [Norwegian Research Council project
   page](https://prosjektbanken.forskningsradet.no/project/FORISS/301317)
-- [SeaBee data portal with Massimal data](https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&f=dataset)
+- [SeaBee data portal with Massimal
+  data](https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&f=dataset)
 
 ## Hyperspectral imaging system
-Hyperspectral imaging was performed using a "[Airborne Remote Sensing System](https://resonon.com/hyperspectral-airborne-remote-sensing-system)"
-manufactured by Resonon. The system was configured with the following components:
+Hyperspectral imaging was performed using a "[Airborne Remote Sensing
+System](https://resonon.com/hyperspectral-airborne-remote-sensing-system)" manufactured
+by Resonon. The system was configured with the following components:
 
 ### Hyperspectral camera
 A [Pika-L](https://resonon.com/Pika-L) hyperspectral camera fitted with a lens with 8 mm
@@ -67,11 +71,11 @@ channels, the camera has to be moved across the area of interest. The along-trac
 sampling distance on the ground is given by the speed of the camera multiplied by the
 image acquisition time for each frame.
 
-The spectral resolution (FWHM) has a mean value of approximately 2.7 nm. The table
-below lists the FWHM for a selection of channels. The data is from Resonons general
-design documents. Each individual camera may have slight deviations from this, but
-Resonon claims that the data fits experiments well. Note the local minimum of 2.24 nm at
-approx. 470 nm and the local maximum of 2.94 nm at approx. 745 nm.
+The spectral resolution (FWHM) has a mean value of approximately 2.7 nm. The table below
+lists the FWHM for a selection of channels. The data is from Resonons general design
+documents. Each individual camera may have slight deviations from this, but Resonon
+claims that the data fits experiments well. Note the local minimum of 2.24 nm at approx.
+470 nm and the local maximum of 2.94 nm at approx. 745 nm.
 
 | Wavelength (nm) | FWHM (nm) |
 | :-------------: | :-------: |
@@ -118,10 +122,20 @@ approx. 470 nm and the local maximum of 2.94 nm at approx. 745 nm.
 |            1000 |      2.49 |
 
 ### On-board computer
-A small on-board computer made by Resonon was used for controlling the camera, logging sensor data, and communicating with the ground station. The computer ran a Linux-based imaging firmware. 
+A small on-board computer made by Resonon was used for controlling the camera, logging
+sensor data, and communicating with the ground station. The computer ran a Linux-based
+imaging firmware. 
 
 ### Inertial measurement unit (IMU)
-An SBG Ellipse 2N inertial measurement unit was connected to the onboard computer. The IMU consists of 3 accelerometers and 3 gyroscopes to measure translational and angular accelerations of the camera, a GNSS receiver for measuring position and velocity, a barometric altimeter for aiding altitude measurement, and a magnetometer aiding in measurement of heading. The sensor data are combined in an extended Kalman filter to produce estimates of camera position (latitude, longitude, altitude) and orientation (pitch, roll, yaw). The specified accuracy for the GNSS receiver was 2.0 m CEP. Note that the GNSS receiver was not able to use real-time post-processing kinematic positioning (RTK/PPK). 
+An SBG Ellipse 2N inertial measurement unit was connected to the onboard computer. The
+IMU consists of 3 accelerometers and 3 gyroscopes to measure translational and angular
+accelerations of the camera, a GNSS receiver for measuring position and velocity, a
+barometric altimeter for aiding altitude measurement, and a magnetometer aiding in
+measurement of heading. The sensor data are combined in an extended Kalman filter to
+produce estimates of camera position (latitude, longitude, altitude) and orientation
+(pitch, roll, yaw). The specified accuracy for the GNSS receiver was 2.0 m CEP. Note
+that the GNSS receiver was not able to use real-time post-processing kinematic
+positioning (RTK/PPK). 
 
 ### Downwelling irradiance measurement
 The (spectral) downwelling irradiance is a measurement of the total intensity of light
@@ -155,14 +169,14 @@ failure (poor cable connection between spectrometer and on-board computer).
 ### Multirotor UAV
 The UAV was a [Matrice 600 Pro](https://www.dji.com/no/support/product/matrice600-pro)
 manufactured by DJI, a hexacopter design with 6 propellers, each 21 inches long. The UAV
-weighed 9.5 kg without payload, and approximately 14 kg with the full
-payload. A typical flight lasted approximately 10 minutes, with a safety margin of at
-least 30 % remaining battery capacity. Six TB47S batteries were used to power the UAV,
-and three sets of batteries were used to enable multiple flights and battery changing in
-the field. The arms and propellers of the UAV can be folded for transport. When fully
-extended, the UAV has a "wingspan" and height of approximately 1.65 and 0.75 meters,
-respectively. During transportation, the UAV was folded and transported in a case
-measuring 0.8x0.7x0.7 meters.
+weighed 9.5 kg without payload, and approximately 14 kg with the full payload. A typical
+flight lasted approximately 10 minutes, with a safety margin of at least 30 % remaining
+battery capacity. Six TB47S batteries were used to power the UAV, and three sets of
+batteries were used to enable multiple flights and battery changing in the field. The
+arms and propellers of the UAV can be folded for transport. When fully extended, the UAV
+has a "wingspan" and height of approximately 1.65 and 0.75 meters, respectively. During
+transportation, the UAV was folded and transported in a case measuring 0.8x0.7x0.7
+meters.
 
 ### Gimbal
 The hyperspectral camera and the onboard computer were mounted to a DJI [Ronin-MX
@@ -196,8 +210,9 @@ Pilot was used for flight planning, while in 2023,
 
 ### Splitting flight lines into multiple images
 The Airborne Remote Sensing System is set up so that if an image reaches the limit of
-2000 lines, the image is saved, and additional data is recorded into a new image. The practical effect of this is that images along a single continuous flight line are
-split into multiple images - typically 5-10 images per line. 
+2000 lines, the image is saved, and additional data is recorded into a new image. The
+practical effect of this is that images along a single continuous flight line are split
+into multiple images - typically 5-10 images per line. 
 
 ### Autoexposure
 The Airborne Remote Sensing System includes an autoexposure feature. With this, the
@@ -206,18 +221,30 @@ camera, to bring the distribution of values into a suitable part of the camera d
 range. Autoexposure was used on a per-image basis, meaning that gain and shutter were
 re-calculated between each image.  
 
-Note that using autoexposure occationally resulted in suboptimal gain and shutter values.
-For example, if the UAV was above (dark) water at the time of autoexposure and then flew
-over (bright) land before the autoexposure could be recalculated, parts of the image
-became saturated, resulting in invalid pixels. 
+Note that using autoexposure occationally resulted in suboptimal gain and shutter
+values. For example, if the UAV was above (dark) water at the time of autoexposure and
+then flew over (bright) land before the autoexposure could be recalculated, parts of the
+image became saturated, resulting in invalid pixels. 
+
+### Mounting on gimbal
+For most of the datasets collected in the project, the data was collected with the
+camera mounted on a 3-axis stabilizing gimbal. Using a gimbal decoupled the movement of
+the camera from that of the UAV, such that the hyperspectral images could be interpreted
+directly, without requiring georectification.  
+
+Before takeoff, the gimbal was adjusted to point the camera in the nadir direction, with
+the camera line of sight being perpendicular to the direction of flight. During sharp
+turns, typically between straight flight lines, the yawing movement would cause the
+camera heading to "lab behind" that of the UAV for some time. However, the gimbal
+eventually returned the camera to the original orientation relative to the UAV.  
 
 ## Massipipe data processing pipeline
 The dataset has been processed by
 [MassiPipe](https://github.com/mh-skjelvareid/massipipe), a data processing pipeline
 developed as part of the MASSIMAL project. Developent of the pipeline has been based on
-data from the Resonon Pika-L hyperspectral camera, but many elements of the pipeline (e.g.
-reflectance calculation, sun glint correction) are general and can be applied to any
-hyperspectral image.  
+data from the Resonon Pika-L hyperspectral camera, but many elements of the pipeline
+(e.g. reflectance calculation, sun glint correction) are general and can be applied to
+any hyperspectral image.  
 
 MassiPipe can be used to automatically generate additional image products, based on the
 radiance images distributed in the dataset. See details in the description of dataset
@@ -262,37 +289,40 @@ IMU data is stored as JSON files with 7 fields:
 - **time**: Time represented as a single floating-point value, describing the number of
   seconds passed since January 1st 1970 (["UNIX
   time"](https://en.wikipedia.org/wiki/Unix_time)) 
-- **roll**: Camera roll measured in radians. Positive values correspond to
-  "right wing up", or pointing the camera to the right side of the flight line. 
+- **roll**: Camera roll measured in radians. Positive values correspond to "right wing
+  up", or pointing the camera to the right side of the flight line. 
 - **pitch**: Camera pitch measured in radians. 
 - **yaw**: Camera heading, measured in radians. Zero at due north, pi/2 at due east.
 - **longitude**: Longitude in decimal degrees, positive for east longitude
 - **latitude**: Latitude in decimal degrees, positive for northern hemisphere
 - **altitude**: Altitude in meters relative to the WGS-84 ellipsiod.
 
-All values have been interpolated to match the lines of the hyperspectral image. E.g., if the
-image contains 2000 lines, each field has 2000 corresponding values. 
+All values have been interpolated to match the lines of the hyperspectral image. E.g.,
+if the image contains 2000 lines, each field has 2000 corresponding values. 
 
 *Note that while roll, pitch, longitude and latitude are relatively accurate, yaw and
-altitude are less so.* The magnetometer which the IMU used to measure yaw (heading) turned out to
-have poor accuracy, despite repeated calibrations. Absolute altitude values also appear
-to be accurate only to approximately +/- 10 m, probably due to limited accuracy when
-estimating altitude from GPS / GNSS. However, relative altitude values for the same
-flight (same dataset) are fairly consistent, probably because altitude estimation was
-aided by a barometric pressure sensor.  
+altitude are less so.* The magnetometer which the IMU used to measure yaw (heading)
+turned out to have poor accuracy, despite repeated calibrations. Absolute altitude
+values also appear to be accurate only to approximately +/- 10 m, probably due to
+limited accuracy when estimating altitude from GPS / GNSS. However, relative altitude
+values for the same flight (same dataset) are fairly consistent, probably because
+altitude estimation was aided by a barometric pressure sensor.  
 
 ### Downwelling irradiance spectra
-For many of the datasets recorded in the project, the downwelling irradiance has also
-been collced using a cosine collctor and a spectrometer, both mounted on top of the UAV
-with the hyperspectral camera. In these cases, a downwelling irradiance spectrum has
-been recorded for each hyperspectral image. 
+For many of the datasets recorded in the project, the downwelling irradiance been
+collced using a cosine collctor and a spectrometer, both mounted on top of the UAV with
+the hyperspectral camera. In these cases, a downwelling irradiance spectrum has been
+recorded for each hyperspectral image. The irradiance spectra are placed together with
+the hyperspectral images in the folder named 1a_radiance, and are saved in the same ENVI
+format as the hyperspectral images. The file name extensions are *.spec and *.spec.hdr
+for the binary and header files, respectively. 
 
 The raw irradiance spectrum has been calibrated and converted to units of W/(m2*nm) by
 subtracting a dark current spectrum and multiplying with a gain spectrum. The
-wavelengths of the irradiance spectrum have also been calibrated
-by detecting [Fraunhofer lines](https://en.wikipedia.org/wiki/Fraunhofer_lines) in the
-recorded spectra. A polynomial was fitted to the detected Fraunhofer lines, for which
-the wavelengths are well-known, and the polynomial was used to calculate calibrated
+wavelengths of the irradiance spectrum have also been calibrated by detecting
+[Fraunhofer lines](https://en.wikipedia.org/wiki/Fraunhofer_lines) in the recorded
+spectra. A polynomial was fitted to the detected Fraunhofer lines, for which the
+wavelengths are well-known, and the polynomial was used to calculate calibrated
 wavelengths for every channel of the irradiance spectrum. 
 
 For additional details regarding the calibration, see
@@ -314,17 +344,80 @@ binary file, but with an additional *.hdr extension.
 The radiance image has been converted from a raw image with digital numbers to a
 calibrated image with units of
 [microflicks](https://en.wikipedia.org/wiki/Flick_(physics)). The calibration consists
-of two steps; subtracting the dark current noise
-from every image frame, and then multiplying every frame with a "gain"
-frame which converts digital numbers to microflicks. For a more in-depth view of the
-calibration process, see the code at
+of two steps; subtracting the dark current noise from every image frame, and then
+multiplying every frame with a "gain" frame which converts digital numbers to
+microflicks. For a more in-depth view of the calibration process, see the code at
 [massipipe.radiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/radiance.py).
 
 Note that the raw data is not distributed as part of the dataset, as calibrated radiance
-data was considered more generally useful than raw data. Due to storage and
-bandwidth concerns, only one version of the image was included in the dataset. 
+data was considered more generally useful than raw data. Due to storage and bandwidth
+concerns, only one version of the image was included in the dataset. 
 
 #### Georeferencing
+The radiance image headers include the field "[map
+info](https://www.nv5geospatialsoftware.com/docs/ENVIHeaderFiles.html)", which provides
+details on georeferencing of the image. 
+
+Georeferencing or georectification of an image is the process of placing each image
+pixel at a defined position on the surface of the Earth. If accurate measurements of the
+camera's position and orientation is available, in addition to a surface elevation
+model, it is possible to perform georectification very accurately. However, since the
+heading and altitude measurements from the IMU used in this project were not very
+accurate, georectified versions of the hyperspectral images (using e.g. Resonons
+[georectification plugin for
+Spectronon](https://docs.resonon.com/airborne/Airborne%20Post%20Processing%20Summary.pdf))
+tended to be somewhat distorted and inaccurate. The georectification process is also
+lossy, in the sense that it is often not possible to recover the original image from the
+georectified image. 
+
+For the reasons listed above, the images in the dataset have not been fully
+georectified. However, a simplified georectification based on an [affine
+transform](https://en.wikipedia.org/wiki/Affine_transformation) has been applied. The
+affine transform scales, rotates and translates an image from its original pixel
+coordinates into a geospatial coordinate reference system. A common application of the
+affine transform is so-called "[world files](https://en.wikipedia.org/wiki/World_file)"
+for georeferencing raster images. 
+
+The affine transform has been calculated based on the IMU data and on the camera field
+of view. See
+[massipipe.georeferencing](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/georeferencing.py)
+for details.
+
+The "map info" field in the image header does not list the parameters of the affine
+transform directly, but it is possible to translate between the two. For an in-depth
+explanation, see "[Understanding AVIRIS-NG data in ENVI format with rotated
+grid](https://github.com/ornldaac/AVIRIS-NG_ENVI-rotatedgrid)". 
+
+Here is an example of map info from a hyperspectral image: map info = {UTM, 1, 1,
+565020.16, 6541378.72, 0.0355271, 0.0369927, 32, North, WGS-84, rotation=19.060428}.
+
+The map info parameters are (in order):
+1. Projection name (always UTM for this project)
+2. Reference pixel in x-direction, starting from 1 (always 1 for this project)
+3. Reference pixel in y-direction, starting from 1 (always 1 for this project)
+4. Reference pixel easting (565020.16 in the example above)
+5. Reference pixel northing (6541378.72 in the example above)
+6. X pixel size (across-track spatial sampling, 0.0355271 meters in the example)
+7. Y pixel size (along-track spatial sampling, 0.0369927 meters in the example)
+8. Projection zone (used only for UTM, 32 in the example)
+9. Hemisphere (used only for UTM, North or South)
+10. Geodetic datum / reference frame (always WGS-84 for this project)
+11. Units / key-value pairs. The use of this parameter is poorly documented, but "units"
+    (e.g. units=meters) and "rotation" (e.g. rotation=19.060428, as in the example) are
+    common.
+
+Note that as of February 2025, the "rotation" key-value pairs are accepted by software
+like GDAL and QGIS.  
+
+Note that it is possible for users of the data to do more advanced and/or accurate
+georectification than than provided by the affine transform:
+- Using the details of the provided IMU data to georeference the image line-by-line. See
+  e.g. the Python package [gref4hsi](https://github.com/havardlovas/gref4hsi) for an
+  open-source alternative to do this.
+- Using a high-resolution base raster, for example the RGB mosaics also acquired in the
+  Massimal project, finding corresponding image features between the base raster and the
+  hyperspectral image, and warping the hyperspectral image to match the features. The
+  QGIS "georeferencer" tool is one option to do this manually. 
 
 
 #### Downwelling irradiance
@@ -339,36 +432,44 @@ wavelengths of the irradiance values correspond to those of the hyperspectral im
 achieve this, the original irradiance measurements have been smoothed using a Gaussian
 kernel with FWHM of 3.5 nm, and then resampled to match the wavelegths of the
 hyperspectral camera. Note that spectral smoothing is needed for the shape of irradiance
-spectrum to be closer to that of the spectra in the hyperspectral images. Because of its higher
-spectral resolution, the original irradiance spectrum has some very deep valleys caused
-by Fraunhofer lines. 
+spectrum to be closer to that of the spectra in the hyperspectral images. Because of its
+higher spectral resolution, the original irradiance spectrum has some very deep valleys
+caused by Fraunhofer lines. 
 
-Under the simplifying assumption that all objects in the image act as a Lambertian
-reflector, i.e. that an incoming ray of light is reflected equally in all directions,
-reflectance $R$ can be calculated as $R = (pi*L)/(E)$, where $L$ denotes radiance (i.e.
-hyperspectral image) and $E$ denotes downwelling irradiance. 
+In the Massimal project, the purpose of measuring downwelling irradiance is to caluclate
+a reflectance image. Many definitions of reflectance as a concept exist. One common
+defininition is $\rho = (\pi*L)/E$, where $L$ denotes radiance (i.e. hyperspectral
+image) and $E$ denotes downwelling irradiance. Under the simplifying assumption that all
+objects in the image act as a Lambertian reflector, i.e. that an incoming ray of light
+is reflected equally in all directions, $\rho$ corresponds to the [spectral irradiance
+reﬂectance](https://www.oceanopticsbook.info/view/inherent-and-apparent-optical-properties/reflectances),
+the ratio between upwelling and downwelling irradiances.  An alternative definition,
+[remote sensing
+reflectance](https://www.oceanopticsbook.info/view/inherent-and-apparent-optical-properties/reflectances)
+$R$, omits the scaling factor $\pi$, such that $R = L/E$. The unit of $R$ is inverse
+steradians. 
 
-**Example calculation of reflectance using Python**:
-
-**CHECK**
-
-Assuming that the radiance image has been loaded as a array called $L$, of size
-(n_lines,n_samples,n_bands), and the irradiance spectrum $E$ has been read from the header
-file and converted to a NumPy array of shape (n_bands,), the reflectance hyperspectral
-image can be calculated as
-
-  import numpy as np
-  R = np.pi*(L/E)
-
-Because the number of spectral channels match (n_bands), the NumPy "broadcasting" rule
-automatically repeats the irradiance spectrum for every line and sample of the
-hyperspectral image.  
-
+Note that the units of radiance in the hyperspectral image (microflicks, uW/(cm2*um*sr))
+and the units of downwelling irradiance in the ENVI header (W/(m2*um)) are not directly
+compatible. To convert the irradiance values from those in the header to units that
+match the radiance images, multiply the irradiance values by 100.
 
 
 ### Mosaic
+The mosaic is a single RGB GeoTIFF file for visualization of all the images in the
+dataset. The mosaic is generated based on the 16-bit integer values of radiance
+hyperspectral images, but after combining all the images, each color channel of the
+mosaic is percentile stretched (in the same way as for quicklook images), and finally
+the mosaic is converted to 8-bit integer format. Note that the conversion creates a
+suitable image contrast and also compresses the image, but that the values of the image
+lose their physical units. 
 
-
+For most datasets, the mosaic is created directly from radiance data. The file name of
+the mosaic then ends in *_rad_rgb.tiff. However, for some datasets with significant
+amounts of sun and sky glint in the water surface, the mosaic is created based on "glint
+corrected" radiance. In these cases, the file name ends in *_rad_gc_rgb.tiff. See
+[massipipe.glint](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/glint.py)
+for details on glint correction. 
 
 
 
