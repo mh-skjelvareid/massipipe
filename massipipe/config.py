@@ -219,8 +219,3 @@ def export_template_yaml(yaml_path: Union[Path, str]):
     template_config = get_config_template()
     template_dict = nested_config_to_dict(template_config)
     write_config(template_dict, yaml_path)
-
-
-if __name__ == "__main__":
-    pass
-    # export_template_yaml("example_config.yaml")

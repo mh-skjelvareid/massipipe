@@ -1,9 +1,8 @@
 # Imports
 import logging
 import subprocess
-import warnings
 from pathlib import Path
-from typing import Iterable, Sequence, Union
+from typing import Iterable, Sequence
 
 import numpy as np
 import rasterio

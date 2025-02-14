@@ -1,14 +1,11 @@
 # Imports
 import logging
-import zipfile
 from pathlib import Path
 from typing import Iterable, Union
 
 import numpy as np
-from numpy.polynomial import Polynomial
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 from scipy.ndimage import gaussian_filter1d
-from scipy.signal import find_peaks
 
 import massipipe.utils as mpu
 

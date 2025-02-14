@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Union
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 import massipipe.utils as mpu
 
