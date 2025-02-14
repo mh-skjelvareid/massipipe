@@ -114,10 +114,16 @@ def read_envi(
                 im_handle = spectral.io.envi.open(header_path, image_path)
             except Exception as e:
                 logger.error(
-                    f"Unsucessful when reading modified header file {header_path}",
+                    f"Unsuccessful when reading modified header file {header_path}",
                     exc_info=True,
                 )
                 raise
+        else:
+            logger.error(f"Error reading ENVI header file {header_path}", exc_info=True)
+            raise
+    except Exception as e:
+        logger.error(f"Error opening ENVI file {header_path}", exc_info=True)
+        raise
 
     # Read wavelengths if listed in metadata, set as empty array if not
     # NOTE: Calibration files ("gain"/"offset") don't include wavelength information
@@ -127,7 +133,11 @@ def read_envi(
         wl = np.array([])
 
     # Read data from disk
-    image = np.array(im_handle.load())  # type: ignore
+    try:
+        image = np.array(im_handle.load())  # type: ignore
+    except Exception as e:
+        logger.error(f"Error loading image data from {header_path}", exc_info=True)
+        raise
 
     # Returns
     return (image, wl, im_handle.metadata)
@@ -149,7 +159,12 @@ def read_envi_header(header_path: Union[Path, str]) -> tuple[dict, NDArray]:
         If "wavelength" is present in header file, wavelengths are returned as numeric
         array. If not, an empty array is returned.
     """
-    metadata = spectral.io.envi.read_envi_header(header_path)
+    try:
+        metadata = spectral.io.envi.read_envi_header(header_path)
+    except Exception as e:
+        logger.error(f"Error reading ENVI header file {header_path}", exc_info=True)
+        raise
+
     if "wavelength" in metadata:
         wl = np.array([float(i) for i in metadata["wavelength"]])
     else:
@@ -167,7 +182,11 @@ def write_envi_header(header_path: Union[Path, str], metadata: dict):
     metadata : dict
         Metadata dictionary to write to the header file.
     """
-    spectral.io.envi.write_envi_header(header_path, metadata)
+    try:
+        spectral.io.envi.write_envi_header(header_path, metadata)
+    except Exception as e:
+        logger.error(f"Error writing ENVI header file {header_path}", exc_info=True)
+        raise
 
 
 def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs) -> None:
@@ -187,8 +206,13 @@ def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **k
     **kwargs : dict
         Additional keyword arguments passed to spectral.envi.save_image.
     """
-    # Save file
-    spectral.envi.save_image(header_path, image, metadata=metadata, force=True, ext=None, **kwargs)
+    try:
+        spectral.envi.save_image(
+            header_path, image, metadata=metadata, force=True, ext=None, **kwargs
+        )
+    except Exception as e:
+        logger.error(f"Error saving ENVI file {header_path}", exc_info=True)
+        raise
 
 
 def array_to_header_string(num_array: ArrayLike, decimals: int = 3) -> str:
@@ -280,10 +304,25 @@ def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[P
     geotransform_path : Union[Path, str]
         Path to JSON file with geotransform field "envi_map_info".
     """
-    metadata = spectral.io.envi.read_envi_header(header_path)
-    geotransform_data = read_json(geotransform_path)
+    try:
+        metadata = spectral.io.envi.read_envi_header(header_path)
+    except Exception as e:
+        logger.error(f"Error reading ENVI header file {header_path}", exc_info=True)
+        raise
+
+    try:
+        geotransform_data = read_json(geotransform_path)
+    except Exception as e:
+        logger.error(f"Error reading geotransform JSON file {geotransform_path}", exc_info=True)
+        raise
+
     metadata["map info"] = geotransform_data["envi_map_info"]
-    spectral.io.envi.write_envi_header(header_path, metadata)
+
+    try:
+        spectral.io.envi.write_envi_header(header_path, metadata)
+    except Exception as e:
+        logger.error(f"Error writing ENVI header file {header_path}", exc_info=True)
+        raise
 
 
 def header_contains_mapinfo(header_path: Union[Path, str]) -> bool:
@@ -611,19 +650,23 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
         Path to output PNG file.
     """
     assert (rgb_image.ndim == 3) and (rgb_image.shape[2] == 3)
-    with warnings.catch_warnings():  # Catch warnings for this block of code
-        warnings.filterwarnings("ignore")  # Ignore warning about missing geotransform
-        with rasterio.Env():
-            with rasterio.open(
-                png_path,
-                "w",
-                driver="PNG",
-                height=rgb_image.shape[0],
-                width=rgb_image.shape[1],
-                count=3,
-                dtype="uint8",
-            ) as dst:
-                dst.write(reshape_as_raster(rgb_image))
+    try:
+        with warnings.catch_warnings():  # Catch warnings for this block of code
+            warnings.filterwarnings("ignore")  # Ignore warning about missing geotransform
+            with rasterio.Env():
+                with rasterio.open(
+                    png_path,
+                    "w",
+                    driver="PNG",
+                    height=rgb_image.shape[0],
+                    width=rgb_image.shape[1],
+                    count=3,
+                    dtype="uint8",
+                ) as dst:
+                    dst.write(reshape_as_raster(rgb_image))
+    except Exception as e:
+        logger.error(f"Error saving PNG file {png_path}", exc_info=True)
+        raise
 
 
 def read_json(json_path: Union[Path, str]) -> dict:
@@ -639,9 +682,13 @@ def read_json(json_path: Union[Path, str]) -> dict:
     dict
         Data from JSON file.
     """
-    with open(json_path, "r") as file:
-        imu_data = json.load(file)
-    return imu_data
+    try:
+        with open(json_path, "r") as file:
+            data = json.load(file)
+    except Exception as e:
+        logger.error(f"Error reading JSON file {json_path}", exc_info=True)
+        raise
+    return data
 
 
 def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
