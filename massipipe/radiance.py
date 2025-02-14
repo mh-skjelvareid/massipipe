@@ -1,3 +1,16 @@
+"""
+Radiance conversion for hyperspectral images.
+
+This module contains classes and methods for converting raw hyperspectral images
+to radiance using calibration data from Resonon hyperspectral cameras.
+
+Classes:
+--------
+- RadianceCalibrationDataset: Handle radiance calibration data.
+- RadianceConverter: Convert raw hyperspectral images to radiance.
+
+"""
+
 # Imports
 import logging
 import zipfile
@@ -19,7 +32,7 @@ class RadianceCalibrationDataset:
     Attributes
     ----------
     calibration_file: Path
-        Path to Imager Calibration Pack (*.icp) file
+        Path to Imager Calibration Pack (*.icp) file.
     calibration_dir: Path
         Folder into which all the data in the calibration_file
         is put (unzipped).
@@ -35,9 +48,9 @@ class RadianceCalibrationDataset:
     Methods
     -------
     get_rad_conv_frame():
-        Returns radiance conversion frame, shape (n_samples, n_channels)
-    get_closest_dark_frame(gain,shutter)
-        Returns dark frame which best matches given gain and shutter values
+        Returns radiance conversion frame, shape (n_samples, n_channels).
+    get_closest_dark_frame(gain, shutter):
+        Returns dark frame which best matches given gain and shutter values.
 
     """
 
@@ -46,24 +59,25 @@ class RadianceCalibrationDataset:
         calibration_file: Union[Path, str],
         calibration_dir_name: str = "radiance_calibration_frames",
     ):
-        """Un-zip calibration file and create radiance calibration dataset
+        """Un-zip calibration file and create radiance calibration dataset.
 
         Parameters
         ----------
-        calibration_file: Path | str
-            Path to *.icp Resonon "Imager Calibration Pack" file
+        calibration_file: Union[Path, str]
+            Path to *.icp Resonon "Imager Calibration Pack" file.
         calibration_dir_name: str
-            Name of subdirectory into which calibration frames are unzipped
+            Name of subdirectory into which calibration frames are unzipped.
 
         Raises
-        -------
-        zipfile.BadZipfile:
-            If given *.icp file is not a valid zip file
+        ------
+        zipfile.BadZipFile:
+            If given *.icp file is not a valid zip file.
 
         """
         # Register image calibration "pack" (*.icp) and check that it exists
         self.calibration_file = Path(calibration_file)
-        assert self.calibration_file.exists()
+        if not self.calibration_file.exists():
+            raise FileNotFoundError(f"Calibration file {self.calibration_file} does not exist.")
 
         # Unzip into same directory
         self.calibration_dir = self.calibration_file.parent / calibration_dir_name
@@ -72,7 +86,8 @@ class RadianceCalibrationDataset:
 
         # Register (single) gain curve file and multiple dark frame files
         self.gain_file_path = self.calibration_dir / "gain.bip.hdr"
-        assert self.gain_file_path.exists()
+        if not self.gain_file_path.exists():
+            raise FileNotFoundError(f"Gain file {self.gain_file_path} does not exist.")
         self.dark_frame_paths = list(self.calibration_dir.glob("offset*gain*shutter.bip.hdr"))
 
         # Get dark frame gain and shutter info from filenames
@@ -82,7 +97,13 @@ class RadianceCalibrationDataset:
         self._sort_dark_frame_gains_shutters_paths()
 
     def _unzip_calibration_file(self, unzip_into_nonempty_dir: bool = False) -> None:
-        """Unzip *.icp file (which is a zip file)"""
+        """Unzip *.icp file (which is a zip file).
+
+        Parameters
+        ----------
+        unzip_into_nonempty_dir : bool, optional
+            Whether to unzip into a non-empty directory.
+        """
         if not unzip_into_nonempty_dir and any(list(self.calibration_dir.iterdir())):
             logger.info(f"Non-empty calibration directory {self.calibration_dir}")
             logger.info("Assuming calibration file already unzipped.")
@@ -93,14 +114,16 @@ class RadianceCalibrationDataset:
                     zip_file.extract(filename, self.calibration_dir)
         except zipfile.BadZipFile:
             logger.error(f"File {self.calibration_file} is not a valid ZIP file.", exc_info=True)
-        except Exception:
+            raise
+        except Exception as e:
             logger.error(
-                "Unexpected error when extracting calibration file " f"{self.calibration_file}",
+                f"Unexpected error when extracting calibration file {self.calibration_file}",
                 exc_info=True,
             )
+            raise
 
     def _get_dark_frames_gain_shutter(self) -> None:
-        """Extract and save gain and shutter values for each dark frame"""
+        """Extract and save gain and shutter values for each dark frame."""
         # Example dark frame pattern:
         # offset_600bands_4095ceiling_5gain_900samples_75shutter.bip.hdr
         dark_frame_gains = []
@@ -115,7 +138,7 @@ class RadianceCalibrationDataset:
         self._dark_frame_shutters = np.array(dark_frame_shutters, dtype=float)
 
     def _sort_dark_frame_gains_shutters_paths(self) -> None:
-        """Sort gain/shutter values and corresponding file names"""
+        """Sort gain/shutter values and corresponding file names."""
         gain_shutter_path_sorted = sorted(
             zip(self._dark_frame_gains, self._dark_frame_shutters, self.dark_frame_paths)
         )
@@ -128,7 +151,7 @@ class RadianceCalibrationDataset:
     def _get_closest_dark_frame_path(
         self, gain: Union[int, float], shutter: Union[int, float]
     ) -> tuple[Path, float, float]:
-        """Search for dark frame with best matching gain and shutter values"""
+        """Search for dark frame with best matching gain and shutter values."""
         # First search for files with closest matching gain
         candidate_gains = np.unique(self._dark_frame_gains)
         closest_gain = candidate_gains[np.argmin(abs(candidate_gains - gain))]
@@ -144,37 +167,38 @@ class RadianceCalibrationDataset:
             self._dark_frame_shutters == closest_shutter
         )
         best_match_ind = np.nonzero(best_match_mask)[0]
-        assert len(best_match_ind) == 1  # There should only be a single best match
+        if len(best_match_ind) != 1:
+            raise ValueError("There should only be a single best match for dark frame.")
         return self.dark_frame_paths[best_match_ind[0]], closest_gain, closest_shutter
 
     def get_closest_dark_frame(
         self, gain: Union[int, float], shutter: Union[int, float]
     ) -> tuple[NDArray, NDArray, dict, float, float]:
-        """Get dark frame which most closely matches given gain and shutter values
+        """Get dark frame which most closely matches given gain and shutter values.
 
         Parameters
         ----------
         gain : Union[int, float]
             Gain value used for search, typically gain value of image that should
             be converted from raw to radiance. Values follow Resonon convention
-            used in header files++ (logarithmic values, 20 log10).
+            used in header files (logarithmic values, 20 log10).
         shutter : Union[int, float]
             Shutter value used for search, typically shutter value of image that should
             be converted from raw to radiance. Values follow Resonon convention
-            used in header files++ (unit: milliseconds).
+            used in header files (unit: milliseconds).
 
         Returns
         -------
         frame: NDArray
-            Single dark frame, shape (1,n_samples,n_channels)
+            Single dark frame, shape (1, n_samples, n_channels).
         wl: NDArray
-            Vector of wavelengths for each spectral channel (nanometers)
+            Vector of wavelengths for each spectral channel (nanometers).
         metadata: dict
-            Metadata from ENVI header, formatted as dictionary
+            Metadata from ENVI header, formatted as dictionary.
         closest_gain: float
-            Gain value for closest match among available dark frames
+            Gain value for closest match among available dark frames.
         closest_shutter: float
-            Shutter value for closest match among available dark frames
+            Shutter value for closest match among available dark frames.
         """
         closest_file, closest_gain, closest_shutter = self._get_closest_dark_frame_path(
             gain=gain, shutter=shutter
@@ -183,16 +207,16 @@ class RadianceCalibrationDataset:
         return frame, wl, metadata, closest_gain, closest_shutter
 
     def get_rad_conv_frame(self) -> tuple[NDArray, NDArray, dict]:
-        """Read and return radiance conversion curve ("gain" file)
+        """Read and return radiance conversion curve ("gain" file).
 
         Returns
         -------
         frame: NDArray
-            Radiance conversion frame, shape (1,n_samples,n_channels)
+            Radiance conversion frame, shape (1, n_samples, n_channels).
         wl: NDArray
-            Vector of wavelengths for each spectral channel (nanometers)
+            Vector of wavelengths for each spectral channel (nanometers).
         metadata: dict
-            Metadata from ENVI header, formatted as dictionary
+            Metadata from ENVI header, formatted as dictionary.
 
         """
         return mpu.read_envi(self.gain_file_path)
@@ -203,7 +227,7 @@ class RadianceConverter:
 
     Attributes
     ----------
-    radiance_calibration_file: Path | str
+    radiance_calibration_file: Union[Path, str]
         Path to Imager Calibration Pack (*.icp) file.
     rc_dataset: RadianceCalibrationDataset
         A radiance calibration dataset object representing the calibration
@@ -212,14 +236,14 @@ class RadianceConverter:
         Frame representing conversion factors from raw data to radiance for
         every pixel and wavelength.
     rad_conv_metadata: dict
-        ENVI metadata for rad_conv_frame
+        ENVI metadata for rad_conv_frame.
 
     Methods
     -------
-    convert_raw_image_to_radiance(raw_image, raw_image_metadata):
-        Convert single image (3D array) from raw to radiance
-    convert_raw_file_to_radiance(raw_image, raw_image_metadata):
-        Read raw file, convert, and save as radiance image
+    convert_raw_image_to_radiance(raw_image, raw_image_metadata)
+        Convert single image (3D array) from raw to radiance.
+    convert_raw_file_to_radiance(raw_header_path, radiance_header_path, interleave='bip')
+        Read raw file, convert, and save as radiance image.
 
     Notes
     -----
@@ -228,7 +252,7 @@ class RadianceConverter:
     should be subtracted for the measurement to be as accurate as possible.
     The amount of dark current also depends on camera gain (signal amplification)
     and camera shutter (time available for the sensor to collect photons).
-    The *.icp calibration file (ICP = "Imager Calibration Pack") is a ZIP archine
+    The *.icp calibration file (ICP = "Imager Calibration Pack") is a ZIP archive
     which includes dark current measurements taken at different gain and shutter
     settings (raw images). To remove dark current from a new image, this set of
     dark current frames is searched, and the one which best matches the gain and
@@ -261,21 +285,20 @@ class RadianceConverter:
         set_saturated_pixels_to_zero: Union[bool, None] = True,
         saturation_value: int = 2**12 - 1,
     ):
-        """Create radiance converter object
+        """Create radiance converter object.
 
         Parameters
         ----------
-        radiance_calibration_file: Path | str
+        radiance_calibration_file: Union[Path, str]
             Path to Imager Calibration Pack (*.icp) file.
             The *.icp file is a zip archive, and the file will be unzipped into
             a subfolder in the same folder containing the *.icp file.
-        set_saturated_pixels_to_zero: bool
+        set_saturated_pixels_to_zero: bool, optional
             If True, saturated pixels are set to all-zero (across all bands).
-        saturation_value: int
+        saturation_value: int, optional
             Maximum digital number for camera sensor.
 
         """
-
         self.radiance_calibration_file = Path(radiance_calibration_file)
         self.rc_dataset = RadianceCalibrationDataset(calibration_file=radiance_calibration_file)
         self.set_saturated_pixels_to_zero = bool(set_saturated_pixels_to_zero)
@@ -285,22 +308,25 @@ class RadianceConverter:
         self._get_rad_conv_frame()
 
     def _get_rad_conv_frame(self) -> None:
-        """Read radiance conversion frame from file and save as attribute"""
+        """Read radiance conversion frame from file and save as attribute."""
         rad_conv_frame, _, rad_conv_metadata = self.rc_dataset.get_rad_conv_frame()
-        assert rad_conv_metadata["sample binning"] == "1"
-        assert rad_conv_metadata["spectral binning"] == "1"
-        assert rad_conv_metadata["samples"] == "900"
-        assert rad_conv_metadata["bands"] == "600"
+        if (
+            rad_conv_metadata["sample binning"] != "1"
+            or rad_conv_metadata["spectral binning"] != "1"
+        ):
+            raise ValueError("Radiance conversion frame must have binning of 1.")
+        if rad_conv_metadata["samples"] != "900" or rad_conv_metadata["bands"] != "600":
+            raise ValueError("Radiance conversion frame must have 900 samples and 600 bands.")
         self.rad_conv_frame = rad_conv_frame
         self.rad_conv_metadata = rad_conv_metadata
 
     def _get_best_matching_dark_frame(self, raw_image_metadata: dict) -> tuple[NDArray, dict]:
-        """Get dark fram from calibration data that best matches input data"""
+        """Get dark frame from calibration data that best matches input data."""
         dark_frame, _, dark_frame_metadata, _, _ = self.rc_dataset.get_closest_dark_frame(
             gain=float(raw_image_metadata["gain"]),
             shutter=float(raw_image_metadata["shutter"]),
         )
-        return (dark_frame, dark_frame_metadata)
+        return dark_frame, dark_frame_metadata
 
     def _scale_dark_frame(
         self,
@@ -308,9 +334,12 @@ class RadianceConverter:
         dark_frame_metadata: dict,
         raw_image_metadata: dict,
     ) -> NDArray:
-        """Scale dark frame to match binning for input image"""
-        assert dark_frame_metadata["sample binning"] == "1"
-        assert dark_frame_metadata["spectral binning"] == "1"
+        """Scale dark frame to match binning for input image."""
+        if (
+            dark_frame_metadata["sample binning"] != "1"
+            or dark_frame_metadata["spectral binning"] != "1"
+        ):
+            raise ValueError("Dark frame must have binning of 1.")
         binning_factor = float(raw_image_metadata["sample binning"]) * float(
             raw_image_metadata["spectral binning"]
         )
@@ -326,7 +355,7 @@ class RadianceConverter:
         return dark_frame
 
     def _scale_rad_conv_frame(self, raw_image_metadata: dict) -> NDArray:
-        """Scale radiance conversion frame to match input binning, gain and shutter"""
+        """Scale radiance conversion frame to match input binning, gain and shutter."""
         # Scaling due to binning
         binning_factor = 1.0 / (
             float(raw_image_metadata["sample binning"])
@@ -362,28 +391,28 @@ class RadianceConverter:
         raw_image: NDArray,
         raw_image_metadata: dict,
     ) -> NDArray:
-        """Convert raw image (3d array) to radiance image
+        """Convert raw image (3D array) to radiance image.
 
         Parameters
         ----------
         raw_image: NDArray
-            Raw hyperspectral image, shape (n_lines, n_samples, n_channels)
+            Raw hyperspectral image, shape (n_lines, n_samples, n_channels).
             The image is assumed to have been created by a Resonon Pika L
             camera, which has 900 spatial pixels x 600 spectral channels
             before any binning has been applied. Typically, spectral binning
-            with a bin size of 2 is applied during image aqusition, resulting
+            with a bin size of 2 is applied during image acquisition, resulting
             in images with shape (n_lines, 900, 300). It is assumed that no
             spectral or spatial (sample) cropping has been applied. Where binning
             has been applied, it is assumed that
                 - n_samples*sample_bin_size = 900
-                - n_channels*channel_bin_size = 600
+                - n_channels*channel_bin_size = 600.
         raw_image_metadata: dict
             ENVI metadata formatted as dict.
-            See spectral.io.envi.open()
+            See spectral.io.envi.open().
 
         Returns
-        --------
-        radiance_image: NDArray (int16, microflicks)
+        -------
+        NDArray
             Radiance image with same shape as raw image, with spectral radiance
             in units of microflicks = 10e-5 W/(m2*nm). Microflicks are used
             to be consistent with Resonon formatting, and because microflick
@@ -391,12 +420,12 @@ class RadianceConverter:
             encoding as 16-bit unsigned integer.
 
         Raises
-        -------
+        ------
         ValueError:
             In case the raw image does not have the expected dimensions.
 
-        References:
-        -----------
+        References
+        ----------
         - ["flick" unit](https://en.wikipedia.org/wiki/Flick_(physics))
         """
         # Check input dimensions
@@ -443,7 +472,7 @@ class RadianceConverter:
         radiance_header_path: Union[Path, str],
         interleave: str = "bip",
     ) -> None:
-        """Read raw image file, convert to radiance, and save to file
+        """Read raw image file, convert to radiance, and save to file.
 
         Parameters
         ----------
@@ -452,10 +481,10 @@ class RadianceConverter:
         radiance_header_path: Path | str
             Path to save converted radiance image to.
             The name of the header file should match the 'interleave' argument
-            (default: bip), e.g. 'radiance_image.bip.hdr'
+            (default: bip), e.g. 'radiance_image.bip.hdr'.
         interleave: str, {'bip','bil','bsq'}, default 'bip'
             String indicating how binary image file is organized.
-            See spectral.io.envi.save_image()
+            See spectral.io.envi.save_image().
 
         Notes
         -----
