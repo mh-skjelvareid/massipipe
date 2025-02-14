@@ -257,7 +257,9 @@ def header_string_to_array(header_string: str) -> NDArray:
     return np.array([float(irrad) for irrad in header_string])
 
 
-def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str]) -> None:
+def update_header_wavelengths(
+    wavelengths: NDArray[np.float32], header_path: Union[Path, str]
+) -> None:
     """Update ENVI header wavelengths.
 
     Parameters
@@ -294,7 +296,7 @@ def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) ->
     spectral.io.envi.write_envi_header(header_path, header_dict)
 
 
-def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[Path, str]):
+def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[Path, str]) -> None:
     """Add mapinfo from geotransform JSON to ENVI header file.
 
     Parameters
@@ -636,7 +638,7 @@ def get_nir_ind(
     return nir_ind
 
 
-def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
+def save_png(rgb_image: NDArray[np.uint8], png_path: Union[Path, str]) -> None:
     """Save RGB image as PNG using rasterio / GDAL.
 
     Parameters
@@ -691,7 +693,9 @@ def read_json(json_path: Union[Path, str]) -> dict:
     return data
 
 
-def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
+def random_sample_image(
+    image: NDArray, sample_frac: float = 0.5, ignore_zeros: bool = True
+) -> NDArray:
     """Randomly sample pixels from hyperspectral image.
 
     Parameters
@@ -726,7 +730,7 @@ def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = Tr
     return samp
 
 
-def unix2gps(unix_time):
+def unix2gps(unix_time: float) -> float:
     """Convert UNIX time to GPS time (both in seconds).
 
     Parameters
@@ -750,7 +754,7 @@ def unix2gps(unix_time):
     return gps_time
 
 
-def gps2unix(gps_time):
+def gps2unix(gps_time: float) -> float:
     """Convert GPS time to UNIX time (both in seconds).
 
     Parameters
@@ -776,7 +780,7 @@ def gps2unix(gps_time):
     return unix_time
 
 
-def _get_leaps():
+def _get_leaps() -> list[int]:
     """List of leap seconds in GPS time.
 
     Returns
@@ -806,7 +810,7 @@ def _get_leaps():
     ]
 
 
-def _count_leaps(gps_time, dir_flag):
+def _count_leaps(gps_time: float, dir_flag: str) -> int:
     """Count number of leap seconds passed for given GPS time.
 
     Parameters
