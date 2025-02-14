@@ -1,3 +1,16 @@
+"""
+Irradiance conversion and wavelength calibration for hyperspectral images.
+
+This module contains classes and methods for converting raw spectra to irradiance
+and for calibrating wavelengths using known Fraunhofer absorption lines.
+
+Classes:
+--------
+- IrradianceConverter: Convert raw spectra to irradiance.
+- WavelengthCalibrator: Calibrate wavelengths using Fraunhofer absorption lines.
+
+"""
+
 # Imports
 import logging
 import zipfile
@@ -16,6 +29,18 @@ logger = logging.getLogger(__name__)
 
 
 class IrradianceConverter:
+    """
+    A class to convert raw spectra to irradiance using calibration data.
+
+    Methods
+    -------
+    convert_raw_spectrum_to_irradiance(raw_spec, raw_metadata,
+        set_irradiance_outside_wl_limits_to_zero=True, keep_original_dimensions=True)
+        Convert raw spectrum to irradiance.
+    convert_raw_file_to_irradiance(raw_spec_path, irrad_spec_path)
+        Read raw spectrum, convert to irradiance, and save.
+    """
+
     def __init__(
         self,
         irrad_cal_file: Union[Path, str],
@@ -23,7 +48,7 @@ class IrradianceConverter:
         wl_min: Union[float, None] = None,
         wl_max: Union[float, None] = None,
     ):
-        """Initialize irradiance converter
+        """Initialize irradiance converter.
 
         Parameters
         ----------
@@ -31,14 +56,15 @@ class IrradianceConverter:
             Path to downwelling irradiance calibration file.
         irrad_cal_dir_name : str, default "downwelling_calibration_spectra"
             Name of folder which calibration files will be unzipped into.
-        wl_min : Union[float, None], default 370
+        wl_min : Union[float, None], optional
             Shortest valid wavelength (nm) in irradiance spectrum.
-        wl_max : Union[float, None], default 1000
+        wl_max : Union[float, None], optional
             Longest valid wavelength (nm) in irradiance spectrum.
         """
         # Save calibration file path
         self.irrad_cal_file = Path(irrad_cal_file)
-        assert self.irrad_cal_file.exists()
+        if not self.irrad_cal_file.exists():
+            raise FileNotFoundError(f"Calibration file {self.irrad_cal_file} does not exist.")
 
         # Unzip calibration frames into subdirectory
         self.irrad_cal_dir = self.irrad_cal_file.parent / irrad_cal_dir_name
@@ -54,7 +80,13 @@ class IrradianceConverter:
         self._valid_wl_ind = (self._irrad_wl >= self.wl_min) & (self._irrad_wl <= self.wl_max)
 
     def _unzip_irrad_cal_file(self, unzip_into_nonempty_dir: bool = False) -> None:
-        """Unzip *.dcp file (which is a zip file)"""
+        """Unzip *.dcp file (which is a zip file).
+
+        Parameters
+        ----------
+        unzip_into_nonempty_dir : bool, optional
+            Whether to unzip into a non-empty directory.
+        """
         if not unzip_into_nonempty_dir and any(list(self.irrad_cal_dir.iterdir())):
             logger.info(f"Non-empty downwelling calibration directory {self.irrad_cal_dir}")
             logger.info(
@@ -68,26 +100,29 @@ class IrradianceConverter:
                     zip_file.extract(filename, self.irrad_cal_dir)
         except zipfile.BadZipFile:
             logger.error(f"File {self.irrad_cal_file} is not a valid ZIP file.", exc_info=True)
+            raise
         except Exception as e:
             logger.error(
-                "Error while extracting downwelling calibration file " f"{self.irrad_cal_file}",
+                f"Error while extracting downwelling calibration file {self.irrad_cal_file}",
                 exc_info=True,
             )
+            raise
 
-    def _load_cal_dark_and_sensitivity_spectra(self):
-        """Load dark current and irradiance sensitivity spectra from cal. files"""
+    def _load_cal_dark_and_sensitivity_spectra(self) -> None:
+        """Load dark current and irradiance sensitivity spectra from cal. files."""
         # Define paths
         cal_dark_path = self.irrad_cal_dir / "offset.spec.hdr"
         irrad_sens_path = self.irrad_cal_dir / "gain.spec.hdr"
-        assert cal_dark_path.exists()
-        assert irrad_sens_path.exists()
+        if not cal_dark_path.exists() or not irrad_sens_path.exists():
+            raise FileNotFoundError("Calibration files not found in the specified directory.")
 
         # Read from files
         cal_dark_spec, cal_dark_wl, cal_dark_metadata = mpu.read_envi(cal_dark_path)
         irrad_sens_spec, irrad_sens_wl, irrad_sens_metadata = mpu.read_envi(irrad_sens_path)
 
         # Save attributes
-        assert np.array_equal(cal_dark_wl, irrad_sens_wl)
+        if not np.array_equal(cal_dark_wl, irrad_sens_wl):
+            raise ValueError("Wavelengths in dark current and gain spectra do not match.")
         self._irrad_wl = cal_dark_wl
         self._cal_dark_spec = np.squeeze(cal_dark_spec)  # Remove singleton axes
         self._cal_dark_metadata = cal_dark_metadata
@@ -103,26 +138,26 @@ class IrradianceConverter:
         set_irradiance_outside_wl_limits_to_zero: bool = True,
         keep_original_dimensions: bool = True,
     ) -> NDArray:
-        """_summary_
+        """Convert raw spectrum to irradiance.
 
         Parameters
         ----------
         raw_spec : NDArray
-            Raw spectrum
+            Raw spectrum.
         raw_metadata : dict
             Dictionary with ENVI metadata for raw spectrum.
-        set_irradiance_outside_wl_limits_to_zero : bool, default True
+        set_irradiance_outside_wl_limits_to_zero : bool, optional
             Whether to set spectrum values outside wavelength limits to zero.
             If False, values outside valid range are treated the same as
             values inside valid range.
-        keep_original_dimensions : bool, default True
+        keep_original_dimensions : bool, optional
             Whether to format output spectrum with same (singleton)
             dimensions as input spectrum. Can be useful for broadcasting.
 
         Returns
         -------
-        irradiance_spectrum: NDArray, shape (n_wl,)
-            Spectrom converted to spectral irradiance, unit W/(m2*nm)
+        NDArray
+            Spectrum converted to spectral irradiance, unit W/(m2*nm).
 
         Notes
         -----
@@ -132,10 +167,10 @@ class IrradianceConverter:
         the conversion spectrum values are decreased to account for this.
         Dark current is assumed to be independent of shutter value.
         """
-
         original_input_dimensions = raw_spec.shape
         raw_spec = np.squeeze(raw_spec)
-        assert raw_spec.ndim == 1
+        if raw_spec.ndim != 1:
+            raise ValueError("Input raw_spec must be a 1D array.")
 
         # Scale conversion spectrum according to difference in shutter values
         raw_shutter = float(raw_metadata["shutter"])
@@ -160,25 +195,42 @@ class IrradianceConverter:
 
     def convert_raw_file_to_irradiance(
         self, raw_spec_path: Union[Path, str], irrad_spec_path: Union[Path, str]
-    ):
-        """Read raw spectrum, convert to irradiance, and save
+    ) -> None:
+        """Read raw spectrum, convert to irradiance, and save.
 
         Parameters
         ----------
         raw_spec_path : Union[Path, str]
-            Path to ENVI header file for raw spectrum
+            Path to ENVI header file for raw spectrum.
         irrad_spec_path : Union[Path, str]
-            Path to ENVI header file for saving irradiance spectrum
+            Path to ENVI header file for saving irradiance spectrum.
         """
-        raw_spec, _, spec_metadata = mpu.read_envi(raw_spec_path)
-        irrad_spec = self.convert_raw_spectrum_to_irradiance(raw_spec, spec_metadata)
-        spec_metadata["unit"] = "W/(m2*nm)"
-        mpu.save_envi(irrad_spec_path, irrad_spec, spec_metadata)
+        try:
+            raw_spec, _, spec_metadata = mpu.read_envi(raw_spec_path)
+            irrad_spec = self.convert_raw_spectrum_to_irradiance(raw_spec, spec_metadata)
+            spec_metadata["unit"] = "W/(m2*nm)"
+            mpu.save_envi(irrad_spec_path, irrad_spec, spec_metadata)
+        except Exception as e:
+            logger.error(f"Error converting raw file to irradiance: {e}", exc_info=True)
+            raise
 
 
 class WavelengthCalibrator:
+    """
+    A class to calibrate wavelengths using Fraunhofer absorption lines.
+
+    Methods
+    -------
+    fit(spec, wl_orig)
+        Fit wavelength calibration polynomial.
+    fit_batch(spectrum_header_paths)
+        Calibrate wavelength based on spectrum with highest SNR (among many).
+    update_header_wavelengths(header_path)
+        Update header file with calibrated wavelengths.
+    """
+
     def __init__(self):
-        """Initialize wavelength calibrator"""
+        """Initialize wavelength calibrator."""
         self._fh_line_indices = None
         self._fh_wavelengths = None
         self._wl_poly_coeff = None
@@ -206,9 +258,29 @@ class WavelengthCalibrator:
         distance: int = 20,
         width: int = 5,
         rel_prominence: float = 0.1,
-    ):
-        """Detect absorption lines using local peak detection"""
-        # TODO: Use wavelength units for distance / width rather than # samples
+    ) -> tuple[NDArray, dict[str, NDArray]]:
+        """Detect absorption lines using local peak detection.
+
+        Parameters
+        ----------
+        spec : NDArray
+            Spectrum to analyze.
+        wl : NDArray
+            Wavelengths corresponding to the spectrum.
+        reference_wl : int, optional
+            Reference wavelength for prominence calculation.
+        distance : int, optional
+            Minimum distance between peaks.
+        width : int, optional
+            Minimum width of peaks.
+        rel_prominence : float, optional
+            Relative prominence of peaks.
+
+        Returns
+        -------
+        tuple[NDArray, dict[str, NDArray]]
+            Indices of detected peaks and properties of the peaks.
+        """
         ref_wl_ind = mpu.closest_wl_index(wl, reference_wl)
         prominence = spec[ref_wl_ind] * rel_prominence
         peak_indices, peak_properties = find_peaks(
@@ -220,26 +292,22 @@ class WavelengthCalibrator:
     def _fit_wavelength_polynomial(
         sample_indices: NDArray, wavelengths: NDArray, n_samples: int
     ) -> tuple[NDArray, NDArray]:
-        """Fit 2nd degree polynomial to set of (sample, wavelength) pairs
+        """Fit 2nd degree polynomial to set of (sample, wavelength) pairs.
 
         Parameters
         ----------
-        sample_indices: NDArray
+        sample_indices : NDArray
             Indices of samples in a sampled spectrum, typically for spectral
             peaks / absorption lines with known wavelengths.
-        wavelengths: NDArray
+        wavelengths : NDArray
             Wavelengths (in physical units) corresponding to sample_indices.
-        n_samples: int
-            Total number of samples in sampled spectrum
+        n_samples : int
+            Total number of samples in sampled spectrum.
 
         Returns
-        --------
-        wl_cal:
-            Array of (calibrated) wavelengths, shape (n_samples,)
-        wl_poly_coeff:
-            Coefficients for 2nd degree polynomial, ordered from degree zero upward
-            (index corresponds to polynomial degree)
-
+        -------
+        tuple[NDArray, NDArray]
+            Calibrated wavelengths and polynomial coefficients.
         """
         polynomial_fitted = Polynomial.fit(sample_indices, wavelengths, deg=2, domain=[])
         wl_cal = polynomial_fitted(np.arange(n_samples))
@@ -251,28 +319,27 @@ class WavelengthCalibrator:
         line_indices: NDArray,
         orig_wl: NDArray,
         win_width_nm: Union[int, float] = 20,
-    ):
-        """Calibrate wavelength values from known Fraunhofer absorption lines
+    ) -> tuple[NDArray, NDArray]:
+        """Calibrate wavelength values from known Fraunhofer absorption lines.
 
         Parameters
         ----------
-        line_indices: NDArray
+        line_indices : NDArray
             Indices of samples in spectrum where a (potential) absorption
             line has been detected. Indices must be within the range
-            (0, len(orig_wl))
-        orig_wl: NDArray
+            (0, len(orig_wl)).
+        orig_wl : NDArray
             Original wavelength vector. Values are assumed to be "close enough"
             to be used to create search windows for each Fraunhofer line,
-            typically within a few nm. Shape (n_samples,)
-        win_width_nm: Union[int, float], default 20
+            typically within a few nm.
+        win_width_nm : Union[int, float], optional
             The width of the search windows in units of nanometers.
 
         Returns
-        filtered_line_indices: NDArray
-            Indices for absorption lines found close to Fraunhofer line
-        fraunhofer_wavelengths: NDArray
-            Corresponding Fraunhofer line wavelengths for filtered absorption lines
-
+        -------
+        tuple[NDArray, NDArray]
+            Indices for absorption lines found close to Fraunhofer lines and
+            corresponding Fraunhofer line wavelengths.
         """
         filtered_line_indices = []
         fraunhofer_wavelengths = []
@@ -296,15 +363,15 @@ class WavelengthCalibrator:
 
         return np.array(filtered_line_indices), np.array(fraunhofer_wavelengths)
 
-    def fit(self, spec: NDArray, wl_orig: NDArray):
-        """_summary_
+    def fit(self, spec: NDArray, wl_orig: NDArray) -> None:
+        """Fit wavelength calibration polynomial.
 
         Parameters
         ----------
-        spec: NDArray
-            Sampled radiance/irradiance spectrum, shape (n_samples,)
-        wl_orig: NDArray
-            Wavelengths corresponding to spectral samples, shape (n_samples)
+        spec : NDArray
+            Sampled radiance/irradiance spectrum, shape (n_samples,).
+        wl_orig : NDArray
+            Wavelengths corresponding to spectral samples, shape (n_samples).
             Wavelengths values are assumed to be close (within a few nm)
             to their true values.
 
@@ -314,7 +381,8 @@ class WavelengthCalibrator:
             Raised if less than 3 absorption lines found in data.
         """
         spec = np.squeeze(spec)
-        assert spec.ndim == 1
+        if spec.ndim != 1:
+            raise ValueError("Input spectrum must be a 1D array.")
 
         line_indices, _ = self._detect_absorption_lines(spec, wl_orig)
         fh_line_indices, fh_wavelengths = self._filter_fraunhofer_lines(line_indices, wl_orig)
@@ -330,16 +398,15 @@ class WavelengthCalibrator:
         self.wl_cal = wl_cal
         self.max_wl_diff = np.max(abs(wl_cal - wl_orig))
 
-    def fit_batch(self, spectrum_header_paths: Iterable[Union[Path, str]]):
-        """Calibrate wavelength based on spectrum with highest SNR (among many)
+    def fit_batch(self, spectrum_header_paths: Iterable[Union[Path, str]]) -> None:
+        """Calibrate wavelength based on spectrum with highest SNR (among many).
 
         Parameters
         ----------
-        spectrum_header_paths: Iterable[Path | str]
+        spectrum_header_paths : Iterable[Union[Path, str]]
             Paths to multiple spectra. The spectrum with the highest maximum
             value will be used for wavelength calibration.
             Spectra are assumed to be ENVI files.
-
         """
         spectrum_header_paths = list(spectrum_header_paths)
         spectra = []
@@ -350,7 +417,11 @@ class WavelengthCalibrator:
             except OSError:
                 logger.warning(f"Error opening spectrum {spectrum_path}", exc_info=True)
                 logger.warning("Skipping spectrum.")
+                continue
             spectra.append(np.squeeze(spec))
+
+        if not spectra:
+            raise ValueError("No valid spectra found for calibration.")
 
         spectra = np.array(spectra)
         best_spec_ind = np.argmax(np.max(spectra, axis=1))
@@ -359,14 +430,13 @@ class WavelengthCalibrator:
 
         self.fit(cal_spec, wl)
 
-    def update_header_wavelengths(self, header_path: Union[Path, str]):
-        """Update header file with calibrated wavelengths
+    def update_header_wavelengths(self, header_path: Union[Path, str]) -> None:
+        """Update header file with calibrated wavelengths.
 
         Parameters
         ----------
-        header_path: Union[Path, str]
-            Iterable with paths multiple spectra.
-
+        header_path : Union[Path, str]
+            Path to ENVI header file.
         """
         if self.wl_cal is None:
             raise AttributeError("Attribute wl_cal is not set - fit (calibrate) first.")
