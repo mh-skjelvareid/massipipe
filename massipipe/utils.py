@@ -61,7 +61,7 @@ from pyproj import CRS, Proj
 from rasterio.plot import reshape_as_raster
 from scipy.signal import savgol_filter
 
-# Get loggger
+# Get logger
 logger = logging.getLogger(__name__)
 
 
