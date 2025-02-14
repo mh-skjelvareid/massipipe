@@ -1,3 +1,48 @@
+"""
+Utility functions for hyperspectral image processing.
+
+This module contains various utility functions used in the MassiPIpe data processing pipeline
+for hyperspectral images. The functions include reading and writing ENVI files,
+image binning, filtering, unit conversions, image contrast stretching, and more.
+
+Functions:
+----------
+- read_envi: Load image in ENVI format, including wavelength vector and other metadata.
+- read_envi_header: Read ENVI header information and convert wavelengths to numeric
+  array.
+- write_envi_header: Write metadata dictionary to ENVI header.
+- save_envi: Save ENVI file with parameters compatible with Spectronon.
+- array_to_header_string: Convert numeric array to ENVI header string.
+- header_string_to_array: Convert header string with numeric array to NumPy array.
+- update_header_wavelengths: Update ENVI header wavelengths.
+- add_header_irradiance: Add irradiance information to ENVI header.
+- add_header_mapinfo: Add mapinfo from geotransform JSON to ENVI header file.
+- header_contains_mapinfo: Check if hyperspectral header file contains map info field.
+- get_image_shape: Get shape of image cube (lines, samples, bands).
+- bin_image: Bin image cube (combine neighboring pixels).
+- savitzky_golay_filter: Filter hyperspectral image using Savitzky-Golay filter.
+- closest_wl_index: Get index in sampled wavelength array closest to target wavelength.
+- rgb_subset_from_hsi: Extract 3 bands from hyperspectral image representing red, green,
+  blue.
+- percentile_stretch_image: Scale array values within percentile limits to range 0-255.
+- convert_long_lat_to_utm: Convert longitude and latitude coordinates (WGS84) to UTM.
+- get_vis_ind: Get indices of VIS band.
+- get_nir_ind: Get indices of NIR band.
+- save_png: Save RGB image as PNG using rasterio / GDAL.
+- read_json: Read data saved in JSON file.
+- random_sample_image: Randomly sample pixels from hyperspectral image.
+- unix2gps: Convert UNIX time to GPS time.
+- gps2unix: Convert GPS time to UNIX time.
+- get_nested_dict_value: Get (nested) dictionary value if it exists.
+- irrad_uflicklike_to_si_nm: Convert irradiance from uW/(cm2*um) to W/(m2*nm).
+- irrad_si_nm_to_uflicklike: Convert irradiance from W/(m2*nm) to uW/(cm2*um).
+- irrad_si_nm_to_si_um: Convert irradiance from W/(m2*nm) to W/(m2*um).
+- irrad_si_um_to_uflicklike: Convert irradiance from W/(m2*um) to uW/(cm2*um).
+- resample_cube_spectrally: Resample datacube to new set of wavelengths (linear
+  interp.).
+
+"""
+
 # Imports
 import json
 import logging
@@ -25,28 +70,28 @@ def read_envi(
     image_path: Union[Path, str, None] = None,
     write_byte_order_if_missing=True,
 ) -> tuple[NDArray, NDArray, dict]:
-    """Load image in ENVI format, including wavelength vector and other metadata
+    """Load image in ENVI format, including wavelength vector and other metadata.
 
     Parameters
     ----------
-    header_path: Path | str
+    header_path : Path or str
         Path to ENVI file header.
-    image_path: Path | str | None, default None
+    image_path : Path or str or None, optional
         Path to ENVI data file, useful if data file is not found
         automatically from header file name (see spectral.io.envi.open).
-    write_byte_order_if_missing: bool, default True
+    write_byte_order_if_missing : bool, optional
         Flag to indicate if the string "byte order = 0" should be written
         to the header file in case of MissingEnviHeaderParameter error
         (byte order is required by the "spectral" library, but is missing
-        in some Resonon ENVI files)
+        in some Resonon ENVI files).
 
     Returns
     -------
-    image: NDArray
-        image, shape (n_lines, n_samples, n_channels)
-    wl: NDArray
+    image : NDArray
+        Image, shape (n_lines, n_samples, n_channels).
+    wl : NDArray
         Wavelength vector, shape (n_channels,). None if no wavelengths listed.
-    metadata:  dict
+    metadata : dict
         Image metadata (ENVI header content).
     """
 
@@ -89,18 +134,18 @@ def read_envi(
 
 
 def read_envi_header(header_path: Union[Path, str]) -> tuple[dict, NDArray]:
-    """Read ENVI header information and convert wavelengths to numeric array
+    """Read ENVI header information and convert wavelengths to numeric array.
 
     Parameters
     ----------
     header_path : Union[Path, str]
-        Path to ENVI header
+        Path to ENVI header.
 
     Returns
     -------
-    metadata: dict[str,str]
-        All header information formatted as dict
-    wl: NDArray
+    metadata : dict
+        All header information formatted as dict.
+    wl : NDArray
         If "wavelength" is present in header file, wavelengths are returned as numeric
         array. If not, an empty array is returned.
     """
@@ -113,12 +158,20 @@ def read_envi_header(header_path: Union[Path, str]) -> tuple[dict, NDArray]:
 
 
 def write_envi_header(header_path: Union[Path, str], metadata: dict):
-    """Write metadata dictionary to ENVI header (simple wrapper)"""
+    """Write metadata dictionary to ENVI header (simple wrapper).
+
+    Parameters
+    ----------
+    header_path : Union[Path, str]
+        Path to ENVI header file.
+    metadata : dict
+        Metadata dictionary to write to the header file.
+    """
     spectral.io.envi.write_envi_header(header_path, metadata)
 
 
 def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **kwargs) -> None:
-    """Save ENVI file with parameters compatible with Spectronon
+    """Save ENVI file with parameters compatible with Spectronon.
 
     Parameters
     ----------
@@ -127,35 +180,36 @@ def save_envi(header_path: Union[Path, str], image: NDArray, metadata: dict, **k
         Data file will be saved in the same location and with
         the same name, but without the '.hdr' extension.
     image : NDArray
-        Hyperspectral image, shape (n_lines, n_samples, n_bands)
+        Hyperspectral image, shape (n_lines, n_samples, n_bands).
     metadata : dict
         Dict containing (updated) image metadata.
-        See read_envi()
+        See read_envi().
+    **kwargs : dict
+        Additional keyword arguments passed to spectral.envi.save_image.
     """
     # Save file
     spectral.envi.save_image(header_path, image, metadata=metadata, force=True, ext=None, **kwargs)
 
 
 def array_to_header_string(num_array: ArrayLike, decimals: int = 3) -> str:
-    """Convert numeric array to ENVI header string
+    """Convert numeric array to ENVI header string.
 
     Parameters
     ----------
     num_array : ArrayLike
-        Array or iterable (list, tuple, ...) of wavelengths
-    decimals: int, default 3
-        Number of decimals used in text output
+        Array or iterable (list, tuple, ...) of wavelengths.
+    decimals : int, optional
+        Number of decimals used in text output.
 
     Returns
     -------
-    header_str
+    header_str : str
         String with comma separated numeric values in curly braces.
 
     Examples
     --------
     >>> array_to_header_string([420.32, 500, 581.28849])
     '{420.320, 500.000, 581.288}'
-
     """
     num_array = np.atleast_1d(np.array(num_array))  # Ensure array format
     str_array = [f"{num:.{decimals}f}" for num in num_array]  # Convert each number to string
@@ -164,12 +218,23 @@ def array_to_header_string(num_array: ArrayLike, decimals: int = 3) -> str:
 
 
 def header_string_to_array(header_string: str) -> NDArray:
-    """Convert header string with numeric array to NumPy array"""
+    """Convert header string with numeric array to NumPy array.
+
+    Parameters
+    ----------
+    header_string : str
+        Header string with numeric array.
+
+    Returns
+    -------
+    NDArray
+        Numeric array converted from header string.
+    """
     return np.array([float(irrad) for irrad in header_string])
 
 
 def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str]) -> None:
-    """Update ENVI header wavelengths
+    """Update ENVI header wavelengths.
 
     Parameters
     ----------
@@ -186,7 +251,7 @@ def update_header_wavelengths(wavelengths: NDArray, header_path: Union[Path, str
 
 
 def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) -> None:
-    """Add irradiance information to ENVI header ("solar irradiance")
+    """Add irradiance information to ENVI header ("solar irradiance").
 
     Parameters
     ----------
@@ -206,14 +271,14 @@ def add_header_irradiance(irradiance: NDArray, header_path: Union[Path, str]) ->
 
 
 def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[Path, str]):
-    """Add mapinfo from from geotransform JSON to ENVI header file
+    """Add mapinfo from geotransform JSON to ENVI header file.
 
     Parameters
     ----------
-    header_path : Union[Path,str]
-        Path to ENVI header file
+    header_path : Union[Path, str]
+        Path to ENVI header file.
     geotransform_path : Union[Path, str]
-        Path to JSON file with geotransform field "envi_map_info"
+        Path to JSON file with geotransform field "envi_map_info".
     """
     metadata = spectral.io.envi.read_envi_header(header_path)
     geotransform_data = read_json(geotransform_path)
@@ -222,13 +287,35 @@ def add_header_mapinfo(header_path: Union[Path, str], geotransform_path: Union[P
 
 
 def header_contains_mapinfo(header_path: Union[Path, str]) -> bool:
-    """Check if hyperspectral header file contains map info field"""
+    """Check if hyperspectral header file contains map info field.
+
+    Parameters
+    ----------
+    header_path : Union[Path, str]
+        Path to ENVI header file.
+
+    Returns
+    -------
+    bool
+        True if header contains map info, False otherwise.
+    """
     metadata, _ = read_envi_header(header_path)
     return "map info" in metadata
 
 
 def get_image_shape(image_path: Union[Path, str]) -> tuple[int, int, int]:
-    """Get shape of image cube (lines, samples, bands)"""
+    """Get shape of image cube (lines, samples, bands).
+
+    Parameters
+    ----------
+    image_path : Union[Path, str]
+        Path to image file.
+
+    Returns
+    -------
+    tuple of int
+        Shape of image cube (lines, samples, bands).
+    """
     header = spectral.envi.read_envi_header(image_path)
     shape = (int(header["lines"]), int(header["samples"]), int(header["bands"]))
     return shape
@@ -241,24 +328,24 @@ def bin_image(
     channel_bin_size: int = 1,
     average: bool = True,
 ) -> NDArray:
-    """Bin image cube (combine neighboring pixels)
+    """Bin image cube (combine neighboring pixels).
 
     Parameters
     ----------
     image : NDArray
         Image formatted as 3D NumPy array, with shape
         (n_lines, n_samples, n_bands). If the original array
-        is only 2D, extend it t0 3D by inserting a singleton axis.
+        is only 2D, extend it to 3D by inserting a singleton axis.
         For example, for a "single-line image" with shape (900,600),
-        use image = np.expand_dims(image,axis=0), resulting in shape
+        use image = np.expand_dims(image, axis=0), resulting in shape
         (1,900,600).
-    line_bin_size : int, default 1
-        How many neighboring lines to combine (axis 0)
-    sample_bin_size : int, default 1
-        How many neighboring samples to combine (axis 1)
-    channel_bin_size : int, default 1
-        How many neighboring spectral channels to combine (axis 2)
-    average : bool, default True
+    line_bin_size : int, optional
+        How many neighboring lines to combine (axis 0).
+    sample_bin_size : int, optional
+        How many neighboring samples to combine (axis 1).
+    channel_bin_size : int, optional
+        How many neighboring spectral channels to combine (axis 2).
+    average : bool, optional
         Whether to use averaging across neighboring pixels.
         If false, neighboring pixels are simply summed. Note that
         this shifts the statistical distribution of pixel values.
@@ -266,7 +353,7 @@ def bin_image(
     Returns
     -------
     NDArray
-        Binned version of image. The shape in reduced along each axis
+        Binned version of image. The shape is reduced along each axis
         by a factor corresponding to the bin size.
 
     References
@@ -303,18 +390,18 @@ def bin_image(
 def savitzky_golay_filter(
     image: NDArray, window_length: int = 13, polyorder: int = 3, axis: int = 2
 ) -> NDArray:
-    """Filter hyperspectral image using Savitzky-Golay filter
+    """Filter hyperspectral image using Savitzky-Golay filter.
 
     Parameters
     ----------
     image : NDArray
-        Image array, shape (n_lines, n_samples, n_bands)
-    window_length : int, default 13
-        Length of "local" window withing which a polynomial is fitted
+        Image array, shape (n_lines, n_samples, n_bands).
+    window_length : int, optional
+        Length of "local" window within which a polynomial is fitted
         to the data.
-    polyorder : int, default 3
+    polyorder : int, optional
         Order of fitted polynomial.
-    axis : int, default 2
+    axis : int, optional
         Axis along which filtering is applied.
 
     Returns
@@ -326,14 +413,14 @@ def savitzky_golay_filter(
 
 
 def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
-    """Get index in sampled wavelength array closest to target wavelength
+    """Get index in sampled wavelength array closest to target wavelength.
 
     Parameters
     ----------
     wl_array : ArrayLike
-        Array of wavelengths
+        Array of wavelengths.
     target_wl : Union[float, int]
-        Single target wavelength
+        Single target wavelength.
 
     Returns
     -------
@@ -351,23 +438,23 @@ def closest_wl_index(wl_array: ArrayLike, target_wl: Union[float, int]) -> int:
 def rgb_subset_from_hsi(
     hyspec_im: NDArray, hyspec_wl: NDArray, rgb_target_wl: ArrayLike = (650, 550, 450)
 ) -> tuple[NDArray, NDArray]:
-    """Extract 3 bands from hyperspectral image representing red, green, blue
+    """Extract 3 bands from hyperspectral image representing red, green, blue.
 
     Parameters
     ----------
     hyspec_im : NDArray
-        Hyperspectral image, shape (n_lines, n_samples, n_bands)
+        Hyperspectral image, shape (n_lines, n_samples, n_bands).
     hyspec_wl : NDArray
         Wavelengths for each band of hyperspectral image, in nm.
-        Shape (n_bands,)
-    rgb_target_wl : ArrayLike, default (650, 550, 450)
+        Shape (n_bands,).
+    rgb_target_wl : ArrayLike, optional
         Wavelengths (in nm) representing red, green and blue.
 
     Returns
     -------
-    rgb_im: NDArray
-        3-band image representing red, green and blue color (in that order)
-    rgb_wl: NDArray
+    rgb_im : NDArray
+        3-band image representing red, green and blue color (in that order).
+    rgb_wl : NDArray
         3-element vector with wavelengths (in nm) corresponding to
         each band of rgb_im. Values correspond to the wavelengths in
         hyspec_wl that are closest to rgb_target_wl.
@@ -383,16 +470,20 @@ def percentile_stretch_image(
     percentiles: tuple[float, float] = (2, 98),
     saturation_value: int = 2**12 - 1,
 ) -> NDArray:
-    """Scale array values within percentile limits to range 0-255
+    """Scale array values within percentile limits to range 0-255.
 
     Parameters
     ----------
     image : NDArray
-        Image, shape (n_lines, n_samples, n_bands)
+        Image, shape (n_lines, n_samples, n_bands).
+    percentiles : tuple of float, optional
+        Lower and upper percentiles for stretching.
+    saturation_value : int, optional
+        Saturation value for the image.
 
     Returns
     -------
-    image_stretched: NDArray, dtype = uint8
+    image_stretched : NDArray, dtype=uint8
         Image with same shape as input.
         Image intensity values are stretched so that the lower
         percentile corresponds to 0 and the higher percentile corresponds
@@ -418,23 +509,23 @@ def percentile_stretch_image(
 def convert_long_lat_to_utm(
     long: ArrayLike, lat: ArrayLike
 ) -> tuple[NDArray, NDArray, Union[int, None]]:
-    """Convert longitude and latitude coordinates (WGS84) to UTM
+    """Convert longitude and latitude coordinates (WGS84) to UTM.
 
     Parameters
     ----------
     long : ArrayLike
-        Longitude coordinate(s)
+        Longitude coordinate(s).
     lat : ArrayLike
-        Latitude coordinate(s)
+        Latitude coordinate(s).
 
     Returns
     -------
-    UTMx:NDArray
-        UTM x coordinate(s) ("Easting")
-    UTMy: NDArray
-        UTM y coordinate(s) ("Northing")
-    UTM_epsg : int
-        EPSG code (integer) for UTM zone
+    UTMx : NDArray
+        UTM x coordinate(s) ("Easting").
+    UTMy : NDArray
+        UTM y coordinate(s) ("Northing").
+    UTM_epsg : int or None
+        EPSG code (integer) for UTM zone.
     """
     utm_crs_list = pyproj.database.query_utm_crs_info(
         datum_name="WGS 84",
@@ -453,19 +544,19 @@ def convert_long_lat_to_utm(
 
 
 def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:
-    """Get indices of VIS band
+    """Get indices of VIS band.
 
     Parameters
     ----------
     wl : NDArray
-        Array of wavelengths (monotonically increasing), in nm
-    vis_band : tuple[float, float], default (400.0, 730.0)
-        Lower and upper limit of visible light range, in nm
+        Array of wavelengths (monotonically increasing), in nm.
+    vis_band : tuple of float, optional
+        Lower and upper limit of visible light range, in nm.
 
     Returns
     -------
-    vis_ind: NDArray, boolean
-        Boolean array, True where wl is within vis_band
+    vis_ind : NDArray, boolean
+        Boolean array, True where wl is within vis_band.
     """
     return (wl >= vis_band[0]) & (wl <= vis_band[1])
 
@@ -475,31 +566,30 @@ def get_nir_ind(
     nir_band: tuple[float, float] = (740.0, 805.0),
     nir_ignore_band: tuple[float, float] = (753.0, 773.0),
 ) -> NDArray:
-    """Get indices of NIR band
+    """Get indices of NIR band.
 
     Parameters
     ----------
     wl : NDArray
-        Array of wavelengths (monotonically increasing)
-    nir_band: tuple[float, float], default (740.0, 805.0)
+        Array of wavelengths (monotonically increasing).
+    nir_band : tuple of float, optional
         Lower and upper edge of near-infrared (NIR) band.
-    nir_ignore_band: tuple [float, float], default (753.0, 773.0)
+    nir_ignore_band : tuple of float, optional
         Lower and upper edge of band to ignore (not include in indices)
         with nir_band. Default value corresponds to O2 absorption band
         around 760 nm.
 
     Returns
     -------
-    NDArray:
+    NDArray
         Array with indices of NIR band wavelengths.
 
-    Notes:
-    ------
-    - Default values are at relatively short wavelengths (just above visible)
+    Notes
+    -----
+    Default values are at relatively short wavelengths (just above visible)
     in order to generate a NIR image with high signal-no-noise level.
     The default nir_ignore_band is used to exclude the "A" Fraunhofer
     line (around 759 nm).
-
     """
     nir_ind = (wl >= nir_band[0]) & (wl <= nir_band[1])
     ignore_ind = (wl >= nir_ignore_band[0]) & (wl <= nir_ignore_band[1])
@@ -508,14 +598,14 @@ def get_nir_ind(
 
 
 def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
-    """Save RGB image as PNG using rasterio / GDAL
+    """Save RGB image as PNG using rasterio / GDAL.
 
     Parameters
     ----------
-    rgb_image : NDArray, dtype uint8
-        Image, shape (n_lines, n_samples, n_bands=3)
+    rgb_image : NDArray, dtype=uint8
+        Image, shape (n_lines, n_samples, n_bands=3).
         Image bands must be ordered as RGB (band index 0 = red,
-        band index 1 = green, band index 2 = blue),
+        band index 1 = green, band index 2 = blue).
         The image must already be scaled to uint8 values 0-255.
     png_path : Union[Path, str]
         Path to output PNG file.
@@ -537,17 +627,17 @@ def save_png(rgb_image: NDArray, png_path: Union[Path, str]):
 
 
 def read_json(json_path: Union[Path, str]) -> dict:
-    """Read data saved in JSON file
+    """Read data saved in JSON file.
 
     Parameters
     ----------
-    json_path : Union[Path,str]
-        Path to JSON file
+    json_path : Union[Path, str]
+        Path to JSON file.
 
     Returns
     -------
-    data: dict
-        Data from JSON file
+    dict
+        Data from JSON file.
     """
     with open(json_path, "r") as file:
         imu_data = json.load(file)
@@ -555,22 +645,22 @@ def read_json(json_path: Union[Path, str]) -> dict:
 
 
 def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = True):
-    """_summary_
+    """Randomly sample pixels from hyperspectral image.
 
     Parameters
     ----------
     image : NDArray
-        Hyperspectral image, shape (n_rows, n_lines, n_bands)
+        Hyperspectral image, shape (n_rows, n_lines, n_bands).
     sample_frac : float, optional
         Number of samples expressed as a fraction of the total
-        number of pixels in the image. Range: [0.0 - 1.0]
+        number of pixels in the image. Range: [0.0 - 1.0].
     ignore_zeros : bool, optional
-        If True, ignore pixels which are zero across all channels
+        If True, ignore pixels which are zero across all channels.
 
     Returns
     -------
-    X: NDArray
-        2D array of sampled spectra, shape (n_samples, n_bands)
+    NDArray
+        2D array of sampled spectra, shape (n_samples, n_bands).
     """
 
     # Create mask
@@ -590,9 +680,22 @@ def random_sample_image(image: NDArray, sample_frac=0.5, ignore_zeros: bool = Tr
 
 
 def unix2gps(unix_time):
-    """Convert UNIX time to GPS time (both in seconds)
+    """Convert UNIX time to GPS time (both in seconds).
+
+    Parameters
+    ----------
+    unix_time : float
+        UNIX time in seconds.
+
+    Returns
+    -------
+    float
+        GPS time in seconds.
+
+    Notes
+    -----
     UNIX-GPS time conversion code adapted from
-    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås.
     """
     gps_time = unix_time - 315964800
     nleaps = _count_leaps(gps_time, "unix2gps")
@@ -601,9 +704,22 @@ def unix2gps(unix_time):
 
 
 def gps2unix(gps_time):
-    """Convert GPS time to UNIX time (both in seconds)
+    """Convert GPS time to UNIX time (both in seconds).
+
+    Parameters
+    ----------
+    gps_time : float
+        GPS time in seconds.
+
+    Returns
+    -------
+    float
+        UNIX time in seconds.
+
+    Notes
+    -----
     GPS-UNIX time conversion code adapted from
-    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås
+    https://www.andrews.edu/~tzs/timeconv/timealgorithm.html by Håvard S. Løvås.
     """
     unix_time = gps_time + 315964800
     nleaps = _count_leaps(gps_time, "gps2unix")
@@ -614,7 +730,13 @@ def gps2unix(gps_time):
 
 
 def _get_leaps():
-    """List of leap seconds in GPS time"""
+    """List of leap seconds in GPS time.
+
+    Returns
+    -------
+    list of int
+        List of leap seconds in GPS time.
+    """
     return [
         46828800,
         78364801,
@@ -638,7 +760,25 @@ def _get_leaps():
 
 
 def _count_leaps(gps_time, dir_flag):
-    """Count number of leap seconds passed for given GPS time"""
+    """Count number of leap seconds passed for given GPS time.
+
+    Parameters
+    ----------
+    gps_time : float
+        GPS time in seconds.
+    dir_flag : str
+        Direction flag, either "unix2gps" or "gps2unix".
+
+    Returns
+    -------
+    int
+        Number of leap seconds passed for given GPS time.
+
+    Raises
+    ------
+    ValueError
+        If an invalid direction flag is provided.
+    """
     leaps = _get_leaps()
     nleaps = 0
     for leap in leaps:
@@ -654,11 +794,13 @@ def _count_leaps(gps_time, dir_flag):
 
 
 def get_nested_dict_value(nested_dict, *keys):
-    """Get (nested) dictionary value if it exists
+    """Get (nested) dictionary value if it exists.
 
     Parameters
     ----------
-    *keys
+    nested_dict : dict
+        The nested dictionary to search.
+    *keys : str
         One or multiple keys needed to access value in nested dict.
 
     Returns
@@ -677,41 +819,85 @@ def get_nested_dict_value(nested_dict, *keys):
 
 
 def irrad_uflicklike_to_si_nm(irrad: NDArray) -> NDArray:
-    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    """Convert irradiance from uW/(cm2*um) to W/(m2*nm).
+
+    Parameters
+    ----------
+    irrad : NDArray
+        Irradiance in uW/(cm2*um).
+
+    Returns
+    -------
+    NDArray
+        Irradiance in W/(m2*nm).
+    """
     return irrad / 100_000
 
 
 def irrad_si_nm_to_uflicklike(irrad: NDArray) -> NDArray:
-    """Convert irradiance from uW/(cm2*um) to W/(m2*nm)"""
+    """Convert irradiance from W/(m2*nm) to uW/(cm2*um).
+
+    Parameters
+    ----------
+    irrad : NDArray
+        Irradiance in W/(m2*nm).
+
+    Returns
+    -------
+    NDArray
+        Irradiance in uW/(cm2*um).
+    """
     return irrad * 100_000
 
 
 def irrad_si_nm_to_si_um(irrad: NDArray) -> NDArray:
-    """Convert irradiance from W/(m2*nm) to W/(m2*um)"""
+    """Convert irradiance from W/(m2*nm) to W/(m2*um).
+
+    Parameters
+    ----------
+    irrad : NDArray
+        Irradiance in W/(m2*nm).
+
+    Returns
+    -------
+    NDArray
+        Irradiance in W/(m2*um).
+    """
     return irrad * 1000
 
 
 def irrad_si_um_to_uflicklike(irrad: NDArray) -> NDArray:
-    """Convert irradiance from W/(m2*um) to uW/(cm2*um)"""
+    """Convert irradiance from W/(m2*um) to uW/(cm2*um).
+
+    Parameters
+    ----------
+    irrad : NDArray
+        Irradiance in W/(m2*um).
+
+    Returns
+    -------
+    NDArray
+        Irradiance in uW/(cm2*um).
+    """
     return irrad * 100
 
 
 def resample_cube_spectrally(image: NDArray, old_wl: NDArray, new_wl: NDArray) -> NDArray:
-    """Resample datacube to new set of wavelengths (linear interp.)
+    """Resample datacube to new set of wavelengths (linear interp.).
 
     Parameters
     ----------
     image : NDArray
-        Hyperspectral image, shape (n_lines, n_samples, n_bands_old)
+        Hyperspectral image, shape (n_lines, n_samples, n_bands_old).
     old_wl : NDArray
-        Array of old (original) wavelengths, shape (n_bands_old,)
+        Array of old (original) wavelengths, shape (n_bands_old,).
     new_wl : NDArray
-        Array of new wavelengths, shape (n_bands_new)
+        Array of new wavelengths, shape (n_bands_new).
 
     Returns
     -------
-    image_interp: NDArray
-        Datacube interpolated to new_wl, shape (n_lines, n_samples, n_bands_new)
+    NDArray
+        Datacube interpolated to new_wl, shape (n_lines, n_samples, n_bands_new).
     """
     image_interp = np.apply_along_axis(
         lambda spec: np.interp(x=new_wl, xp=old_wl, fp=spec), axis=2, arr=image
