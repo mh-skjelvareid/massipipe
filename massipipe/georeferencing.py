@@ -69,7 +69,11 @@ class ImuDataParser:
         - The LCF file format was shared by Casey Smith at Resonon on February 16. 2021.
         - The LCF specification was inherited from Space Computer Corp.
         """
-        lcf_raw = np.loadtxt(lcf_file_path)
+        try:
+            lcf_raw = np.loadtxt(lcf_file_path)
+        except Exception as e:
+            logger.error(f"Error reading LCF file {lcf_file_path}: {e}")
+            raise
         column_headers = [
             "time",
             "roll",
@@ -118,7 +122,11 @@ class ImuDataParser:
             for each image line.
 
         """
-        image_times = np.loadtxt(times_file_path)
+        try:
+            image_times = np.loadtxt(times_file_path)
+        except Exception as e:
+            logger.error(f"Error reading times file {times_file_path}: {e}")
+            raise
         if time_rel_to_file_start:
             image_times = image_times - image_times[0]
         return image_times
@@ -177,12 +185,16 @@ class ImuDataParser:
         json_path : Union[Path, str]
             Path to output JSON file
         """
-        lcf_data = self.read_lcf_file(lcf_path)
-        times_data = self.read_times_file(times_path)
-        lcf_data_interp = self.interpolate_lcf_to_times(lcf_data, times_data)
+        try:
+            lcf_data = self.read_lcf_file(lcf_path)
+            times_data = self.read_times_file(times_path)
+            lcf_data_interp = self.interpolate_lcf_to_times(lcf_data, times_data)
 
-        with open(json_path, "w", encoding="utf-8") as write_file:
-            json.dump(lcf_data_interp, write_file, ensure_ascii=False, indent=4)
+            with open(json_path, "w", encoding="utf-8") as write_file:
+                json.dump(lcf_data_interp, write_file, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Error processing IMU data: {e}")
+            raise
 
 
 class GeoTransformer:
@@ -269,55 +281,59 @@ class GeoTransformer:
         self.utm_x_offset = utm_x_offset
         self.utm_y_offset = utm_y_offset
 
-        # Get imu data and image shape from files
-        self.imu_data = mpu.read_json(imu_data_path)
-        self.image_shape = mpu.get_image_shape(image_header_path)
+        try:
+            # Get imu data and image shape from files
+            self.imu_data = mpu.read_json(imu_data_path)
+            self.image_shape = mpu.get_image_shape(image_header_path)
 
-        # Get UTM coordinates and CRS code
-        self.utm_x, self.utm_y, self.utm_epsg = mpu.convert_long_lat_to_utm(
-            self.imu_data["longitude"], self.imu_data["latitude"]
-        )
-        self.utm_x -= self.utm_x_offset
-        self.utm_y -= self.utm_y_offset
-        self.camera_origin = np.array([self.utm_x[0], self.utm_y[0]])
+            # Get UTM coordinates and CRS code
+            self.utm_x, self.utm_y, self.utm_epsg = mpu.convert_long_lat_to_utm(
+                self.imu_data["longitude"], self.imu_data["latitude"]
+            )
+            self.utm_x -= self.utm_x_offset
+            self.utm_y -= self.utm_y_offset
+            self.camera_origin = np.array([self.utm_x[0], self.utm_y[0]])
 
-        # Time-related attributes
-        t_total, dt = self._calc_time_attributes()
-        self.t_total = t_total
-        self.dt = dt
+            # Time-related attributes
+            t_total, dt = self._calc_time_attributes()
+            self.t_total = t_total
+            self.dt = dt
 
-        # Along-track properties
-        v_at, u_at, gsd_at, sl = self._calc_alongtrack_properties()
-        self.v_alongtrack = v_at
-        self.u_alongtrack = u_at
-        self.gsd_alongtrack = gsd_at
-        self.swath_length = sl
+            # Along-track properties
+            v_at, u_at, gsd_at, sl = self._calc_alongtrack_properties()
+            self.v_alongtrack = v_at
+            self.u_alongtrack = u_at
+            self.gsd_alongtrack = gsd_at
+            self.swath_length = sl
 
-        # Altitude
-        self.mean_altitude = self._calc_mean_altitude(assume_square_pixels)
+            # Altitude
+            self.mean_altitude = self._calc_mean_altitude(assume_square_pixels)
 
-        # Cross-track properties
-        u_ct, sw, gsd_ct = self._calc_acrosstrack_properties()
-        self.u_acrosstrack = u_ct
-        self.swath_width = sw
-        self.gsd_acrosstrack = gsd_ct
+            # Cross-track properties
+            u_ct, sw, gsd_ct = self._calc_acrosstrack_properties()
+            self.u_acrosstrack = u_ct
+            self.swath_width = sw
+            self.gsd_acrosstrack = gsd_ct
 
-        # Image origin (image transform offset)
-        self.image_origin = self._calc_image_origin()
+            # Image origin (image transform offset)
+            self.image_origin = self._calc_image_origin()
 
-        # Affine transform
-        self.geotransform = self.get_image_transform(ordering="alphabetical")
+            # Affine transform
+            self.geotransform = self.get_image_transform(ordering="alphabetical")
 
-        # Image rotation (degrees)
-        self.rotation_deg = self._calc_image_rotation()
+            # Image rotation (degrees)
+            self.rotation_deg = self._calc_image_rotation()
 
-        # UTM zone
-        utm_zone_number, utm_zone_hemi = self._get_utm_zone()
-        self.utm_zone_number = utm_zone_number
-        self.utm_zone_hemi = utm_zone_hemi
+            # UTM zone
+            utm_zone_number, utm_zone_hemi = self._get_utm_zone()
+            self.utm_zone_number = utm_zone_number
+            self.utm_zone_hemi = utm_zone_hemi
 
-        # ENVI map info
-        self.envi_map_info = self.get_envi_map_info()
+            # ENVI map info
+            self.envi_map_info = self.get_envi_map_info()
+        except Exception as e:
+            logger.error(f"Error initializing GeoTransformer: {e}")
+            raise
 
     def _calc_time_attributes(self) -> Tuple[float, float]:
         """Calculate time duration and sampling interval of IMU data"""
@@ -517,20 +533,24 @@ class GeoTransformer:
         geotransform_json_path : Union[Path, str]
             Path to JSON file
         """
-        geotransform_data = {
-            "utm_epsg": self.utm_epsg,
-            "geotransform": self.geotransform,
-            "envi_map_info": self.envi_map_info,
-            "image_origin": {"x": self.image_origin[0], "y": self.image_origin[1]},
-            "gsd_alongtrack": self.gsd_alongtrack,
-            "gsd_acrosstrack": self.gsd_acrosstrack,
-            "swath_length": self.swath_length,
-            "swath_width": self.swath_width,
-            "rotation_deg": self.rotation_deg,
-        }
+        try:
+            geotransform_data = {
+                "utm_epsg": self.utm_epsg,
+                "geotransform": self.geotransform,
+                "envi_map_info": self.envi_map_info,
+                "image_origin": {"x": self.image_origin[0], "y": self.image_origin[1]},
+                "gsd_alongtrack": self.gsd_alongtrack,
+                "gsd_acrosstrack": self.gsd_acrosstrack,
+                "swath_length": self.swath_length,
+                "swath_width": self.swath_width,
+                "rotation_deg": self.rotation_deg,
+            }
 
-        with open(geotransform_json_path, "w", encoding="utf-8") as write_file:
-            json.dump(geotransform_data, write_file, ensure_ascii=False, indent=4)
+            with open(geotransform_json_path, "w", encoding="utf-8") as write_file:
+                json.dump(geotransform_data, write_file, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Error saving geotransform data: {e}")
+            raise
 
 
 class SimpleGeoreferencer:
@@ -594,32 +614,36 @@ class SimpleGeoreferencer:
         geotiff_path:
             Path to (output) GeoTIFF file.
         """
-        # Read image, and (optional) create RGB subset
-        image, wl, _ = mpu.read_envi(image_path)
-        if self.rgb_only:
-            if self.rgb_wl:
-                image, wl = mpu.rgb_subset_from_hsi(image, wl, rgb_target_wl=self.rgb_wl)
-            else:
-                image, wl = mpu.rgb_subset_from_hsi(image, wl)
+        try:
+            # Read image, and (optional) create RGB subset
+            image, wl, _ = mpu.read_envi(image_path)
+            if self.rgb_only:
+                if self.rgb_wl:
+                    image, wl = mpu.rgb_subset_from_hsi(image, wl, rgb_target_wl=self.rgb_wl)
+                else:
+                    image, wl = mpu.rgb_subset_from_hsi(image, wl)
 
-        # Insert nodata value in invalid pixels
-        self._insert_image_nodata_value(image)
+            # Insert nodata value in invalid pixels
+            self._insert_image_nodata_value(image)
 
-        # Read geotransform info and create GeoTIFF profile
-        geotransform_data = mpu.read_json(geotransform_path)
-        geotiff_profile = self.create_geotiff_profile(
-            image,
-            geotransform_parameters=geotransform_data["geotransform"],
-            crs_epsg=geotransform_data["utm_epsg"],
-        )
+            # Read geotransform info and create GeoTIFF profile
+            geotransform_data = mpu.read_json(geotransform_path)
+            geotiff_profile = self.create_geotiff_profile(
+                image,
+                geotransform_parameters=geotransform_data["geotransform"],
+                crs_epsg=geotransform_data["utm_epsg"],
+            )
 
-        # Write GeoTIFF file
-        self.write_geotiff(
-            geotiff_path,
-            image,
-            wl,
-            geotiff_profile,
-        )
+            # Write GeoTIFF file
+            self.write_geotiff(
+                geotiff_path,
+                image,
+                wl,
+                geotiff_profile,
+            )
+        except Exception as e:
+            logger.error(f"Error georeferencing hyperspectral image: {e}")
+            raise
 
     def _insert_image_nodata_value(self, image: NDArray) -> None:
         """Insert nodata values in image (in-place)
@@ -750,47 +774,51 @@ class SimpleGeoreferencer:
         consistenly to avoid bugs. This function moves the band axis directly before
         writing.
         """
-        image = reshape_as_raster(image)  # Band ordering required by GeoTIFF
-        band_names = [f"{wl:.3f}" for wl in wavelengths]
+        try:
+            image = reshape_as_raster(image)  # Band ordering required by GeoTIFF
+            band_names = [f"{wl:.3f}" for wl in wavelengths]
 
-        if self.reproject_to_nonrotated_transform:
-            # Use GDAL env. var. GDAL_PAM_ENABLED=False to hide false errors
-            # See https://github.com/rasterio/rasterio/discussions/2825 for details
-            with rasterio.Env(GDAL_PAM_ENABLED=False):
-                with MemoryFile() as memfile:
-                    # Write rotated raster to in-memory file to open it as DatasetReader
-                    with rasterio.open(memfile, "w", **geotiff_profile) as dataset:
-                        for i in range(dataset.count):
-                            dataset.set_band_description(i + 1, band_names[i])
+            if self.reproject_to_nonrotated_transform:
+                # Use GDAL env. var. GDAL_PAM_ENABLED=False to hide false errors
+                # See https://github.com/rasterio/rasterio/discussions/2825 for details
+                with rasterio.Env(GDAL_PAM_ENABLED=False):
+                    with MemoryFile() as memfile:
+                        # Write rotated raster to in-memory file to open it as DatasetReader
+                        with rasterio.open(memfile, "w", **geotiff_profile) as dataset:
+                            for i in range(dataset.count):
+                                dataset.set_band_description(i + 1, band_names[i])
+                            dataset.write(image)
+
+                        # Open in-memory rotated dataset as DatasetReader ("source")
+                        with rasterio.open(memfile, "r") as src:
+                            # Calculate transform and shape of non-rotated raster
+                            dst_profile = self.calculate_non_rotated_geotiff_profile(src)
+
+                            # Open output file as non-rotated destination raster dataset
+                            with rasterio.open(geotiff_path, "w", **dst_profile) as dst:
+                                # Loop over bands and reproject to non-rotated transform
+                                for i in range(1, src.count + 1):
+                                    dst.set_band_description(i, src.descriptions[i - 1])
+                                    reproject(
+                                        source=rasterio.band(src, i),
+                                        destination=rasterio.band(dst, i),
+                                        src_transform=src.transform,
+                                        src_crs=src.crs,
+                                        dst_transform=dst.transform,
+                                        dst_crs=dst.crs,
+                                        resampling=Resampling.nearest,
+                                    )
+
+            else:  # Use rotated geotransform (no reprojection needed)
+                with rasterio.Env():
+                    with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
+                        if band_names is not None:
+                            for i in range(dataset.count):
+                                dataset.set_band_description(i + 1, band_names[i])
                         dataset.write(image)
-
-                    # Open in-memory rotated dataset as DatasetReader ("source")
-                    with rasterio.open(memfile, "r") as src:
-                        # Calculate transform and shape of non-rotated raster
-                        dst_profile = self.calculate_non_rotated_geotiff_profile(src)
-
-                        # Open output file as non-rotated destination raster dataset
-                        with rasterio.open(geotiff_path, "w", **dst_profile) as dst:
-                            # Loop over bands and reproject to non-rotated transform
-                            for i in range(1, src.count + 1):
-                                dst.set_band_description(i, src.descriptions[i - 1])
-                                reproject(
-                                    source=rasterio.band(src, i),
-                                    destination=rasterio.band(dst, i),
-                                    src_transform=src.transform,
-                                    src_crs=src.crs,
-                                    dst_transform=dst.transform,
-                                    dst_crs=dst.crs,
-                                    resampling=Resampling.nearest,
-                                )
-
-        else:  # Use rotated geotransform (no reprojection needed)
-            with rasterio.Env():
-                with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
-                    if band_names is not None:
-                        for i in range(dataset.count):
-                            dataset.set_band_description(i + 1, band_names[i])
-                    dataset.write(image)
+        except Exception as e:
+            logger.error(f"Error writing GeoTIFF: {e}")
+            raise
 
 
 def envi_map_info_to_geotransform(envi_map_info: str) -> Tuple[Affine, int]:
