@@ -1,3 +1,5 @@
+"""Module for generating quicklook images from hyperspectral data."""
+
 # Imports
 import logging
 from pathlib import Path
