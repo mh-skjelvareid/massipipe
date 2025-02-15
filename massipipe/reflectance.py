@@ -1,7 +1,7 @@
 # Imports
 import logging
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Any, Iterable, Optional, Tuple, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,22 +18,22 @@ class ReflectanceConverter:
 
     def __init__(
         self,
-        wl_min: Union[float, None] = None,
-        wl_max: Union[float, None] = None,
-        conv_irrad_with_gauss: Union[bool, None] = True,
-        fwhm_irrad_smooth: Union[float, None] = 3.5,
-        smooth_spectra: Union[bool, None] = False,
-        refl_from_mean_irrad: Union[bool, None] = False,
-        irrad_spec_paths: Union[Iterable[Union[Path, str]], None] = None,
-    ):
+        wl_min: Optional[float] = None,
+        wl_max: Optional[float] = None,
+        conv_irrad_with_gauss: Optional[bool] = True,
+        fwhm_irrad_smooth: Optional[float] = 3.5,
+        smooth_spectra: Optional[bool] = False,
+        refl_from_mean_irrad: bool = False,
+        irrad_spec_paths: Optional[Iterable[Union[Path, str]]] = None,
+    ) -> None:
         """Initialize reflectance converter
 
         Parameters
         ----------
-        wl_min : Union[float, None], default None
+        wl_min : Optional[float], default None
             Minimum wavelength (nm) to include in reflectance image.
             If None, -float("inf") is used, and no lower limit is applied.
-        wl_max : Union[float, None], default None
+        wl_max : Optional[float], default None
             Maximum wavelength (nm) to include in reflectance image.
             If None, float("inf") is used, and no upper limit is applied.
         conv_irrad_with_gauss: bool, default True
@@ -45,13 +45,13 @@ class ReflectanceConverter:
             Only used if conv_irrad_with_gauss==True
         smooth_spectra: bool, default False
             Whether to smooth the reflectance spectra using a Savitzky-Golay filter
-        refl_from_mean_irrad: Union[bool, True], default False
+        refl_from_mean_irrad: bool, default False
             If True, the mean irradiance for the whole dataset is used for
             calculating reflectance, rather than the irradiance for a single image.
             This can be useful if individual irradiance are compromised and
             using the mean is more "robust". Paths to the irradiance files
             (irrad_spec_paths) must be specified.
-        irrad_spec_paths : Union[Iterable[Union[Path, str]], None], default None
+        irrad_spec_paths : Optional[Iterable[Union[Path, str]]], default None
             List of paths to irradiance spectra for the dataset.
             If specified (not None), a mean irradiance value is caluculated based
             on the spectra, and this irradiance value is used for every reflectance
@@ -66,12 +66,12 @@ class ReflectanceConverter:
         that the reflectance images have more well-behaved values.
         """
 
-        self.wl_min = wl_min if wl_min else -float("inf")
-        self.wl_max = wl_max if wl_max else float("inf")
+        self.wl_min = wl_min if wl_min is not None else -float("inf")
+        self.wl_max = wl_max if wl_max is not None else float("inf")
         self.conv_irrad_with_gauss = (
             True if conv_irrad_with_gauss or (conv_irrad_with_gauss is None) else False
         )
-        self.fwhm_irrad_smooth = fwhm_irrad_smooth if fwhm_irrad_smooth else 3.5
+        self.fwhm_irrad_smooth = fwhm_irrad_smooth if fwhm_irrad_smooth is not None else 3.5
         self.smooth_spectra = bool(smooth_spectra)
 
         if refl_from_mean_irrad:
@@ -84,7 +84,9 @@ class ReflectanceConverter:
         self.ref_irrad_spec_wl = irrad_wl
 
     @staticmethod
-    def _get_mean_irrad_spec(irrad_spec_paths):
+    def _get_mean_irrad_spec(
+        irrad_spec_paths: Optional[Iterable[Union[Path, str]]],
+    ) -> Tuple[NDArray, NDArray, NDArray]:
         """Read irradiance spectra from file and calculate mean"""
         irrad_spectra = []
         for irrad_spec_path in irrad_spec_paths:
@@ -139,7 +141,7 @@ class ReflectanceConverter:
         rad_wl: NDArray,
         irrad_spec: NDArray,
         irrad_wl: NDArray,
-    ) -> tuple[NDArray, NDArray, NDArray]:
+    ) -> Tuple[NDArray, NDArray, NDArray]:
         """Convert radiance image to reflectance using downwelling spectrum
 
         Parameters
@@ -208,7 +210,7 @@ class ReflectanceConverter:
         radiance_image_header: Union[Path, str],
         irradiance_header: Union[Path, str],
         reflectance_image_header: Union[Path, str],
-    ):
+    ) -> None:
         """Read radiance image from file, convert to reflectance and save
 
         Parameters
@@ -243,8 +245,8 @@ class ReflectanceConverter:
     def add_irradiance_spectrum_to_header(
         self,
         radiance_image_header: Union[Path, str],
-        irradiance_header: Union[Path, str, None],
-    ):
+        irradiance_header: Optional[Union[Path, str]],
+    ) -> None:
         """Add irradiance spectrum to radiance image header
 
         Parameters
@@ -274,7 +276,7 @@ class ReflectanceConverter:
         self,
         radiance_image_header: Union[Path, str],
         reflectance_image_header: Union[Path, str],
-    ):
+    ) -> None:
         """Convert radiance image with irradiance spectrum in header to reflectance
 
         The irradiance information is read from the field "solar irradiance" in the
