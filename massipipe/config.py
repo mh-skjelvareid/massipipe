@@ -1,3 +1,9 @@
+"""Massipipe configuration module.
+
+Provides functions for reading, writing, and exporting YAML configuration files,
+and defines Pydantic models for Massipipe processing options.
+"""
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
@@ -23,21 +29,29 @@ def write_config(data: dict, yaml_path: Union[Path, str]) -> None:
 
 
 class MpGeneral(BaseModel):
+    """General options for Massipipe processing"""
+
     rgb_wl: Optional[Tuple[PositiveInt, PositiveInt, PositiveInt]] = None
 
 
 class MpQuickLook(BaseModel):
+    """Configuration for creating quicklook image"""
+
     create: bool = True
     overwrite: bool = False
     percentiles: Optional[Tuple[NonNegativeInt, PositiveInt]] = None
 
 
 class MpImuData(BaseModel):
+    """Configuration for processing IMU data"""
+
     create: bool = True
     overwrite: bool = False
 
 
 class MpGeoTransform(BaseModel):
+    """Configuration for creating geotransform from IMU data"""
+
     create: bool = True
     overwrite: bool = True
     camera_opening_angle_deg: PositiveFloat = 36.5
@@ -50,6 +64,8 @@ class MpGeoTransform(BaseModel):
 
 
 class MpRadiance(BaseModel):
+    """Configuration for converting raw data to radiance"""
+
     create: bool = True
     overwrite: bool = False
     set_saturated_pixels_to_zero: bool = True
@@ -58,11 +74,15 @@ class MpRadiance(BaseModel):
 
 
 class MpRadianceRgb(BaseModel):
+    """Comfiguration for creating RGB image from radiance data"""
+
     create: bool = True
     overwrite: bool = False
 
 
 class MpRadianceGc(BaseModel):
+    """Configuration for converting radiance to glint corrected radiance"""
+
     create: bool = True
     overwrite: bool = False
     smooth_spectra: bool = False
@@ -75,16 +95,22 @@ class MpRadianceGc(BaseModel):
 
 
 class MpRadianceGcRgb(BaseModel):
+    """Configuration for creating RGB image from glint corrected radiance data"""
+
     create: bool = True
     overwrite: bool = False
 
 
 class MpIrradiance(BaseModel):
+    """Configuration for converting raw spectrum to irradiance"""
+
     create: bool = True
     overwrite: bool = False
 
 
 class MpReflectance(BaseModel):
+    """Configuration for converting radiance to reflectance"""
+
     create: bool = True
     overwrite: bool = False
     wl_min: float = 400
@@ -96,6 +122,8 @@ class MpReflectance(BaseModel):
 
 
 class MpReflectanceGc(BaseModel):
+    """Configuration for creating glint corrected reflectance"""
+
     create: bool = True
     overwrite: bool = False
     smooth_spectra: bool = True
@@ -103,16 +131,22 @@ class MpReflectanceGc(BaseModel):
 
 
 class MpReflectanceGcRgb(BaseModel):
+    """Configuration for creating RGB image from glint corrected reflectance data"""
+
     create: bool = True
     overwrite: bool = False
 
 
 class MpMosaicCreateOverwrite(BaseModel):
+    """Configuration for creating mosaic image"""
+
     create: bool = False
     overwrite: bool = False
 
 
 class MpMosaic(BaseModel):
+    """General configuration for creating mosaic images"""
+
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     visualization_mosaic: Literal["radiance", "radiance_gc"] = "radiance"
     radiance_rgb: MpMosaicCreateOverwrite
@@ -122,6 +156,8 @@ class MpMosaic(BaseModel):
 
 
 class MassipipeOptions(BaseModel):
+    """Configuration for Massipipe processing"""
+
     general: MpGeneral
     quicklook: MpQuickLook
     imu_data: MpImuData
@@ -138,6 +174,8 @@ class MassipipeOptions(BaseModel):
 
 
 class Config(BaseModel):
+    """Top-level configuration including standard SeaBee fields"""
+
     grouping: str
     area: str
     datetime: str
@@ -173,6 +211,7 @@ class Config(BaseModel):
 
 
 def get_config_template() -> Config:
+    """Generate template configuration based on Pydantic schema"""
     template_config = Config(
         grouping="grouping_name",
         area="area_name",
