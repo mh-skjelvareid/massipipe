@@ -1,3 +1,8 @@
+"""Module for georeferencing hyperspectral imagery and processing IMU data.
+Provides classes and methods to parse IMU files, compute geospatial transforms,
+and generate georeferenced outputs such as GeoTIFFs.
+"""
+
 # Imports
 import json
 import logging
