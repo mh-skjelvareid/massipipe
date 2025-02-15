@@ -1,3 +1,8 @@
+"""Module for GeoTIFF mosaic operations, overview generation, and 8-bit conversion.
+This module provides functions to mosaic GeoTIFF images, add overviews using both
+Rasterio and GDAL CLI, and convert GeoTIFF images to 8-bit using percentile stretching.
+"""
+
 # Imports
 import logging
 import subprocess
@@ -13,15 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path) -> None:
-    """Merge non-rotated geotiffs into mosaic with overviews (rasterio)
+    """
+    Merge non-rotated GeoTIFFs into a single mosaic file, and generate overviews using
+    Rasterio.
 
     Parameters
     ----------
     image_paths : Iterable[Path]
-        Paths to images to merge.
-        Note that images with rotated geotransforms can NOT be merged.
+        Iterable of paths to input GeoTIFF images. Images with rotated geotransforms are
+        not supported.
     mosaic_path : Path
-        Path to output GeoTIFF.
+        Path to the output mosaic GeoTIFF file.
+
+    Raises
+    ------
+    Exception
+        If an error occurs during the merging process.
     """
     # Open images
     images_to_merge = []
@@ -46,17 +58,21 @@ def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path) -> None:
 def add_geotiff_overviews(
     image_path: Path, overview_factors: Sequence[int] = (2, 4, 8, 16, 32)
 ) -> None:
-    """Add lower-resolution "overviews" to image file
+    """
+    Add lower-resolution overviews to a GeoTIFF image file using Rasterio.
 
     Parameters
     ----------
     image_path : Path
-        Path to image to which overviews will be added (in-place in same file)
-        WARNING: Adding overviews can corrupt the file, make sure that the file
-        is backed up or can be easily recreated.
-    overview_factors : tuple, optional
-        Factors by which to downsample original image when creating overviews
-        Typically factors of 2 (2,4,8, etc.).
+        Path to the GeoTIFF image to which overviews will be added in-place.
+    overview_factors : Sequence[int], optional
+        Downsampling factors for the overviews (default: (2, 4, 8, 16, 32)). Typically
+        factors of 2 are used (2, 4, 8, etc.).
+
+    Raises
+    ------
+    Exception
+        If an error occurs while building the overviews.
     """
     logger.info(f"Adding overviews to mosaic {image_path.name}")
     try:
@@ -68,12 +84,26 @@ def add_geotiff_overviews(
 
 
 def mosaic_geotiffs_gdal_cli(image_paths: Iterable[Path], mosaic_path: Path) -> None:
-    """Merge rotated geotiffs into single mosaic with overviews (GDAL CLI)"""
-    # Explanation of gdalwarp options used:
-    # -overwrite: Overwrite existing files without error / warning
-    # -q: Suppress GDAL output (quiet)
-    # -r near: Resampling method: Nearest neighbor
-    # -of GTiff: Output format: GeoTiff
+    """
+    Merge rotated GeoTIFF images into a single mosaic file with overviews using the GDAL
+    CLI.
+
+    Parameters
+    ----------
+    image_paths : Iterable[Path]
+        Iterable of paths to input GeoTIFF images. Only images that exist will be
+        processed.
+    mosaic_path : Path
+        Destination path for the output mosaic GeoTIFF file.
+
+    Notes
+    -----
+    This function leverages the 'gdalwarp' CLI tool with options to overwrite, suppress
+    output, use nearest neighbor resampling, and specify the GeoTIFF output format.
+    """
+    # Explanation of gdalwarp options used: -overwrite: Overwrite existing files without
+    # error / warning -q: Suppress GDAL output (quiet) -r near: Resampling method:
+    # Nearest neighbor -of GTiff: Output format: GeoTiff
 
     # Run as subprocess without invoking shell. Note input file unpacking.
     gdalwarp_args = [
@@ -91,24 +121,25 @@ def mosaic_geotiffs_gdal_cli(image_paths: Iterable[Path], mosaic_path: Path) -> 
 
 
 def add_overviews_gdal_cli(image_path: Path) -> None:
-    """Add overviews to geotiff using GDAL CLI
+    """
+    Add overviews (image pyramids) to a GeoTIFF using the GDAL CLI.
 
     Parameters
     ----------
     image_path : Path
-        Path to image to which overviews will be added, typically a mosaicked geotiff.
+        Path to the GeoTIFF image where overviews will be added, typically a mosaicked
+        file.
 
     Notes
     -----
-    Overview factors are automatically calculated by GDAL CLI
+    Overview factors are automatically determined by the GDAL CLI. This function uses
+    'gdaladdo' with average resampling and quiet mode.
     """
-
     # Add image pyramids to file
     logger.info(f"Adding image pyramids to mosaic {image_path.name}")
 
-    # Explanation of gdaladdo options used:
-    # -r average: Use averaging when resampling to lower spatial resolution
-    # -q: Suppress output (be quiet)
+    # Explanation of gdaladdo options used: -r average: Use averaging when resampling to
+    # lower spatial resolution -q: Suppress output (be quiet)
     gdaladdo_args = ["gdaladdo", "-q", "-r", "average", str(image_path)]
     subprocess.run(gdaladdo_args)
 
@@ -120,24 +151,26 @@ def convert_geotiff_to_8bit(
     upper_percentile: float = 98,
     require_positive: bool = True,
 ) -> None:
-    """Convert geotiff to 8-bit using percentile stretching
+    """
+    Convert a GeoTIFF image to an 8-bit representation using percentile stretching.
 
     Parameters
     ----------
     input_image_path : Path
-        Path to original geotiff
+        Path to the original GeoTIFF image.
     output_image_path : Path
-        Path to output geotiff (8-bit)
-    lower_percentile : float, default 2
-        Percentile value from input image, used to set lower end of
-        range used when scaling data to 8-bit output.
-    upper_percentile : float, default 98
-        Percentile value from input image, used to set upper end of
-        range used when scaling data to 8-bit output.
-    require_positive : bool, default True
-        Whether to set a hard limit on the input values (must be positive)
-        If True, the minimum value in range included for output is given by
-        max(0,lower_percentile_value)
+        Path to save the 8-bit output GeoTIFF image.
+    lower_percentile : float, optional
+        Lower percentile (default 2) to set the minimum scaling value.
+    upper_percentile : float, optional
+        Upper percentile (default 98) to set the maximum scaling value.
+    require_positive : bool, optional
+        If True, enforces a lower bound of zero on the scaling; defaults to True.
+
+    Raises
+    ------
+    Exception
+        If an error occurs during the conversion process.
     """
     no_data_value_8bit = 255
 
