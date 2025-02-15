@@ -1,3 +1,11 @@
+"""Module for glint correction in hyperspectral imagery.
+
+This module provides classes for removing sun and sky glint from reflectance images.
+Two correction methods are implemented:
+    • FlatSpecGlintCorrector uses a flat glint spectrum assumption.
+    • HedleyGlintCorrector employs a fitted linear regression model based on reference images.
+"""
+
 # Imports
 import logging
 from pathlib import Path
@@ -13,6 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 class FlatSpecGlintCorrector:
+    """
+    Perform glint correction on reflectance images using a flat glint spectrum assumption.
+
+    This class removes glint by subtracting the mean near-infrared (NIR) value from each spectrum,
+    based on the assumption that the glint is spectrally flat. Optionally, it applies smoothing with
+    a Savitsky-Golay filter to the corrected image.
+    """
+
     def __init__(self, smooth_with_savitsky_golay: bool = True):
         """Initialize glint corrector
 
@@ -25,34 +41,27 @@ class FlatSpecGlintCorrector:
         self.smooth_with_savitsky_golay = smooth_with_savitsky_golay
 
     def glint_correct_image(self, refl_image: NDArray, refl_wl: NDArray) -> NDArray:
-        """Remove sun and sky glint from image assuming flat glint spectrum
+        """
+        Remove sun and sky glint from an image by assuming a flat glint spectrum.
 
         Parameters
         ----------
-        refl_image: NDArray
-            Reflectance image, shape (n_lines, n_samples, n_bands)
-        refl_wl: NDArray
-            Wavelengths (in nm) for each band in refl_image
+        refl_image : NDArray
+            Reflectance image with shape (n_lines, n_samples, n_bands).
+        refl_wl : NDArray
+            Wavelength vector (nm) for each band in refl_image.
 
         Returns
-        --------
-        refl_image_glint_corr: NDArray
-            Glint corrected reflectance image, same shape as refl_image.
-            The mean NIR value is subtracted from each spectrum in the input
-            image. Thus, only the spectral baseline / offset is changed -
-            the original spectral shape is maintained.
+        -------
+        NDArray
+            Glint corrected reflectance image with the same shape as refl_image.
+            The mean NIR value is subtracted from each spectrum so that only the
+            spectral offset is changed while preserving the overall spectral shape.
 
         Notes
         -----
-        - The glint correction is based on the assumption that there is
-        (approximately) no water-leaving radiance in the NIR spectral region.
-        This is often the case, since NIR light is very effectively
-        absorbed by water.
-        - The glint correction also assumes that the sun and sky glint
-        reflected in the water surface has a flat spectrum, so that the
-        glint in the visible region can be estimated from the glint in the
-        NIR region. This is usually _not_ exactly true, but the assumption
-        can be "close enough" to still produce useful results.
+        - Assumes negligible water-leaving radiance in the NIR region.
+        - Assumes that the sun and sky glint have a flat spectrum, which can be a close approximation.
         """
         nir_ind = mpu.get_nir_ind(refl_wl)
         nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
@@ -69,15 +78,15 @@ class FlatSpecGlintCorrector:
         glint_corr_image_path: Union[Path, str],
         **kwargs: Any,
     ):
-        """Read reflectance file, apply glint correction, and save result
+        """
+        Read an ENVI header file, perform glint correction, and save the corrected image.
 
         Parameters
         ----------
         image_path : Union[Path, str]
-            Path to hyperspectral image (ENVI header file)
+            Path to the hyperspectral image header.
         glint_corr_image_path : Union[Path, str]
-            Path for saving output image (ENVI header file)
-
+            Path to save the glint corrected image header.
         """
         image, wl, metadata = mpu.read_envi(image_path)
         glint_corr_image = self.glint_correct_image(image, wl, **kwargs)
@@ -85,6 +94,14 @@ class FlatSpecGlintCorrector:
 
 
 class HedleyGlintCorrector:
+    """
+    Perform glint correction using a fitted linear regression model (Hedley method).
+
+    This class corrects glint by fitting a linear model to reference spectra and then applying this model
+    to correct the visible spectrum of the input image. It supports optional smoothing, dark spectrum subtraction,
+    and adjusts for negative values to ensure valid outputs.
+    """
+
     def __init__(
         self,
         smooth_spectra: bool = True,
@@ -133,28 +150,18 @@ class HedleyGlintCorrector:
         reference_image_ranges: Optional[Sequence[Optional[Sequence[int]]]] = None,
         sample_frac: float = 0.5,
     ) -> None:
-        """Fit glint model based on spectra from reference images
+        """
+        Fit the glint correction model based on spectra from reference hyperspectral images.
 
         Parameters
         ----------
         reference_image_paths : list[Union[Path, str]]
-            List of paths to reference hyperspectral images (header files)
-
-        reference_image_ranges: Union[None, list[Union[None, list[int]]]]
-            List of ranges for pixels to use as reference.
-            If reference_image_ranges == None, all images are used in full.
-            Pixels should preferrably be from a homogenous, deep water area
-            with some visible sun/sky glint. Using ranges enables using part of
-            an image fulfilling these requirements.
-            Setting the range for a single image to None indicates that the
-            whole image should be used.
-            Ranges are specified as
-            [line_start, line_end, sample_start, sample_end]
-            A subset of the 3D image cube is extracted as
-            image[line_start:line_end,sample_start:sample_end,:]
-        sample_frac: float
-            Fraction of total number of image pixels that is used for training.
-            Value in range [0.0, 1.0]. Pixels are randomly sampled.
+            List of paths to reference hyperspectral image headers.
+        reference_image_ranges : Union[None, list[Union[None, list[int]]]]
+            List of pixel ranges to use as reference from each image. If None, the full image is used.
+            Ranges are specified as [line_start, line_end, sample_start, sample_end].
+        sample_frac : float
+            Fraction of total pixels used for training (0.0 to 1.0). Pixels are randomly sampled.
         """
         if reference_image_ranges is None:
             reference_image_ranges = [None for _ in range(len(reference_image_paths))]
@@ -172,14 +179,15 @@ class HedleyGlintCorrector:
         self.fit(train_spec, wl)
 
     def fit(self, train_spec: NDArray, wl: NDArray) -> None:
-        """Fit glint model to training spectra
+        """
+        Fit the linear glint correction model to training spectra.
 
         Parameters
         ----------
         train_spec : NDArray
-            Training spectra, shape (n_samples, n_bands)
+            Training spectra with shape (n_samples, n_bands).
         wl : NDArray
-            Wavelength vector (nanometers)
+            Wavelength vector (nm).
         """
         self.wl = wl
         self.vis_ind = mpu.get_vis_ind(wl)
@@ -194,21 +202,20 @@ class HedleyGlintCorrector:
 
     @staticmethod
     def linear_regression_multiple_dependent_variables(x: NDArray, Y: NDArray) -> NDArray:
-        """Compute linear regression slopes for multiple dependent variables
+        """
+        Compute slopes for a multiple-output linear regression using a single predictor.
 
         Parameters
         ----------
         x : NDArray
-            Single sampled variable, shape (n_samples,)
+            Predictor variable, shape (n_samples, 1).
         Y : NDArray
-            Set of sampled variables, shape (n_samples, n_x_variables)
+            Response variables, shape (n_samples, n_variables).
 
         Returns
         -------
-        b: NDArray
-            Slopes for linear regression with y as independent variable
-            as each column of Y as dependent variable.
-            The name "b" follows the convention for linear functions, f(x) = a + b*x
+        NDArray
+            Regression slopes for each dependent variable as defined in f(x) = a + b*x.
 
         Notes
         -----
@@ -233,26 +240,24 @@ class HedleyGlintCorrector:
         self,
         image: NDArray,
     ) -> NDArray:
-        """Remove sun and sky glint from image using fit linear model
+        """
+        Remove sun and sky glint from a hyperspectral image using the fitted linear model.
 
         Parameters
         ----------
-        image: NDArray
-            Hyperspectral image, shape (n_lines, n_samples, n_bands)
+        image : NDArray
+            Hyperspectral image with shape (n_lines, n_samples, n_bands).
 
         Returns
-        --------
-        image_gc: NDArray
-            Glint corrected image, only containing visible light spectra.
+        -------
+        NDArray
+            Glint corrected image containing only visible light spectra.
 
         Notes
         -----
-        - The glint correction is based on the assumption that there is
-        (approximately) no water-leaving radiance in the NIR spectral region.
-        This is often the case, since NIR light is very effectively
-        absorbed by water.
+        - Based on the assumption of negligible water-leaving radiance in the NIR,
+          it subtracts a modeled glint estimate from the visible bands.
         """
-
         # Shape into 2D array, save original shape for later
         input_shape = image.shape
         image = image.reshape((-1, image.shape[-1]))  # 2D, shape (n_samples, n_bands)
@@ -304,15 +309,15 @@ class HedleyGlintCorrector:
         glint_corr_image_path: Union[Path, str],
         **kwargs: Any,
     ):
-        """Read reflectance file, apply glint correction, and save result
+        """
+        Read a hyperspectral image from an ENVI header, apply the glint correction, and save the result.
 
         Parameters
         ----------
         image_path : Union[Path, str]
-            Path to hyperspectral image (ENVI header file)
+            Path to the input ENVI header file.
         glint_corr_image_path : Union[Path, str]
-            Path for saving output image (ENVI header file)
-
+            Path to save the glint corrected ENVI header file.
         """
         # Glint correction
         image, wl, metadata = mpu.read_envi(image_path)
