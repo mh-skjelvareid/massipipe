@@ -1,7 +1,7 @@
 # Imports
 import logging
 from pathlib import Path
-from typing import Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -67,7 +67,7 @@ class FlatSpecGlintCorrector:
         self,
         image_path: Union[Path, str],
         glint_corr_image_path: Union[Path, str],
-        **kwargs,
+        **kwargs: Any,
     ):
         """Read reflectance file, apply glint correction, and save result
 
@@ -89,7 +89,7 @@ class HedleyGlintCorrector:
         self,
         smooth_spectra: bool = True,
         subtract_dark_spec: bool = True,
-        set_negative_values_to_zero=False,
+        set_negative_values_to_zero: bool = False,
         max_invalid_frac: float = 0.05,
     ):
         """Initialize glint corrector
@@ -120,17 +120,17 @@ class HedleyGlintCorrector:
         self.subtract_dark_spec = subtract_dark_spec
         self.set_negative_values_to_zero = set_negative_values_to_zero
         self.max_invalid_frac = max_invalid_frac
-        self.b = None
-        self.wl = None
-        self.min_nir = None
-        self.vis_ind = None
-        self.nir_nid = None
-        self.dark_spec = None
+        self.b: Optional[NDArray] = None
+        self.wl: Optional[NDArray] = None
+        self.min_nir: Optional[NDArray] = None
+        self.vis_ind: Optional[Any] = None
+        self.nir_ind: Optional[Any] = None
+        self.dark_spec: Optional[NDArray] = None
 
     def fit_to_reference_images(
         self,
         reference_image_paths: Sequence[Union[Path, str]],
-        reference_image_ranges: Union[None, Sequence[Union[None, Sequence[int]]]] = None,
+        reference_image_ranges: Optional[Sequence[Optional[Sequence[int]]]] = None,
         sample_frac: float = 0.5,
     ) -> None:
         """Fit glint model based on spectra from reference images
@@ -302,7 +302,7 @@ class HedleyGlintCorrector:
         self,
         image_path: Union[Path, str],
         glint_corr_image_path: Union[Path, str],
-        **kwargs,
+        **kwargs: Any,
     ):
         """Read reflectance file, apply glint correction, and save result
 
