@@ -1,3 +1,8 @@
+"""Module for converting radiance images to reflectance using irradiance spectra.
+This module provides the ReflectanceConverter class, which implements methods to convert
+radiance images into reflectance images with options for Gaussian smoothing and spectrum adjustment.
+"""
+
 # Imports
 import logging
 from pathlib import Path
@@ -14,7 +19,31 @@ logger = logging.getLogger(__name__)
 
 
 class ReflectanceConverter:
-    """A class for converting images from Resonon Pika L cameras to reflectance"""
+    """ReflectanceConverter class for converting images from Resonon Pika L cameras to reflectance.
+
+    This class provides methods for converting radiance images to reflectance using per-image
+    or mean irradiance spectra. It supports optional Gaussian smoothing of the irradiance spectrum
+    and additional spectral smoothing using a Savitzky-Golay filter.
+
+    Attributes
+    ----------
+    wl_min : float
+        Lower wavelength bound (nm) for the reflectance image.
+    wl_max : float
+        Upper wavelength bound (nm) for the reflectance image.
+    conv_irrad_with_gauss : bool
+        Indicates if the irradiance spectrum should be smoothed with a Gaussian kernel.
+    fwhm_irrad_smooth : float
+        Full-width-half-maximum for the Gaussian smoothing kernel (in nm).
+    smooth_spectra : bool
+        If True, applies a Savitzky-Golay filter to the reflectance spectra.
+    refl_from_mean_irrad : bool
+        If True, uses a computed mean irradiance value for conversion instead of per-image irradiance.
+    ref_irrad_spec_mean : NDArray
+        Mean irradiance spectrum used for reflectance conversion when refl_from_mean_irrad is True.
+    ref_irrad_spec_wl : NDArray
+        Wavelength array corresponding to the irradiance spectrum.
+    """
 
     def __init__(
         self,
