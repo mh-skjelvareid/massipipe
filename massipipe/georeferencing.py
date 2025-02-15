@@ -76,16 +76,13 @@ class ImuDataParser:
         -------
         lcf_data: Dict[str, NDArray]
             Dictionary with keys describing the type of data, and data formatted as
-            numpy arrays. All arrays have equal length. The 7 types of data: - 'time':
-            System time in seconds, relative to some (unknown) starting point. Similar
-            to "Unix time" (seconds since January 1. 1970), but values indicate starting
-            point around 1980. The values are usually offset to make the first timestamp
-            equal to zero. See flag time_rel_to_file_start. - 'roll': Roll angle in
-            radians, positive for "right wing up" - 'pitch': Pitch angle in radians,
-            positive nose up - 'yaw': (heading) in radians, zero at due North, PI/2 at
-            due East - 'longitude': Longitude in decimal degrees, negative for west
-            longitude - 'latitude': Latitude in decimal degrees, negative for southern
-            hemisphere - 'altitude': Altitude in meters relative to the WGS-84
+            numpy arrays. All arrays have equal length. The 7 types of data (keys) are:
+            'time': System time in seconds (GPS time). 'roll': Roll angle in
+            radians, positive for "right wing up". 'pitch': Pitch angle in radians,
+            positive nose up. 'yaw': (heading) in radians, zero at due North, PI/2 at
+            due East. 'longitude': Longitude in decimal degrees, negative for west
+            longitude. 'latitude': Latitude in decimal degrees, negative for southern
+            hemisphere. 'altitude': Altitude in meters relative to the WGS-84
             ellipsiod.
 
         Notes
