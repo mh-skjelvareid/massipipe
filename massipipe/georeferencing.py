@@ -46,10 +46,9 @@ class ImuDataParser:
             timestamp, making time relative to start of file.
             If True, the value of convert_to_unix_time as no effect.
 
-
         Returns
         -------
-        lcf_data:
+        lcf_data: Dict[str, NDArray]
             Dictionary with keys describing the type of data, and data
             formatted as numpy arrays. All arrays have equal length.
             The 7 types of data:
@@ -65,9 +64,10 @@ class ImuDataParser:
             - 'latitude': Latitude in decimal degrees, negative for southern hemisphere
             - 'altitude': Altitude in meters relative to the WGS-84 ellipsiod.
 
-        Notes:
-        - The LCF file format was shared by Casey Smith at Resonon on February 16. 2021.
-        - The LCF specification was inherited from Space Computer Corp.
+        Notes
+        -----
+        The LCF file format was shared by Casey Smith at Resonon on February 16. 2021.
+        The LCF specification was inherited from Space Computer Corp.
         """
         try:
             lcf_raw = np.loadtxt(lcf_file_path)
@@ -108,7 +108,7 @@ class ImuDataParser:
 
         Returns
         -------
-        times:
+        times: NDArray
             Numpy array containing timestamps for every line of the corresponding
             hyperspectral image. The timestamps are in units of seconds, and are
             relative to when the system started (values are usually within the
@@ -120,7 +120,6 @@ class ImuDataParser:
             offset so that time is measured relative to the start of the file,
             the times can be used to calculate interpolated GPS/IMU values
             for each image line.
-
         """
         try:
             image_times = np.loadtxt(times_file_path)
@@ -199,20 +198,19 @@ class ImuDataParser:
 
 class GeoTransformer:
     """
+    Class for transforming geospatial data using IMU and image metadata.
 
     Attributes
     ----------
-    u_alongtrack:
+    u_alongtrack: NDArray
         Unit vector (easting, northing) pointing along flight direction
-    u_acrosstrack:
+    u_acrosstrack: NDArray
         Unit vector (easting, northing) pointing left relative to
         flight direction. The direction is chosen to match that of
         the image coordinate system: Origin in upper left corner,
         down (increasing line number) corresponds to positive along-track
         direction, right (increasing sample number) corresponds to
         positive cross-track direction.
-
-
     """
 
     def __init__(
@@ -336,14 +334,34 @@ class GeoTransformer:
             raise
 
     def _calc_time_attributes(self) -> Tuple[float, float]:
-        """Calculate time duration and sampling interval of IMU data"""
+        """Calculate time duration and sampling interval of IMU data
+
+        Returns
+        -------
+        t_total: float
+            Total time duration of IMU data
+        dt: float
+            Sampling interval of IMU data
+        """
         t = np.array(self.imu_data["time"])
         dt = np.mean(np.diff(t))
         t_total = len(t) * dt
         return t_total, dt
 
     def _calc_alongtrack_properties(self) -> Tuple[NDArray, NDArray, float, float]:
-        """Calculate along-track velocity, gsd, and swath length"""
+        """Calculate along-track velocity, gsd, and swath length
+
+        Returns
+        -------
+        v_alongtrack: NDArray
+            Along-track velocity vector
+        u_alongtrack: NDArray
+            Along-track unit vector
+        gsd_alongtrack: float
+            Ground sampling distance along track
+        swath_length: float
+            Length of the swath along track
+        """
         vx_alongtrack = (self.utm_x[-1] - self.utm_x[0]) / self.t_total
         vy_alongtrack = (self.utm_y[-1] - self.utm_y[0]) / self.t_total
         v_alongtrack = np.array((vx_alongtrack, vy_alongtrack))
@@ -356,7 +374,7 @@ class GeoTransformer:
         return v_alongtrack, u_alongtrack, gsd_alongtrack, swath_length
 
     def _calc_mean_altitude(self, assume_square_pixels: bool) -> float:
-        """Calculate mean altitude of uav during imaging
+        """Calculate mean altitude of UAV during imaging
 
         Parameters
         ----------
@@ -366,6 +384,11 @@ class GeoTransformer:
             is calculated based on this and the number of cross-track samples.
             If false, the mean of the altitude values from the imu data
             is used. In both cases, the altitude offset is added.
+
+        Returns
+        -------
+        altitude: float
+            Mean altitude of the UAV
         """
         if assume_square_pixels:
             swath_width = self.gsd_alongtrack * self.image_shape[1]
@@ -375,14 +398,30 @@ class GeoTransformer:
         return altitude + self.altitude_offset
 
     def _calc_acrosstrack_properties(self) -> Tuple[NDArray, float, float]:
-        """Calculate cross-track unit vector, swath width and sampling distance"""
+        """Calculate cross-track unit vector, swath width and sampling distance
+
+        Returns
+        -------
+        u_acrosstrack: NDArray
+            Cross-track unit vector
+        swath_width: float
+            Width of the swath across track
+        gsd_acrosstrack: float
+            Ground sampling distance across track
+        """
         u_acrosstrack = np.array([-self.u_alongtrack[1], self.u_alongtrack[0]])  # Rotate 90 CCW
         swath_width = 2 * self.mean_altitude * np.tan(self.camera_opening_angle / 2)
         gsd_acrosstrack = swath_width / self.image_shape[1]
         return u_acrosstrack, swath_width, gsd_acrosstrack
 
     def _calc_image_origin(self) -> NDArray:
-        """Calculate location of image pixel (0,0) in georeferenced coordinates (x,y)"""
+        """Calculate location of image pixel (0,0) in georeferenced coordinates (x,y)
+
+        Returns
+        -------
+        image_origin: NDArray
+            Coordinates of the image origin
+        """
         alongtrack_offset = self.mean_altitude * np.tan(self.pitch_offset) * self.u_alongtrack
         acrosstrack_offset = self.mean_altitude * np.tan(self.roll_offset) * self.u_acrosstrack
         # NOTE: Signs of cross-track elements in equation below are "flipped"
@@ -399,13 +438,27 @@ class GeoTransformer:
         return image_origin
 
     def _calc_image_rotation(self) -> float:
-        """Calculate image rotation in degrees (zero for image origin i NW corner)"""
+        """Calculate image rotation in degrees (zero for image origin in NW corner)
+
+        Returns
+        -------
+        rotation_deg: float
+            Image rotation in degrees
+        """
         rotation_rad = math.atan2(self.u_alongtrack[0], -self.u_alongtrack[1])
         rotation_deg = rotation_rad * (180.0 / math.pi)
         return rotation_deg
 
     def _get_utm_zone(self) -> Tuple[int, str]:
-        """Get UTM zone and hemishpere (North or South)"""
+        """Get UTM zone and hemisphere (North or South)
+
+        Returns
+        -------
+        utm_zone_number: int
+            UTM zone number
+        utm_zone_hemi: str
+            UTM hemisphere (North or South)
+        """
         if self.utm_epsg is not None:
             utm_zone = pyproj.CRS.from_epsg(self.utm_epsg).utm_zone
             assert utm_zone is not None
@@ -488,7 +541,6 @@ class GeoTransformer:
         https://trac.osgeo.org/gdal/ticket/1778#comment:8
         https://github.com/OSGeo/gdal/blob/master/frmts/raw/envidataset.cpp#L1393
         """
-
         # fmt: off
         map_info = [
             "UTM",                              # Projection name
@@ -574,7 +626,7 @@ class SimpleGeoreferencer:
         rgb_wl: Union[tuple[float, float, float], None]
             Wavelengths (in nm) to use for red, green and blue.
             If None, default values are used.
-        nodata_value:
+        nodata_value: int
             Value to insert in place of invalid pixels.
             Pixels which contain "all zeros" are considered invalid.
         reproject_to_nonrotated_transform: bool
@@ -589,7 +641,6 @@ class SimpleGeoreferencer:
             Resolution for reprojected raster with non-rotated transform
             If None, the mean of the along-track and across-track resolutions
             in the rotated raster is used.
-
         """
         self.rgb_only = rgb_only
         self.rgb_wl = rgb_wl
@@ -607,11 +658,11 @@ class SimpleGeoreferencer:
 
         Parameters
         ----------
-        image_path:
+        image_path: Union[Path, str]
             Path to hyperspectral image header.
-        geotransform_path:
+        geotransform_path: Union[Path, str]
             Path to JSON file containing geotransform information.
-        geotiff_path:
+        geotiff_path: Union[Path, str]
             Path to (output) GeoTIFF file.
         """
         try:
@@ -650,7 +701,7 @@ class SimpleGeoreferencer:
 
         Parameters
         ----------
-        image:
+        image: NDArray
             3D image array ordered as (lines, samples, bands)
             Pixels where every band value is equal to zero
             are interpreted as invalid (no data).
@@ -681,7 +732,6 @@ class SimpleGeoreferencer:
         -------
         profile: dict
             GeoTIFF profile to be used when saving GeoTIFF image.
-
         """
 
         transform = Affine(*geotransform_parameters)
@@ -719,7 +769,6 @@ class SimpleGeoreferencer:
         -------
         dst_profile: dict
             GeoTIFF profile for reprojection to non-rotated transform
-
         """
         # Calculate resolution
         if self.resolution is None:
@@ -901,3 +950,4 @@ def georeferenced_hyspec_to_rgb_geotiff(
                 for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
                     dst.write(band_data, i)
                     dst.set_band_description(i, band_name)
+
