@@ -1,10 +1,21 @@
-# To install:
-# - create virtual environment and activate it
-# - git clone https://github.com/mh-skjelvareid/massipipe.git
-# - Install:
-#   - Plain: pip install .
-#   - Editable: pip install -e .
-#   - With development dependencies: pip install -e .[dev]
+"""Massipipe: A Python package for batch processing hyperspectral images.
+
+MassiPipe is a data processing pipeline for hyperspectral images. It focuses on
+conversion to radiance, conversion to reflectance, and glint correction of images of
+shallow water environments.
+
+The package was developed during a project which used a Resonon Pika-L hyperspectral
+camera, and parts of the package are specific to this camera. However, other parts are
+more general and can be used with any hyperspectral image.
+"""
+
+# Package version
+__version__ = "0.2.0"
+
+# Exported API symbols
+__all__ = [
+    # list of public functions/classes
+]
 
 import logging
 
