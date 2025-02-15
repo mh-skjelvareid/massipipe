@@ -12,7 +12,7 @@ import rasterio.merge
 logger = logging.getLogger(__name__)
 
 
-def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path):
+def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path) -> None:
     """Merge non-rotated geotiffs into mosaic with overviews (rasterio)
 
     Parameters
@@ -43,7 +43,9 @@ def mosaic_geotiffs(image_paths: Iterable[Path], mosaic_path: Path):
             opened_image.close()
 
 
-def add_geotiff_overviews(image_path: Path, overview_factors: Sequence[int] = (2, 4, 8, 16, 32)):
+def add_geotiff_overviews(
+    image_path: Path, overview_factors: Sequence[int] = (2, 4, 8, 16, 32)
+) -> None:
     """Add lower-resolution "overviews" to image file
 
     Parameters
@@ -65,7 +67,7 @@ def add_geotiff_overviews(image_path: Path, overview_factors: Sequence[int] = (2
         raise
 
 
-def mosaic_geotiffs_gdal_cli(image_paths: Iterable[Path], mosaic_path: Path):
+def mosaic_geotiffs_gdal_cli(image_paths: Iterable[Path], mosaic_path: Path) -> None:
     """Merge rotated geotiffs into single mosaic with overviews (GDAL CLI)"""
     # Explanation of gdalwarp options used:
     # -overwrite: Overwrite existing files without error / warning
@@ -88,7 +90,7 @@ def mosaic_geotiffs_gdal_cli(image_paths: Iterable[Path], mosaic_path: Path):
     subprocess.run(gdalwarp_args)
 
 
-def add_overviews_gdal_cli(image_path: Path):
+def add_overviews_gdal_cli(image_path: Path) -> None:
     """Add overviews to geotiff using GDAL CLI
 
     Parameters
@@ -117,7 +119,7 @@ def convert_geotiff_to_8bit(
     lower_percentile: float = 2,
     upper_percentile: float = 98,
     require_positive: bool = True,
-):
+) -> None:
     """Convert geotiff to 8-bit using percentile stretching
 
     Parameters
