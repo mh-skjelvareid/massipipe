@@ -1,19 +1,19 @@
 from datetime import datetime
 from pathlib import Path
-from typing import List, Literal, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import yaml
 from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, field_validator
 
 
-def read_config(yaml_path: Union[Path, str]):
+def read_config(yaml_path: Union[Path, str]) -> Any:
     """Parse YAML config file, accepting only basic YAML tags"""
     with open(yaml_path, "r") as stream:
         config = yaml.safe_load(stream)
     return config
 
 
-def write_config(data: dict, yaml_path: Union[Path, str]):
+def write_config(data: dict, yaml_path: Union[Path, str]) -> None:
     """Write config data formatted as dictionary to YAML file"""
     with open(yaml_path, "w") as yaml_file:
         yaml.safe_dump(data, yaml_file, default_flow_style=False, sort_keys=False)
@@ -23,13 +23,13 @@ def write_config(data: dict, yaml_path: Union[Path, str]):
 
 
 class MpGeneral(BaseModel):
-    rgb_wl: Optional[tuple[PositiveInt, PositiveInt, PositiveInt]] = None
+    rgb_wl: Optional[Tuple[PositiveInt, PositiveInt, PositiveInt]] = None
 
 
 class MpQuickLook(BaseModel):
     create: bool = True
     overwrite: bool = False
-    percentiles: Optional[tuple[NonNegativeInt, PositiveInt]] = None
+    percentiles: Optional[Tuple[NonNegativeInt, PositiveInt]] = None
 
 
 class MpImuData(BaseModel):
@@ -172,7 +172,7 @@ class Config(BaseModel):
         return datetime_str
 
 
-def get_config_template():
+def get_config_template() -> Config:
     template_config = Config(
         grouping="grouping_name",
         area="area_name",
@@ -205,7 +205,7 @@ def get_config_template():
     return template_config
 
 
-def nested_config_to_dict(config):
+def nested_config_to_dict(config: BaseModel) -> Dict[str, Any]:
     """Convert nested Pydantic configuration to nested dictionary (recursively)"""
     config_dict = dict(config)
     for key, value in config_dict.items():
@@ -214,7 +214,7 @@ def nested_config_to_dict(config):
     return config_dict
 
 
-def export_template_yaml(yaml_path: Union[Path, str]):
+def export_template_yaml(yaml_path: Union[Path, str]) -> None:
     """Export YAML template based on Pydantic schema"""
     template_config = get_config_template()
     template_dict = nested_config_to_dict(template_config)
