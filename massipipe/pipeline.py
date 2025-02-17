@@ -1,3 +1,10 @@
+"""Massipipe pipeline module.
+
+This module provides the Pipeline class for processing hyperspectral datasets.
+It offers configuration loading, image conversion, georeferencing, glint correction,
+mosaicing and export functionality for raw and radiance data.
+"""
+
 # Imports
 import logging
 import shutil
@@ -46,32 +53,35 @@ class ProcessedFilePaths:
 
 
 class Pipeline:
+    """Pipeline class for processing hyperspectral datasets.
+
+    This class encapsulates all processing steps required to convert raw or radiance data
+    into calibrated and georeferenced image products. It manages configuration loading,
+    logging setup, file path generation, conversion procedures, glint correction,
+    mosaicing and export operations.
+    """
+
     def __init__(
         self,
         dataset_dir: Union[Path, str],
         config_file_name: str = "config.seabee.yaml",
     ) -> None:
-        """Create a pipeline for processing all data in a dataset
+        """Initialize the pipeline for dataset processing.
 
         Parameters
         ----------
         dataset_dir : Union[Path, str]
-            Path to folder containing dataset. The name of the folder
-            will be used as the "base name" for all processed files.
-            The folder should contain at least two subfolders:
-            - 0_raw: Contains all raw images as saved by Resonon airborne system.
-            - calibration: Contains Resonon calibration files for
-            camera (*.icp) and downwelling irradiance sensor (*.dcp)
-        config_file_name: str
-            Name of YAML config file for dataset.
-            If file does not yet exist, a template file is created.
+            Path to the dataset directory containing required subfolders. The required
+            subfolders are either "0_raw" and "calibration" (for processing from raw
+            data), or "1a_radiance" and "imudata" (for processing from radiance data).
+        config_file_name : str, optional
+            Name of the YAML configuration file. A template is generated if the file
+            does not exist.
 
         Raises
         ------
         FileNotFoundError
-            No folder called "0_raw" found
-        FileNotFoundError
-            No folder called "calibration" found
+            If required folders (e.g. "0_raw" or "calibration") are missing.
         """
         self.dataset_dir = Path(dataset_dir)
 
@@ -147,7 +157,11 @@ class Pipeline:
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
     def load_config_from_file(self) -> None:
-        """Load or re-load configuration from YAML file"""
+        """Load or reload configuration from a YAML file.
+
+        Reads the configuration from `self.config_file_path`, validates it using Pydantic,
+        and assigns the loaded options to `self.config`. Logs warnings on validation errors.
+        """
         try:
             full_config_dict = read_config(self.config_file_path)
         except IOError:
@@ -164,8 +178,10 @@ class Pipeline:
         self.config = full_config.massipipe_options
 
     def _configure_file_logging(self) -> None:
-        """Configure logging for pipeline"""
+        """Configure file logging for pipeline execution.
 
+        Creates a logs directory if needed and initializes a file handler with a timestamped log file.
+        """
         # Create log file path
         self.logs_dir.mkdir(exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -184,7 +200,18 @@ class Pipeline:
         logger.info(f"File logging for {self.dataset_base_name} initialized.")
 
     def _check_data_starting_point(self) -> str:
-        """Determine whether processing starts from raw or radiance data"""
+        """Determine if processing should start from raw or radiance data.
+
+        Returns
+        -------
+        str
+            "raw" if raw data exists and "radiance" if radiance data exists.
+
+        Raises
+        ------
+        FileNotFoundError
+            If neither raw nor radiance data is found in the dataset directory.
+        """
         if self.raw_dir.exists():
             logger.info(f"Found directory {self.raw_dir} - processing from raw files.")
             data_starting_point = "raw"
