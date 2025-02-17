@@ -9,7 +9,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import yaml
-from pydantic import BaseModel, NonNegativeInt, PositiveFloat, PositiveInt, field_validator
+from pydantic import (
+    BaseModel,
+    NonNegativeFloat,
+    NonNegativeInt,
+    PositiveFloat,
+    PositiveInt,
+    field_validator,
+)
 
 
 def read_config(yaml_path: Union[Path, str]) -> Any:
@@ -31,7 +38,7 @@ def write_config(data: dict, yaml_path: Union[Path, str]) -> None:
 class MpGeneral(BaseModel):
     """General options for Massipipe processing"""
 
-    rgb_wl: Optional[Tuple[PositiveInt, PositiveInt, PositiveInt]] = None
+    rgb_wl: Optional[Tuple[PositiveFloat, PositiveFloat, PositiveFloat]] = (640.0, 550.0, 460.0)
 
 
 class MpQuickLook(BaseModel):
@@ -39,7 +46,7 @@ class MpQuickLook(BaseModel):
 
     create: bool = True
     overwrite: bool = False
-    percentiles: Optional[Tuple[NonNegativeInt, PositiveInt]] = None
+    percentiles: Optional[Tuple[NonNegativeFloat, PositiveFloat]] = None
 
 
 class MpImuData(BaseModel):
@@ -53,7 +60,7 @@ class MpGeoTransform(BaseModel):
     """Configuration for creating geotransform from IMU data"""
 
     create: bool = True
-    overwrite: bool = True
+    overwrite: bool = False
     camera_opening_angle_deg: PositiveFloat = 36.5
     pitch_offset_deg: float = 0.0
     roll_offset_deg: float = 0.0
@@ -83,7 +90,7 @@ class MpRadianceRgb(BaseModel):
 class MpRadianceGc(BaseModel):
     """Configuration for converting radiance to glint corrected radiance"""
 
-    create: bool = True
+    create: bool = False
     overwrite: bool = False
     smooth_spectra: bool = False
     subtract_dark_spec: bool = False
@@ -97,7 +104,7 @@ class MpRadianceGc(BaseModel):
 class MpRadianceGcRgb(BaseModel):
     """Configuration for creating RGB image from glint corrected radiance data"""
 
-    create: bool = True
+    create: bool = False
     overwrite: bool = False
 
 
@@ -124,7 +131,7 @@ class MpReflectance(BaseModel):
 class MpReflectanceGc(BaseModel):
     """Configuration for creating glint corrected reflectance"""
 
-    create: bool = True
+    create: bool = False
     overwrite: bool = False
     smooth_spectra: bool = True
     method: Literal["from_rad_gc", "flat_spec"] = "from_rad_gc"
@@ -133,12 +140,26 @@ class MpReflectanceGc(BaseModel):
 class MpReflectanceGcRgb(BaseModel):
     """Configuration for creating RGB image from glint corrected reflectance data"""
 
+    create: bool = False
+    overwrite: bool = False
+
+
+class MpMosaicRadiance(BaseModel):
+    """Configuration for creating radiance mosaic image"""
+
     create: bool = True
     overwrite: bool = False
 
 
-class MpMosaicCreateOverwrite(BaseModel):
-    """Configuration for creating mosaic image"""
+class MpMosaicRadianceGc(BaseModel):
+    """Configuration for creating glint corrected radiance mosaic image"""
+
+    create: bool = False
+    overwrite: bool = False
+
+
+class MpMosaicReflectanceGc(BaseModel):
+    """Configuration for creating glint corrected reflectance mosaic image"""
 
     create: bool = False
     overwrite: bool = False
@@ -149,10 +170,9 @@ class MpMosaic(BaseModel):
 
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     visualization_mosaic: Literal["radiance", "radiance_gc"] = "radiance"
-    radiance_rgb: MpMosaicCreateOverwrite
-    radiance_gc_rgb: MpMosaicCreateOverwrite
-    # reflectance_rgb: MpMosaicCreateOverwrite # Not yet implemented
-    reflectance_gc_rgb: MpMosaicCreateOverwrite
+    radiance_rgb: MpMosaicRadiance
+    radiance_gc_rgb: MpMosaicRadianceGc
+    reflectance_gc_rgb: MpMosaicReflectanceGc
 
 
 class MassipipeOptions(BaseModel):
@@ -234,10 +254,9 @@ def get_config_template() -> Config:
             reflectance_gc=MpReflectanceGc(),
             reflectance_gc_rgb=MpReflectanceGcRgb(),
             mosaic=MpMosaic(
-                radiance_rgb=MpMosaicCreateOverwrite(),
-                radiance_gc_rgb=MpMosaicCreateOverwrite(),
-                # reflectance_rgb=MpMosaicCreateOverwrite(),
-                reflectance_gc_rgb=MpMosaicCreateOverwrite(),
+                radiance_rgb=MpMosaicRadiance(),
+                radiance_gc_rgb=MpMosaicRadianceGc(),
+                reflectance_gc_rgb=MpMosaicReflectanceGc(),
             ),
         ),
     )
