@@ -5,7 +5,7 @@ import massipipe.pipeline
 
 
 def test_pipeline_defaults(example_dataset_dir, example_config_file_name):
-    pp = massipipe.pipeline.PipelineProcessor(example_dataset_dir, example_config_file_name)
+    pp = massipipe.pipeline.Pipeline(example_dataset_dir, example_config_file_name)
     pp.run()
     assert len(pp.raw_image_paths) == 2
     assert len(pp.base_file_names) == 2

@@ -45,7 +45,7 @@ class ProcessedFilePaths:
     reflectance_gc_rgb: list[Path] = field(default_factory=list)
 
 
-class PipelineProcessor:
+class Pipeline:
     def __init__(
         self,
         dataset_dir: Union[Path, str],
