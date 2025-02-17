@@ -11,8 +11,8 @@ from pydantic import ValidationError
 from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.export import copy_visualization_mosaic, export_dataset_zip
 from massipipe.georeferencing import (
-    GeoTransformer,
     ImuDataParser,
+    ImuGeoTransformer,
     SimpleGeoreferencer,
     georeferenced_hyspec_to_rgb_geotiff,
 )
@@ -446,7 +446,7 @@ class Pipeline:
             logger.info(f"Creating and saving geotransform based on {imu_data_path.name}")
             try:
                 if imu_data_path.exists() and hyspec_im_path.exists():
-                    geotransformer = GeoTransformer(
+                    geotransformer = ImuGeoTransformer(
                         imu_data_path,
                         hyspec_im_path,
                         camera_opening_angle=self.config.geotransform.camera_opening_angle_deg,
