@@ -89,3 +89,5 @@ def export_dataset_zip(
         _add_element_to_archive(dataset_dir, archive, license_file_path)
 
     logger.info(f"Dataset exported to {zip_file_path}")
+
+    return zip_file_path
