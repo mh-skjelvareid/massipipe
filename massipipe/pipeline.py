@@ -400,8 +400,8 @@ class Pipeline:
                     hyspec_image_path, quicklook_image_path
                 )
             except Exception as e:
-                logger.warning(f"Error occured while processing {hyspec_image_path}", exc_info=True)
-                logger.warning("Skipping file")
+                logger.exception(f"Failed to create quicklook for {hyspec_image_path.name}: {e}")
+                continue
 
     def parse_and_save_imu_data(self) -> None:
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
@@ -418,9 +418,9 @@ class Pipeline:
             logger.info(f"Processing IMU data from {lcf_path.name}")
             try:
                 imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
-            except Exception:
-                logger.error(f"Error occured while processing {lcf_path}", exc_info=True)
-                logger.error("Skipping file")
+            except Exception as e:
+                logger.exception(f"Failed to process IMU data from {lcf_path.name}: {e}")
+                continue
 
     def create_and_save_geotransform(self) -> None:
         logger.info("---- GEOTRANSFORM CALCULATION ----")
@@ -458,9 +458,9 @@ class Pipeline:
                         assume_square_pixels=self.config.geotransform.assume_square_pixels,
                     )
                     geotransformer.save_image_geotransform(geotrans_path)
-            except Exception:
-                logger.error(f"Error occured while processing {imu_data_path}", exc_info=True)
-                logger.error("Skipping file")
+            except Exception as e:
+                logger.exception(f"Failed to create geotransform for {hyspec_im_path.name}: {e}")
+                continue
 
     def convert_raw_images_to_radiance(self) -> None:
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
@@ -479,8 +479,8 @@ class Pipeline:
             try:
                 radiance_converter.convert_raw_file_to_radiance(raw_image_path, radiance_image_path)
             except Exception as e:
-                logger.warning(f"Error occured while processing {raw_image_path}", exc_info=True)
-                logger.warning("Skipping file")
+                logger.exception(f"Radiance conversion failed for {raw_image_path.name}: {e}")
+                continue
 
     @staticmethod
     def _create_rgb_geotiff(
@@ -589,9 +589,9 @@ class Pipeline:
                     irradiance_converter.convert_raw_file_to_irradiance(
                         raw_spec_path, irrad_spec_path
                     )
-                except Exception:
-                    logger.error(f"Error occured while processing {raw_spec_path}", exc_info=True)
-                    logger.error("Skipping file")
+                except Exception as e:
+                    logger.exception(f"Irradiance conversion failed for {raw_spec_path.name}: {e}")
+                    continue
 
     def calibrate_irradiance_wavelengths(self) -> None:
         """Calibrate irradiance wavelengths using Fraunhofer absorption lines"""
@@ -606,12 +606,11 @@ class Pipeline:
                 logger.info(f"Calibrating wavelengths for {irradiance_spec_path.name}")
                 try:
                     wavelength_calibrator.update_header_wavelengths(irradiance_spec_path)
-                except Exception:
-                    logger.error(
-                        f"Error occured while processing {irradiance_spec_path}",
-                        exc_info=True,
+                except Exception as e:
+                    logger.exception(
+                        f"Wavelength calibration failed for {irradiance_spec_path.name}: {e}"
                     )
-                    logger.error("Skipping file")
+                    continue
 
     def glint_correct_radiance_images(self) -> None:
         """Remove water surface reflections of sun and sky light"""
@@ -655,7 +654,11 @@ class Pipeline:
                 continue
             if rad_image.exists():
                 logger.info(f"Running glint correction for {rad_image.name}")
-                glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
+                try:
+                    glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
+                except Exception as e:
+                    logger.exception(f"Glint correction failed for {rad_image.name}: {e}")
+                    continue
 
     def create_glint_corrected_radiance_rgb_geotiff(self) -> None:
         """Create georeferenced GeoTIFF versions of glint corrected radiance"""
@@ -740,9 +743,9 @@ class Pipeline:
             logger.info(f"Adding map info to {rad_path.name}")
             try:
                 add_header_mapinfo(rad_path, geotrans_path)
-            except Exception:
-                logger.error(f"Error occured while adding map info to {rad_path}", exc_info=True)
-                logger.error("Skipping file")
+            except Exception as e:
+                logger.exception(f"Failed to add mapinfo for {rad_path.name}: {e}")
+                continue
 
     def glint_correct_reflectance_images(self) -> None:
         """Correct for sun and sky glint in reflectance images"""
@@ -776,11 +779,10 @@ class Pipeline:
                     except KeyError:
                         logger.error(f"Irradiance spectrum missing in {rad_gc_path}")
                     except Exception as e:
-                        logger.error(
-                            f"Error occured while glint correcting {rad_gc_path}",
-                            exc_info=True,
+                        logger.exception(
+                            f"Glint corrected reflectance from rad_gc failed for {rad_gc_path.name}: {e}"
                         )
-                        logger.error("Skipping file")
+                        continue
 
         # Calculate glint corrected reflectance based on assumption of flat glint spectrum
         elif self.config.reflectance_gc.method == "flat_spec":
@@ -801,16 +803,12 @@ class Pipeline:
                     try:
                         glint_corrector.glint_correct_image_file(refl_path, refl_gc_path)
                     except Exception as e:
-                        logger.error(
-                            f"Error occured while glint correcting {refl_path}",
-                            exc_info=True,
+                        logger.exception(
+                            f"Flat spec glint correction failed for {refl_path.name}: {e}"
                         )
-                        logger.error("Skipping file")
+                        continue
         else:
-            raise ValueError(
-                "Invalid reflectance glint correction method: "
-                + f"{self.config.reflectance_gc.method}"
-            )
+            logger.error("Unrecognized glint correction method specified in configuration.")
 
     def create_glint_corrected_reflectance_rgb_geotiff(self) -> None:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
