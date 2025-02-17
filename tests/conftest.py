@@ -13,8 +13,6 @@ EXAMPLE_DATA_PATH = (
     / "massimal_larvik_olbergholmen_202308301001-test_hsi.zip"
 )
 
-EXAMPLE_CONFIG_PATH = Path(__file__).parent / "example_data" / "example_config.yaml"
-
 
 @pytest.fixture(scope="session")
 def example_dataset_dir(tmp_path_factory):
@@ -25,15 +23,7 @@ def example_dataset_dir(tmp_path_factory):
         zip_file.extractall(path=tmp_dir)
     dataset_dir = tmp_dir.glob("*").__next__()  # Dataset "root" folder, child of temp.dir.
 
-    # Copy YAML config file into dataset directory
-    shutil.copy(str(EXAMPLE_CONFIG_PATH), str(dataset_dir))
-
     return dataset_dir
-
-
-@pytest.fixture
-def example_config_file_name():
-    return EXAMPLE_CONFIG_PATH.name
 
 
 @pytest.fixture
