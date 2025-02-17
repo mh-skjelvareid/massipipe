@@ -402,11 +402,15 @@ def bin_image(
     - Inspired by https://stackoverflow.com/a/36102436
     - See also https://en.wikipedia.org/wiki/Pixel_binning
     """
-    assert image.ndim == 3
+    if image.ndim != 3:
+        raise ValueError("Input image must be a 3D array")
     n_lines, n_samples, n_channels = image.shape
-    assert (n_lines % line_bin_size) == 0
-    assert (n_samples % sample_bin_size) == 0
-    assert (n_channels % channel_bin_size) == 0
+    if n_lines % line_bin_size != 0:
+        raise ValueError("n_lines is not divisible by line_bin_size")
+    if n_samples % sample_bin_size != 0:
+        raise ValueError("n_samples is not divisible by sample_bin_size")
+    if n_channels % channel_bin_size != 0:
+        raise ValueError("n_channels is not divisible by channel_bin_size")
 
     n_lines_binned = n_lines // line_bin_size
     n_samples_binned = n_samples // sample_bin_size

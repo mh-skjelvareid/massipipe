@@ -549,7 +549,8 @@ class ImuGeoTransformer:
         """
         if self.utm_epsg is not None:
             utm_zone = pyproj.CRS.from_epsg(self.utm_epsg).utm_zone
-            assert utm_zone is not None
+            if utm_zone is None:
+                raise ValueError("UTM zone undefined.")
         else:
             raise ValueError("EPSG value not set - UTM zone undefined.")
         utm_zone_number = int(utm_zone[:-1])
