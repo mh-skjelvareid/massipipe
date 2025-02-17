@@ -180,7 +180,8 @@ class Pipeline:
     def _configure_file_logging(self) -> None:
         """Configure file logging for pipeline execution.
 
-        Creates a logs directory if needed and initializes a file handler with a timestamped log file.
+        Creates a logs directory if needed and initializes a file handler with a
+        timestamped log file.
         """
         # Create log file path
         self.logs_dir.mkdir(exist_ok=True)
@@ -1136,7 +1137,7 @@ class Pipeline:
             copy_visualization_mosaic(self.mosaic_rad_gc_path, self.mosaic_visualization_dir)
 
         # Package selected processed data as ZIP file
-        export_dataset_zip(
+        zip_file_path = export_dataset_zip(
             self.dataset_dir,
             self.quicklook_dir,
             self.radiance_dir,
@@ -1144,6 +1145,7 @@ class Pipeline:
             self.mosaic_visualization_dir,
             self.config_file_path,
         )
+        logger.info(f"Dataset exported to {zip_file_path}")
 
 
 def find_datasets(
