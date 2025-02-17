@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "massipipe"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
   "ipykernel",
   "matplotlib",
@@ -17,7 +17,7 @@ dependencies = [
   "schema",
   "pydantic"
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
   {name = "Martin H. Skjelvareid"},
 ]
@@ -29,7 +29,18 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["hyperspectral", "uav", "radiance","irradiance","sun glint", "sky glint", "georeference", "ENVI", "GeoTIFF", "Resonon", "Pika L"]
 classifiers = [
-  "Programming Language :: Python"
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Image Processing",
+  "Topic :: Scientific/Engineering :: Oceanography",
+  "Topic :: Scientific/Engineering :: Physics"
 ]
 
 [project.optional-dependencies]
@@ -45,7 +56,8 @@ dev = [
 ]
 
 [project.urls]
-Repository = "https://github.com/mh-skjelvareid/massipipe"
+repository = "https://github.com/mh-skjelvareid/massipipe"
+documentation = "https://mh-skjelvareid.github.io/massipipe/"
 
 [tool.ruff]
 line-length = 100
