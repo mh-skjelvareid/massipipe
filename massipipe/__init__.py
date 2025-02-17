@@ -13,16 +13,16 @@ more general and can be used with any hyperspectral image.
 import logging
 
 # Internal imports
-from config import read_config
-from georeferencing import ImuDataParser, ImuGeoTransformer, georeferenced_hyspec_to_rgb_geotiff
-from glint import FlatSpecGlintCorrector, HedleyGlintCorrector
-from irradiance import IrradianceConverter
-from mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
-from pipeline import Pipeline
-from quicklook import QuickLookProcessor
-from radiance import RadianceConverter
-from reflectance import ReflectanceConverter
-from utils import (
+from .config import read_config
+from .georeferencing import ImuDataParser, ImuGeoTransformer, georeferenced_hyspec_to_rgb_geotiff
+from .glint import FlatSpecGlintCorrector, HedleyGlintCorrector
+from .irradiance import IrradianceConverter
+from .mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
+from .pipeline import Pipeline
+from .quicklook import QuickLookProcessor
+from .radiance import RadianceConverter
+from .reflectance import ReflectanceConverter
+from .utils import (
     closest_wl_index,
     percentile_stretch_image,
     read_envi,
