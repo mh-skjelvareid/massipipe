@@ -61,7 +61,8 @@ class FlatSpecGlintCorrector:
         Notes
         -----
         - Assumes negligible water-leaving radiance in the NIR region.
-        - Assumes that the sun and sky glint have a flat spectrum, which can be a close approximation.
+        - Assumes that the sun and sky glint have a flat spectrum, which can be a close
+          approximation.
         """
         nir_ind = mpu.get_nir_ind(refl_wl)
         nir_im = np.mean(refl_image[:, :, nir_ind], axis=2, keepdims=True)
@@ -97,9 +98,10 @@ class HedleyGlintCorrector:
     """
     Perform glint correction using a fitted linear regression model (Hedley method).
 
-    This class corrects glint by fitting a linear model to reference spectra and then applying this model
-    to correct the visible spectrum of the input image. It supports optional smoothing, dark spectrum subtraction,
-    and adjusts for negative values to ensure valid outputs.
+    This class corrects glint by fitting a linear model to reference spectra and then
+    applying this model to correct the visible spectrum of the input image. It supports
+    optional smoothing, dark spectrum subtraction, and adjusts for negative values to
+    ensure valid outputs.
     """
 
     def __init__(
@@ -158,10 +160,12 @@ class HedleyGlintCorrector:
         reference_image_paths : list[Union[Path, str]]
             List of paths to reference hyperspectral image headers.
         reference_image_ranges : Union[None, list[Union[None, list[int]]]]
-            List of pixel ranges to use as reference from each image. If None, the full image is used.
-            Ranges are specified as [line_start, line_end, sample_start, sample_end].
+            List of pixel ranges to use as reference from each image. If None, the full
+            image is used. Ranges are specified as [line_start, line_end, sample_start,
+            sample_end].
         sample_frac : float
-            Fraction of total pixels used for training (0.0 to 1.0). Pixels are randomly sampled.
+            Fraction of total pixels used for training (0.0 to 1.0). Pixels are randomly
+            sampled.
         """
         if reference_image_ranges is None:
             reference_image_ranges = [None for _ in range(len(reference_image_paths))]
@@ -310,7 +314,7 @@ class HedleyGlintCorrector:
         **kwargs: Any,
     ):
         """
-        Read a hyperspectral image from an ENVI header, apply the glint correction, and save the result.
+        Read a hyperspectral image from an ENVI header, apply glint correction, and save the result.
 
         Parameters
         ----------
