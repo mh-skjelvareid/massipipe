@@ -38,9 +38,11 @@ class ReflectanceConverter:
     smooth_spectra : bool
         If True, applies a Savitzky-Golay filter to the reflectance spectra.
     refl_from_mean_irrad : bool
-        If True, uses a computed mean irradiance value for conversion instead of per-image irradiance.
+        If True, uses a computed mean irradiance value for conversion instead of
+        per-image irradiance.
     ref_irrad_spec_mean : NDArray
-        Mean irradiance spectrum used for reflectance conversion when refl_from_mean_irrad is True.
+        Mean irradiance spectrum used for reflectance conversion when
+        refl_from_mean_irrad is True.
     ref_irrad_spec_wl : NDArray
         Wavelength array corresponding to the irradiance spectrum.
     """
@@ -103,7 +105,7 @@ class ReflectanceConverter:
         self.fwhm_irrad_smooth = fwhm_irrad_smooth if fwhm_irrad_smooth is not None else 3.5
         self.smooth_spectra = bool(smooth_spectra)
 
-        if refl_from_mean_irrad:
+        if refl_from_mean_irrad and irrad_spec_paths is not None:
             self.refl_from_mean_irrad = True
             irrad_spec_mean, irrad_wl, _ = self._get_mean_irrad_spec(irrad_spec_paths)
         else:
@@ -114,12 +116,12 @@ class ReflectanceConverter:
 
     @staticmethod
     def _get_mean_irrad_spec(
-        irrad_spec_paths: Optional[Iterable[Union[Path, str]]],
+        irrad_spec_paths: Iterable[Union[Path, str]],
     ) -> Tuple[NDArray, NDArray, NDArray]:
         """Read irradiance spectra from file and calculate mean"""
         irrad_spectra = []
         for irrad_spec_path in irrad_spec_paths:
-            if irrad_spec_path.exists():
+            if Path(irrad_spec_path).exists():
                 irrad_spec, irrad_wl, _ = mpu.read_envi(irrad_spec_path)
                 irrad_spectra.append(irrad_spec.squeeze())
         if not irrad_spectra:
@@ -202,7 +204,8 @@ class ReflectanceConverter:
 
         # Check that spectrum is 1D, then expand to 3D for broadcasting
         irrad_spec = np.squeeze(irrad_spec)
-        assert irrad_spec.ndim == 1
+        if irrad_spec.ndim != 1:
+            raise ValueError("irrad_spec must be 1-dimensional")
 
         # Limit output wavelength range
         valid_image_wl_ind = (
