@@ -50,7 +50,7 @@ class Pipeline:
         self,
         dataset_dir: Union[Path, str],
         config_file_name: str = "config.seabee.yaml",
-    ):
+    ) -> None:
         """Create a pipeline for processing all data in a dataset
 
         Parameters
@@ -146,7 +146,7 @@ class Pipeline:
         self.mosaic_rad_gc_path = self.mosaic_dir / (self.dataset_base_name + "_rad_gc_rgb.tiff")
         self.mosaic_refl_gc_path = self.mosaic_dir / (self.dataset_base_name + "_refl_gc_rgb.tiff")
 
-    def load_config_from_file(self):
+    def load_config_from_file(self) -> None:
         """Load or re-load configuration from YAML file"""
         try:
             full_config_dict = read_config(self.config_file_path)
@@ -163,7 +163,7 @@ class Pipeline:
             return
         self.config = full_config.massipipe_options
 
-    def _configure_file_logging(self):
+    def _configure_file_logging(self) -> None:
         """Configure logging for pipeline"""
 
         # Create log file path
@@ -183,7 +183,7 @@ class Pipeline:
         logger.info("-" * 64)
         logger.info(f"File logging for {self.dataset_base_name} initialized.")
 
-    def _check_data_starting_point(self):
+    def _check_data_starting_point(self) -> str:
         """Determine whether processing starts from raw or radiance data"""
         if self.raw_dir.exists():
             logger.info(f"Found directory {self.raw_dir.name} - processing from raw files.")
@@ -199,7 +199,7 @@ class Pipeline:
                 raise FileNotFoundError(f"Found neither raw or radiance files in dataset dir.")
         return data_starting_point
 
-    def _validate_raw_files(self):
+    def _validate_raw_files(self) -> tuple[list[Path], list[Path]]:
         """Check that all expected raw files exist
 
         Returns:
@@ -259,7 +259,7 @@ class Pipeline:
         image_number = image_file_stem.split("_")[-1]
         return int(image_number)
 
-    def _create_base_file_names(self):
+    def _create_base_file_names(self) -> list[str]:
         """Create numbered base names for processed files"""
         if self.data_starting_point == "raw":
             base_file_names = [
@@ -274,7 +274,7 @@ class Pipeline:
             )
         return base_file_names
 
-    def _create_processed_file_paths(self):
+    def _create_processed_file_paths(self) -> ProcessedFilePaths:
         """Define default subfolders for processed files"""
         proc_file_paths = ProcessedFilePaths()
 
@@ -327,7 +327,7 @@ class Pipeline:
 
         return proc_file_paths
 
-    def _get_raw_spectrum_paths(self):
+    def _get_raw_spectrum_paths(self) -> list[Path]:
         """Search for raw files matching Resonon default naming"""
         spec_paths = []
         for raw_image_path in self.raw_image_paths:
@@ -343,7 +343,7 @@ class Pipeline:
                 spec_paths.append(None)
         return spec_paths
 
-    def _get_radiance_calibration_path(self):
+    def _get_radiance_calibration_path(self) -> Path:
         """Search for radiance calibration file (*.icp)"""
         icp_files = list(self.calibration_dir.glob("*.icp"))
         if len(icp_files) == 1:
@@ -358,7 +358,7 @@ class Pipeline:
                 + f"{self.calibration_dir}"
             )
 
-    def _get_irradiance_calibration_path(self):
+    def _get_irradiance_calibration_path(self) -> Path:
         """Search for irradiance calibration file (*.dcp)"""
         dcp_files = list(self.calibration_dir.glob("*.dcp"))
         if len(dcp_files) == 1:
@@ -373,7 +373,7 @@ class Pipeline:
                 + f"{self.calibration_dir}"
             )
 
-    def create_quicklook_images(self):
+    def create_quicklook_images(self) -> None:
         """Create quicklook versions of hyperspectral images"""
         logger.info("---- QUICKLOOK IMAGE GENERATION ----")
         self.quicklook_dir.mkdir(exist_ok=True)
@@ -403,7 +403,7 @@ class Pipeline:
                 logger.warning(f"Error occured while processing {hyspec_image_path}", exc_info=True)
                 logger.warning("Skipping file")
 
-    def parse_and_save_imu_data(self):
+    def parse_and_save_imu_data(self) -> None:
         """Parse *.lcf and *.times files with IMU data and save as JSON"""
         logger.info("---- IMU DATA PROCESSING ----")
         self.imudata_dir.mkdir(exist_ok=True)
@@ -422,7 +422,7 @@ class Pipeline:
                 logger.error(f"Error occured while processing {lcf_path}", exc_info=True)
                 logger.error("Skipping file")
 
-    def create_and_save_geotransform(self):
+    def create_and_save_geotransform(self) -> None:
         logger.info("---- GEOTRANSFORM CALCULATION ----")
         self.geotransform_dir.mkdir(exist_ok=True)
 
@@ -462,7 +462,7 @@ class Pipeline:
                 logger.error(f"Error occured while processing {imu_data_path}", exc_info=True)
                 logger.error("Skipping file")
 
-    def convert_raw_images_to_radiance(self):
+    def convert_raw_images_to_radiance(self) -> None:
         """Convert raw hyperspectral images (DN) to radiance (microflicks)"""
         logger.info("---- RADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
@@ -489,7 +489,7 @@ class Pipeline:
         geotiff_paths: list[Path],
         geotiff_overwrite: bool,
         rgb_wl: Union[tuple[float, float, float], None],
-    ):
+    ) -> None:
         """Create georeferenced RGB GeoTIFF versions of hyperspectral image
 
         Parameters
@@ -561,7 +561,7 @@ class Pipeline:
                 else:
                     logger.error("No ENVI header map info or geotransform file - skipping.")
 
-    def create_radiance_rgb_geotiff(self):
+    def create_radiance_rgb_geotiff(self) -> None:
         """Create georeferenced RGB GeoTIFF versions of radiance"""
         logger.info("---- EXPORTING RGB GEOTIFF FOR RADIANCE ----")
         self.radiance_rgb_dir.mkdir(exist_ok=True)
@@ -573,7 +573,7 @@ class Pipeline:
             rgb_wl=self.config.general.rgb_wl,
         )
 
-    def convert_raw_spectra_to_irradiance(self):
+    def convert_raw_spectra_to_irradiance(self) -> None:
         """Convert raw spectra (DN) to irradiance (W/(m2*nm))"""
         logger.info("---- IRRADIANCE CONVERSION ----")
         self.radiance_dir.mkdir(exist_ok=True)
@@ -593,7 +593,7 @@ class Pipeline:
                     logger.error(f"Error occured while processing {raw_spec_path}", exc_info=True)
                     logger.error("Skipping file")
 
-    def calibrate_irradiance_wavelengths(self):
+    def calibrate_irradiance_wavelengths(self) -> None:
         """Calibrate irradiance wavelengths using Fraunhofer absorption lines"""
         logger.info("---- IRRADIANCE WAVELENGTH CALIBRATION ----")
         if not (self.radiance_dir.exists()):
@@ -613,7 +613,7 @@ class Pipeline:
                     )
                     logger.error("Skipping file")
 
-    def glint_correct_radiance_images(self):
+    def glint_correct_radiance_images(self) -> None:
         """Remove water surface reflections of sun and sky light"""
         logger.info("---- RADIANCE GLINT CORRECTION ----")
         self.radiance_gc_dir.mkdir(exist_ok=True)
@@ -657,7 +657,7 @@ class Pipeline:
                 logger.info(f"Running glint correction for {rad_image.name}")
                 glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
 
-    def create_glint_corrected_radiance_rgb_geotiff(self):
+    def create_glint_corrected_radiance_rgb_geotiff(self) -> None:
         """Create georeferenced GeoTIFF versions of glint corrected radiance"""
         logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED RADIANCE ----")
         self.radiance_gc_rgb_dir.mkdir(exist_ok=True)
@@ -669,7 +669,7 @@ class Pipeline:
             rgb_wl=self.config.general.rgb_wl,
         )
 
-    def convert_radiance_images_to_reflectance(self):
+    def convert_radiance_images_to_reflectance(self) -> None:
         """Convert radiance images (microflicks) to reflectance (unitless)"""
         logger.info("---- REFLECTANCE CONVERSION ----")
         self.reflectance_dir.mkdir(exist_ok=True)
@@ -703,7 +703,7 @@ class Pipeline:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
 
-    def add_irradiance_to_radiance_header(self):
+    def add_irradiance_to_radiance_header(self) -> None:
         """Pre-process irradiance for reflectance calc. and save to radiance header"""
         logger.info("---- WRITING IRRADIANCE TO RADIANCE HEADER ----")
         reflectance_converter = ReflectanceConverter(
@@ -729,7 +729,7 @@ class Pipeline:
                     logger.error(f"Error occured while processing {rad_path}", exc_info=True)
                     logger.error("Skipping file")
 
-    def add_mapinfo_to_radiance_header(self):
+    def add_mapinfo_to_radiance_header(self) -> None:
         """Add ENVI mapinfo (geotransform) to radiance header"""
         logger.info("---- WRITING MAP INFO TO RADIANCE HEADER ----")
         if not any([rp.exists() for rp in self.rad_im_paths]):
@@ -744,7 +744,7 @@ class Pipeline:
                 logger.error(f"Error occured while adding map info to {rad_path}", exc_info=True)
                 logger.error("Skipping file")
 
-    def glint_correct_reflectance_images(self):
+    def glint_correct_reflectance_images(self) -> None:
         """Correct for sun and sky glint in reflectance images"""
         logger.info("---- REFLECTANCE GLINT CORRECTION ----")
         self.reflectance_gc_dir.mkdir(exist_ok=True)
@@ -812,7 +812,7 @@ class Pipeline:
                 + f"{self.config.reflectance_gc.method}"
             )
 
-    def create_glint_corrected_reflectance_rgb_geotiff(self):
+    def create_glint_corrected_reflectance_rgb_geotiff(self) -> None:
         """Create georeferenced GeoTIFF versions of glint corrected reflectance"""
         logger.info("---- EXPORTING RGB GEOTIFF FOR GLINT CORRECTED REFLECTANCE ----")
         self.reflectance_gc_rgb_dir.mkdir(exist_ok=True)
@@ -832,7 +832,7 @@ class Pipeline:
         mosaic_overwrite: bool,
         overview_factors: Sequence[int],
         convert_to_8bit: bool = True,
-    ):
+    ) -> None:
         """Mosaic GeoTIFF images into single GeoTIFF with overviews
 
         Parameters
@@ -864,7 +864,7 @@ class Pipeline:
             convert_geotiff_to_8bit(input_image_path=mosaic_path, output_image_path=mosaic_path)
         add_geotiff_overviews(mosaic_path, overview_factors)
 
-    def mosaic_radiance_geotiffs(self):
+    def mosaic_radiance_geotiffs(self) -> None:
         """Merge radiance RGB images into mosaic with overviews"""
         logger.info("---- MOSAICING RADIANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
@@ -876,7 +876,7 @@ class Pipeline:
             overview_factors=self.config.mosaic.overview_factors,
         )
 
-    def mosaic_radiance_gc_geotiffs(self):
+    def mosaic_radiance_gc_geotiffs(self) -> None:
         """Merge radiance_gc RGB images into mosaic with overviews"""
         logger.info("---- MOSAICING GLINT CORRECTED RADIANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
@@ -888,7 +888,7 @@ class Pipeline:
             overview_factors=self.config.mosaic.overview_factors,
         )
 
-    def mosaic_reflectance_gc_geotiffs(self):
+    def mosaic_reflectance_gc_geotiffs(self) -> None:
         """Merge reflectance_gc RGB images into mosaic with overviews"""
         logger.info("---- MOSAICING GLINT CORRECTED REFLECTANCE ----")
         self.mosaic_dir.mkdir(exist_ok=True)
@@ -910,7 +910,7 @@ class Pipeline:
         delete_geotransform: bool = True,
         delete_imudata: bool = True,
         delete_mosaics: bool = True,
-    ):
+    ) -> None:
         """Delete existing image products ("reset" after previous processing)
 
         Parameters
@@ -969,7 +969,7 @@ class Pipeline:
             logger.info(f"Deleting {self.mosaic_dir}")
             shutil.rmtree(self.mosaic_dir)
 
-    def run_quicklook(self):
+    def run_quicklook(self) -> None:
         """Create quicklook versions of images (percentile stretched)"""
         if self.config.quicklook.create:
             try:
@@ -977,7 +977,7 @@ class Pipeline:
             except Exception:
                 logger.error("Error while creating quicklook images", exc_info=True)
 
-    def run_raw_data_processing(self):
+    def run_raw_data_processing(self) -> None:
         """Run all data processing steps based on raw data"""
 
         if self.config.imu_data.create:
@@ -1003,7 +1003,7 @@ class Pipeline:
             except Exception:
                 logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
 
-    def run_secondary_processing(self):
+    def run_secondary_processing(self) -> None:
         if self.config.geotransform.create:
             try:
                 self.create_and_save_geotransform()
@@ -1040,7 +1040,7 @@ class Pipeline:
             except Exception:
                 logger.error("Error while converting from radiance to reflectance", exc_info=True)
 
-    def run_glint_correction(self):
+    def run_glint_correction(self) -> None:
         """Run glint correction using parameters defined in YAML file
 
         The processing steps include:
@@ -1080,7 +1080,7 @@ class Pipeline:
                     "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
                 )
 
-    def run_mosaics(self):
+    def run_mosaics(self) -> None:
         """Run all mosaicing operations"""
 
         if self.config.mosaic.radiance_rgb.create:
@@ -1105,7 +1105,7 @@ class Pipeline:
                     f"Error occured while mosaicing glint corrected reflectance", exc_info=True
                 )
 
-    def run(self):
+    def run(self) -> None:
         """Run all processing steps"""
         self.run_quicklook()
         if self.data_starting_point == "raw":
@@ -1114,7 +1114,7 @@ class Pipeline:
         self.run_glint_correction()
         self.run_mosaics()
 
-    def export(self):
+    def export(self) -> None:
         """Export dataset to ZIP file for archival / publishing"""
         # Copy "best" mosaic to separate directory
         if self.config.mosaic.visualization_mosaic == "radiance":
