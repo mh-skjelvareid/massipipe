@@ -8,7 +8,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pyproj
@@ -221,9 +221,9 @@ class ImuDataParser:
             raise
 
 
-class GeoTransformer:
+class ImuGeoTransformer:
     """
-    Class for transforming geospatial data using IMU and image metadata.
+    Class for calculating affine geotransform based on IMU data and image shape.
 
     Attributes
     ----------
@@ -421,7 +421,7 @@ class GeoTransformer:
             logger.error(f"Error initializing GeoTransformer: {e}")
             raise
 
-    def _calc_time_attributes(self) -> Tuple[float, float]:
+    def _calc_time_attributes(self) -> Tuple[np.floating[Any], np.floating[Any]]:
         """Calculate time duration and sampling interval of IMU data
 
         Returns
@@ -436,7 +436,9 @@ class GeoTransformer:
         t_total = len(t) * dt
         return t_total, dt
 
-    def _calc_alongtrack_properties(self) -> Tuple[NDArray, NDArray, float, float]:
+    def _calc_alongtrack_properties(
+        self,
+    ) -> Tuple[NDArray, NDArray, np.floating[Any], np.floating[Any]]:
         """Calculate along-track velocity, gsd, and swath length
 
         Returns
@@ -550,7 +552,7 @@ class GeoTransformer:
             assert utm_zone is not None
         else:
             raise ValueError("EPSG value not set - UTM zone undefined.")
-        utm_zone_number = utm_zone[:-1]
+        utm_zone_number = int(utm_zone[:-1])
         if utm_zone[-1] == "N":
             utm_zone_hemi = "North"
         else:
@@ -689,6 +691,8 @@ class GeoTransformer:
 
 
 class SimpleGeoreferencer:
+    """Class for simple georeferencing of hyperspectral images using affine transforms"""
+
     def __init__(
         self,
         rgb_only: bool = True,
@@ -973,6 +977,9 @@ def envi_map_info_to_geotransform(envi_map_info: str) -> Tuple[Affine, int]:
     utm_south = str.lower(map_info[8]) == "south"
     crs = pyproj.CRS.from_dict({"proj": "utm", "zone": utm_zone, "south": utm_south})
     epsg = crs.to_epsg()
+    if epsg is None:
+        logger.error("EPSG code not found for UTM zone")
+        raise ValueError("EPSG code not found for UTM zone")
 
     return transform, epsg
 
