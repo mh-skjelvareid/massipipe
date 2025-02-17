@@ -151,7 +151,7 @@ class Pipeline:
         try:
             full_config_dict = read_config(self.config_file_path)
         except IOError:
-            logger.error(f"Error parsing config file {self.config_file_path}")
+            logger.exception(f"Error parsing config file {self.config_file_path}")
             raise
 
         try:
@@ -186,7 +186,7 @@ class Pipeline:
     def _check_data_starting_point(self) -> str:
         """Determine whether processing starts from raw or radiance data"""
         if self.raw_dir.exists():
-            logger.info(f"Found directory {self.raw_dir.name} - processing from raw files.")
+            logger.info(f"Found directory {self.raw_dir} - processing from raw files.")
             data_starting_point = "raw"
         else:
             if self.radiance_dir.exists():
@@ -400,7 +400,7 @@ class Pipeline:
                     hyspec_image_path, quicklook_image_path
                 )
             except Exception as e:
-                logger.exception(f"Failed to create quicklook for {hyspec_image_path.name}: {e}")
+                logger.exception(f"Error creating quicklook for {hyspec_image_path.name}")
                 continue
 
     def parse_and_save_imu_data(self) -> None:
@@ -419,7 +419,7 @@ class Pipeline:
             try:
                 imu_data_parser.read_and_save_imu_data(lcf_path, times_path, imu_data_path)
             except Exception as e:
-                logger.exception(f"Failed to process IMU data from {lcf_path.name}: {e}")
+                logger.exception(f"Error processing IMU data from {lcf_path.name}")
                 continue
 
     def create_and_save_geotransform(self) -> None:
@@ -459,7 +459,7 @@ class Pipeline:
                     )
                     geotransformer.save_image_geotransform(geotrans_path)
             except Exception as e:
-                logger.exception(f"Failed to create geotransform for {hyspec_im_path.name}: {e}")
+                logger.exception(f"Error creating geotransform based on {imu_data_path.name}")
                 continue
 
     def convert_raw_images_to_radiance(self) -> None:
@@ -479,7 +479,7 @@ class Pipeline:
             try:
                 radiance_converter.convert_raw_file_to_radiance(raw_image_path, radiance_image_path)
             except Exception as e:
-                logger.exception(f"Radiance conversion failed for {raw_image_path.name}: {e}")
+                logger.exception(f"Error converting {raw_image_path.name} to radiance.")
                 continue
 
     @staticmethod
@@ -537,11 +537,9 @@ class Pipeline:
                             geotiff_path,
                         )
                     except Exception:
-                        logger.error(
-                            f"Error occured while georeferencing RGB version of {hyspec_path}",
-                            exc_info=True,
+                        logger.exception(
+                            f"Error occured while georeferencing RGB version of {hyspec_path}"
                         )
-                        logger.error("Skipping file")
 
                 elif header_contains_mapinfo(hyspec_path):
                     logger.info(f"Generating GeoTiff using ENVI header map info and rasterio")
@@ -552,14 +550,13 @@ class Pipeline:
                             rgb_wl=rgb_wl,
                         )
                     except Exception:
-                        logger.error(
-                            f"Error occured while creating RGB version of {hyspec_path}",
-                            exc_info=True,
+                        logger.exception(
+                            f"Error occured while creating RGB version of {hyspec_path}"
                         )
-                        logger.error("Skipping file")
 
                 else:
                     logger.error("No ENVI header map info or geotransform file - skipping.")
+                    continue
 
     def create_radiance_rgb_geotiff(self) -> None:
         """Create georeferenced RGB GeoTIFF versions of radiance"""
@@ -590,7 +587,7 @@ class Pipeline:
                         raw_spec_path, irrad_spec_path
                     )
                 except Exception as e:
-                    logger.exception(f"Irradiance conversion failed for {raw_spec_path.name}: {e}")
+                    logger.exception(f"Irradiance conversion failed for {raw_spec_path.name}")
                     continue
 
     def calibrate_irradiance_wavelengths(self) -> None:
@@ -608,7 +605,7 @@ class Pipeline:
                     wavelength_calibrator.update_header_wavelengths(irradiance_spec_path)
                 except Exception as e:
                     logger.exception(
-                        f"Wavelength calibration failed for {irradiance_spec_path.name}: {e}"
+                        f"Wavelength calibration failed for {irradiance_spec_path.name}"
                     )
                     continue
 
@@ -657,7 +654,7 @@ class Pipeline:
                 try:
                     glint_corrector.glint_correct_image_file(rad_image, rad_gc_image)
                 except Exception as e:
-                    logger.exception(f"Glint correction failed for {rad_image.name}: {e}")
+                    logger.exception(f"Glint correction failed for {rad_image.name}")
                     continue
 
     def create_glint_corrected_radiance_rgb_geotiff(self) -> None:
@@ -703,8 +700,9 @@ class Pipeline:
                         rad_path, irrad_path, refl_path
                     )
                 except Exception as e:
-                    logger.error(f"Error occured while processing {rad_path}", exc_info=True)
-                    logger.error("Skipping file")
+                    logger.exception(
+                        f"Error occured while converting {rad_path.name} to reflectance"
+                    )
 
     def add_irradiance_to_radiance_header(self) -> None:
         """Pre-process irradiance for reflectance calc. and save to radiance header"""
@@ -729,8 +727,9 @@ class Pipeline:
                 try:
                     reflectance_converter.add_irradiance_spectrum_to_header(rad_path, irrad_path)
                 except Exception as e:
-                    logger.error(f"Error occured while processing {rad_path}", exc_info=True)
-                    logger.error("Skipping file")
+                    logger.exception(
+                        f"Error occured while adding irradiance spectrum to {rad_path.name}"
+                    )
 
     def add_mapinfo_to_radiance_header(self) -> None:
         """Add ENVI mapinfo (geotransform) to radiance header"""
@@ -744,7 +743,7 @@ class Pipeline:
             try:
                 add_header_mapinfo(rad_path, geotrans_path)
             except Exception as e:
-                logger.exception(f"Failed to add mapinfo for {rad_path.name}: {e}")
+                logger.exception(f"Error adding map info to {rad_path.name}")
                 continue
 
     def glint_correct_reflectance_images(self) -> None:
@@ -778,9 +777,10 @@ class Pipeline:
                         )
                     except KeyError:
                         logger.error(f"Irradiance spectrum missing in {rad_gc_path}")
+                        continue
                     except Exception as e:
                         logger.exception(
-                            f"Glint corrected reflectance from rad_gc failed for {rad_gc_path.name}: {e}"
+                            f"Glint corrected reflectance from rad_gc failed for {rad_gc_path.name}"
                         )
                         continue
 
@@ -803,9 +803,7 @@ class Pipeline:
                     try:
                         glint_corrector.glint_correct_image_file(refl_path, refl_gc_path)
                     except Exception as e:
-                        logger.exception(
-                            f"Flat spec glint correction failed for {refl_path.name}: {e}"
-                        )
+                        logger.exception(f"Flat spec glint correction failed for {refl_path.name}")
                         continue
         else:
             logger.error("Unrecognized glint correction method specified in configuration.")
@@ -850,7 +848,7 @@ class Pipeline:
             (physical) units of the original image.
         """
         if (mosaic_path.exists()) and (not mosaic_overwrite):
-            logger.info(f"Mosaic {mosaic_path} already exists - skipping.")
+            logger.info(f"Mosaic {mosaic_path.name} already exists - skipping.")
             return
 
         if not any([gtp.exists() for gtp in geotiff_paths]):
@@ -973,7 +971,7 @@ class Pipeline:
             try:
                 self.create_quicklook_images()
             except Exception:
-                logger.error("Error while creating quicklook images", exc_info=True)
+                logger.exception("Error while creating quicklook images")
 
     def run_raw_data_processing(self) -> None:
         """Run all data processing steps based on raw data"""
@@ -982,61 +980,59 @@ class Pipeline:
             try:
                 self.parse_and_save_imu_data()
             except Exception:
-                logger.error("Error while parsing and saving IMU data", exc_info=True)
+                logger.exception("Error while parsing and saving IMU data")
 
         if self.config.radiance.create:
             try:
                 self.convert_raw_images_to_radiance()
             except Exception:
-                logger.error("Error while converting raw images to radiance", exc_info=True)
+                logger.exception("Error while converting raw images to radiance")
 
         if self.config.irradiance.create:
             try:
                 self.convert_raw_spectra_to_irradiance()
             except Exception:
-                logger.error("Error while converting raw spectra to irradiance", exc_info=True)
+                logger.exception("Error while converting raw spectra to irradiance")
 
             try:
                 self.calibrate_irradiance_wavelengths()
             except Exception:
-                logger.error("Error while calibrating irradiance wavelengths", exc_info=True)
+                logger.exception("Error while calibrating irradiance wavelengths")
 
     def run_secondary_processing(self) -> None:
         if self.config.geotransform.create:
             try:
                 self.create_and_save_geotransform()
             except Exception:
-                logger.error("Error while parsing and saving IMU data", exc_info=True)
+                logger.exception("Error while parsing and saving IMU data")
 
         if self.config.radiance.add_irradiance_to_header:
             try:
                 self.add_irradiance_to_radiance_header()
             except Exception:
-                logger.error("Error while adding irradiance to radiance header", exc_info=True)
+                logger.exception("Error while adding irradiance to radiance header")
 
         if self.config.radiance.add_envi_mapinfo_to_header:
             try:
                 self.add_mapinfo_to_radiance_header()
             except Exception:
-                logger.error("Error while adding map info to radiance header", exc_info=True)
+                logger.exception("Error while adding map info to radiance header")
 
         if self.config.radiance_rgb.create:
             try:
                 self.create_radiance_rgb_geotiff()
             except Exception:
-                logger.error("Error while creating RGB GeoTOFFs from radiance", exc_info=True)
+                logger.exception("Error while creating RGB GeoTOFFs from radiance")
 
         if self.config.reflectance.create:
             try:
                 self.convert_radiance_images_to_reflectance()
             except FileNotFoundError:
-                logger.warning(
-                    "Missing input radiance / irradiance files, "
-                    "skipping reflectance conversion.",
-                    exc_info=True,
+                logger.exception(
+                    "Missing input radiance / irradiance files, " "skipping reflectance conversion."
                 )
             except Exception:
-                logger.error("Error while converting from radiance to reflectance", exc_info=True)
+                logger.exception("Error while converting from radiance to reflectance")
 
     def run_glint_correction(self) -> None:
         """Run glint correction using parameters defined in YAML file
@@ -1054,29 +1050,25 @@ class Pipeline:
             try:
                 self.glint_correct_radiance_images()
             except Exception:
-                logger.error("Error while glint correcting radiance images", exc_info=True)
+                logger.exception("Error while glint correcting radiance images")
 
         if self.config.radiance_gc_rgb.create:
             try:
                 self.create_glint_corrected_radiance_rgb_geotiff()
             except Exception:
-                logger.error(
-                    "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
-                )
+                logger.exception("Error while creating RGB GeoTIFFs from glint corrected radiance")
 
         if self.config.reflectance_gc.create:
             try:
                 self.glint_correct_reflectance_images()
             except Exception:
-                logger.error("Error while glint correcting radiance images", exc_info=True)
+                logger.exception("Error while glint correcting radiance images")
 
         if self.config.reflectance_gc_rgb.create:
             try:
                 self.create_glint_corrected_reflectance_rgb_geotiff()
             except Exception:
-                logger.error(
-                    "Error while creating RGB GeoTIFFs from glint corrected radiance", exc_info=True
-                )
+                logger.exception("Error while creating RGB GeoTIFFs from glint corrected radiance")
 
     def run_mosaics(self) -> None:
         """Run all mosaicing operations"""
@@ -1085,23 +1077,19 @@ class Pipeline:
             try:
                 self.mosaic_radiance_geotiffs()
             except Exception:
-                logger.error(f"Error occured while mosaicing radiance", exc_info=True)
+                logger.exception(f"Error occured while mosaicing radiance", exc_info=True)
 
         if self.config.mosaic.radiance_gc_rgb.create:
             try:
                 self.mosaic_radiance_gc_geotiffs()
             except Exception:
-                logger.error(
-                    f"Error occured while mosaicing glint corrected radiance", exc_info=True
-                )
+                logger.error(f"Error occured while mosaicing glint corrected radiance")
 
         if self.config.mosaic.reflectance_gc_rgb.create:
             try:
                 self.mosaic_reflectance_gc_geotiffs()
             except Exception:
-                logger.error(
-                    f"Error occured while mosaicing glint corrected reflectance", exc_info=True
-                )
+                logger.exception(f"Error occured while mosaicing glint corrected reflectance")
 
     def run(self) -> None:
         """Run all processing steps"""
