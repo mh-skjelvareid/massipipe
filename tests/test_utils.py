@@ -4,7 +4,7 @@ import massipipe.utils as mpu
 
 
 def test_wavelength_array_to_header_string():
-    wl_str = mpu.wavelength_array_to_header_string([420.32, 500, 581.28849])
+    wl_str = mpu.array_to_header_string([420.32, 500, 581.28849])
     assert wl_str == "{420.320, 500.000, 581.288}"
 
 
