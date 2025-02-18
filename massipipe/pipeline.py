@@ -7,6 +7,7 @@ mosaicing and export functionality for raw and radiance data.
 
 # Imports
 import logging
+import pprint
 import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Sequence, Union
 
 from pydantic import ValidationError
-from rich.pretty import Pretty
 
 from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.export import copy_visualization_mosaic, export_dataset_zip
@@ -177,7 +177,7 @@ class Pipeline:
             logger.warning(f"No configuration loaded for {self.dataset_dir}.")
             return
         self.config = full_config.massipipe_options
-        logger.info(f"Pipeline configured with \n{Pretty(full_config.massipipe_options)}")
+        logger.info(f"Pipeline configured with \n{pprint.pformat(full_config.massipipe_options)}")
 
     def _configure_file_logging(self) -> None:
         """Configure file logging for pipeline execution.
