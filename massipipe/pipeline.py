@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Sequence, Union
 
 from pydantic import ValidationError
+from rich.pretty import Pretty
 
 from massipipe.config import Config, export_template_yaml, read_config, write_config
 from massipipe.export import copy_visualization_mosaic, export_dataset_zip
@@ -163,19 +164,20 @@ class Pipeline:
         and assigns the loaded options to `self.config`. Logs warnings on validation errors.
         """
         try:
-            full_config_dict = read_config(self.config_file_path)
+            yaml_config_dict = read_config(self.config_file_path)
         except IOError:
             logger.exception(f"Error parsing config file {self.config_file_path}")
             raise
 
         try:
-            full_config = Config(**full_config_dict)
+            full_config = Config(**yaml_config_dict)
         except ValidationError as e:
             logger.warning(f"Validation error while processing {self.config_file_path}")
             logger.warning(str(e))
             logger.warning(f"No configuration loaded for {self.dataset_dir}.")
             return
         self.config = full_config.massipipe_options
+        logger.info(f"Pipeline configured with \n{Pretty(full_config.massipipe_options)}")
 
     def _configure_file_logging(self) -> None:
         """Configure file logging for pipeline execution.

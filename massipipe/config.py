@@ -170,44 +170,48 @@ class MpMosaic(BaseModel):
 
     overview_factors: Sequence[PositiveInt] = [2, 4, 8, 16, 32]
     visualization_mosaic: Literal["radiance", "radiance_gc"] = "radiance"
-    radiance_rgb: MpMosaicRadiance
-    radiance_gc_rgb: MpMosaicRadianceGc
-    reflectance_gc_rgb: MpMosaicReflectanceGc
+    radiance_rgb: MpMosaicRadiance = MpMosaicRadiance()
+    radiance_gc_rgb: MpMosaicRadianceGc = MpMosaicRadianceGc()
+    reflectance_gc_rgb: MpMosaicReflectanceGc = MpMosaicReflectanceGc()
 
 
 class MassipipeOptions(BaseModel):
     """Configuration for Massipipe processing"""
 
-    general: MpGeneral
-    quicklook: MpQuickLook
-    imu_data: MpImuData
-    geotransform: MpGeoTransform
-    radiance: MpRadiance
-    radiance_rgb: MpRadianceRgb
-    radiance_gc: MpRadianceGc
-    radiance_gc_rgb: MpRadianceGcRgb
-    irradiance: MpIrradiance
-    reflectance: MpReflectance
-    reflectance_gc: MpReflectanceGc
-    reflectance_gc_rgb: MpReflectanceGcRgb
-    mosaic: MpMosaic
+    general: MpGeneral = MpGeneral()
+    quicklook: MpQuickLook = MpQuickLook()
+    imu_data: MpImuData = MpImuData()
+    geotransform: MpGeoTransform = MpGeoTransform()
+    radiance: MpRadiance = MpRadiance()
+    radiance_rgb: MpRadianceRgb = MpRadianceRgb()
+    radiance_gc: MpRadianceGc = MpRadianceGc()
+    radiance_gc_rgb: MpRadianceGcRgb = MpRadianceGcRgb()
+    irradiance: MpIrradiance = MpIrradiance()
+    reflectance: MpReflectance = MpReflectance()
+    reflectance_gc: MpReflectanceGc = MpReflectanceGc()
+    reflectance_gc_rgb: MpReflectanceGcRgb = MpReflectanceGcRgb()
+    mosaic: MpMosaic = MpMosaic(
+        radiance_rgb=MpMosaicRadiance(),
+        radiance_gc_rgb=MpMosaicRadianceGc(),
+        reflectance_gc_rgb=MpMosaicReflectanceGc(),
+    )
 
 
 class Config(BaseModel):
     """Top-level configuration including standard SeaBee fields"""
 
-    grouping: str
-    area: str
-    datetime: str
-    nfiles: PositiveInt
-    organisation: str
-    project: str
-    creator_name: str
+    grouping: str = "grouping_name"
+    area: str = "area_name"
+    datetime: str = "197001010000"
+    nfiles: PositiveInt = 1
+    organisation: str = "organization_name"
+    project: str = "project_name"
+    creator_name: str = "creator_name"
     mosaic: bool = False
     classify: bool = False
     theme: str = "Habitat"
     spectrum_type: Literal["RGB", "MSI", "HSI"] = "HSI"
-    massipipe_options: MassipipeOptions
+    massipipe_options: MassipipeOptions = MassipipeOptions()
 
     # Validation of datetime string
     # Note that string is not converted to datetime object,
@@ -232,34 +236,7 @@ class Config(BaseModel):
 
 def get_config_template() -> Config:
     """Generate template configuration based on Pydantic schema"""
-    template_config = Config(
-        grouping="grouping_name",
-        area="area_name",
-        datetime="197001010000",
-        nfiles=1,
-        organisation="organization_name",
-        project="project_name",
-        creator_name="creator_name",
-        massipipe_options=MassipipeOptions(
-            general=MpGeneral(),
-            quicklook=MpQuickLook(),
-            imu_data=MpImuData(),
-            geotransform=MpGeoTransform(),
-            radiance=MpRadiance(),
-            radiance_rgb=MpRadianceRgb(),
-            radiance_gc=MpRadianceGc(),
-            radiance_gc_rgb=MpRadianceGcRgb(),
-            irradiance=MpIrradiance(),
-            reflectance=MpReflectance(),
-            reflectance_gc=MpReflectanceGc(),
-            reflectance_gc_rgb=MpReflectanceGcRgb(),
-            mosaic=MpMosaic(
-                radiance_rgb=MpMosaicRadiance(),
-                radiance_gc_rgb=MpMosaicRadianceGc(),
-                reflectance_gc_rgb=MpMosaicReflectanceGc(),
-            ),
-        ),
-    )
+    template_config = Config()
     return template_config
 
 
