@@ -13,7 +13,7 @@ more general and can be used with any hyperspectral image.
 import logging
 
 # Internal imports
-from .config import read_config
+from .config import Config, read_config
 from .georeferencing import ImuDataParser, ImuGeoTransformer, georeferenced_hyspec_to_rgb_geotiff
 from .glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from .irradiance import IrradianceConverter
@@ -37,6 +37,7 @@ from .utils import (
 
 # Exported API symbols
 __all__ = [
+    "Config",
     "read_config",
     "ImuDataParser",
     "ImuGeoTransformer",
