@@ -12,7 +12,6 @@ dependencies = [
   "pyproj",
   "pyyaml",
   "rasterio",
-  "rich",
   "spectral",
   "scipy",
   "pydantic"
@@ -47,6 +46,7 @@ classifiers = [
 dev = [
   "jupyterlab",
   "pytest",
+  "rich",
   "ruff",
   "numpydoc-linter",
   "mkdocs",
