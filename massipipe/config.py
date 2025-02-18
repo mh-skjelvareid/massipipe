@@ -92,7 +92,7 @@ class MpRadianceGc(BaseModel):
 
     create: bool = False
     overwrite: bool = False
-    smooth_spectra: bool = False
+    smooth_spectra: bool = True
     subtract_dark_spec: bool = False
     set_negative_values_to_zero: bool = False
     reference_image_numbers: Optional[List[NonNegativeInt]] = None
