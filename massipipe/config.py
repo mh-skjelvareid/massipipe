@@ -118,7 +118,7 @@ class MpIrradiance(BaseModel):
 class MpReflectance(BaseModel):
     """Configuration for converting radiance to reflectance"""
 
-    create: bool = True
+    create: bool = False
     overwrite: bool = False
     wl_min: float = 400
     wl_max: float = 930
