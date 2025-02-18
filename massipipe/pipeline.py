@@ -84,9 +84,11 @@ class Pipeline:
         FileNotFoundError
             If required folders (e.g. "0_raw" or "calibration") are missing.
         """
-        self.dataset_dir = Path(dataset_dir)
+        # Configure logging
+        self._configure_file_logging()
 
-        # Read and validate YAML config file
+        # Set dataset directory and read config file
+        self.dataset_dir = Path(dataset_dir)
         config_file_path = self.dataset_dir / config_file_name
         self.config_file_path = config_file_path
         if not self.config_file_path.exists():
@@ -111,9 +113,6 @@ class Pipeline:
         self.mosaic_visualization_dir = self.dataset_dir / "orthomosaic"
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
-
-        # Configure logging
-        self._configure_file_logging()
 
         # Check if data source is raw data or radiance
         self.data_starting_point = self._check_data_starting_point()
