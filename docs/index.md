@@ -37,6 +37,7 @@ To register the virtual environment for use with Jupyter notebooks, run
 
 
 ## Quick start
+### Processing raw data
 The dataset shold be organized as follows:
 ``` { .text .no-copy }
     ├── 0_raw
@@ -52,34 +53,28 @@ The dataset shold be organized as follows:
     └── calibration
     │   ├── <downwelling_calibration_file>.dcp
     │   └── <radiance_calibration_file>.icp
-    └── config.yaml
+    └── config.seabee.yaml
 ```
 
 Note that the structure of the 0_raw folder is the structure created directly by the
-Pika L camera. The config.yaml file is used to modify the processing of the specific
-dataset. If no such config file is present, a template with defaults is created.
+Pika L camera. The config.seabee.yaml file is used to modify the processing of the specific
+dataset. If no such config file is present, a template with defaults is created when a
+Pipeline object is instantiated.
 
-Create a pipeline processor for a dataset at path `dataset_dir`, without YAML config
-file, using only default parameters:
+Use a pipeline to process a dataset at path `dataset_dir`, using only default parameters:
 ``` { .python}
-    from massipipe.pipeline import PipelineProcessor
-    processor = PipelineProcessor(dataset_dir)
-    processor.run()
+    from massipipe import Pipeline
+    pipeline = Pipeline(dataset_dir)
+    pipeline.run()
 ```
 A config file with name "seabee.config.yaml" is created in the root directory of
-the dataset. 
+the dataset. The pipeline runs and produces all default output image products
+("quicklook" images, calibrated irradiance spectra, calibrated radiance images, RGB
+mosaic)
 
-It is possible to modify the YAML config file to change the input parameters and then
-run the processing. See separate section on configuration file below.
-
-Create a pipeline processor and run based on input parameters in seabee.config.yaml file :
-``` { .python}
-    from massipipe.pipeline import PipelineProcessor
-    processor = PipelineProcessor(dataset_dir,config_file_name='seabee.config.yaml')
-    processor.run()
-```
-
-After processing, the dataset has the following structure (files not shown), with processed files in folders `0b_quicklook`, `1a_radiance`, `1b_radiance_gc`, `2a_reflectance`, `2b_reflectance_gc`, `imudata`, and `mosaics`:
+After processing, the dataset has the following structure (files not shown), with
+processed files in folders `0b_quicklook`, `1a_radiance`, `1b_radiance_gc`, `imudata`,
+and `mosaics`. Logs from each processing are saved to the `logs` folder.
 ``` { .text .no-copy }
     ├── 0_raw
     │   ├── <Raw data folder 1>
@@ -88,9 +83,6 @@ After processing, the dataset has the following structure (files not shown), wit
     ├── 0b_quicklook
     ├── 1a_radiance
     ├── 1b_radiance_gc
-    │   └── rgb
-    ├── 2a_reflectance
-    ├── 2b_reflectance_gc
     │   └── rgb
     ├── calibration
     │   ├── downwelling_calibration_spectra
@@ -103,6 +95,45 @@ After processing, the dataset has the following structure (files not shown), wit
 
 Note that if some data is missing (e.g. downwelling irradiance), some of the data
 products will not be created. 
+
+
+### Processing published (radiance) data
+Datasets which have been processed by MassiPipe and published are organized as follows:
+``` { .text .no-copy }
+    ├── 1a_radiance
+    │   ├── rgb
+    |   |   ├── <DatasetName>_<ImageNumber>_radiance_rgb.tiff
+    |   |   └── ...
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec.hdr
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip.hdr
+    │   └── ...
+    └── imudata
+    │   ├── <DatasetName>_<ImageNumber>_imudata.json
+    │   └── ...
+    └── orthomosaic
+    │   └── <DatasetName>_<ImageType>_rgb.tiff
+    └── config.seabee.yaml
+```
+
+The config.seabee.yaml contains the parameters used to process the data before
+publication. To create additional image products based on the dataset (e.g. reflectance
+images), either modify the YAML file directly, or load the original parameters and
+modify them before running the pipeline. 
+
+The example below shows how a pipeline is used to process a published dataset at path
+`dataset_dir`, using the "config" object to specify that reflectance images should be
+created:
+``` { .python}
+    from massipipe import Pipeline
+    pipeline = Pipeline(dataset_dir)
+    pipeline.config.reflectance.create = True
+    pipeline.run()
+```
+
+After processing, reflectance images are can be found in the folder "2a_reflectance".
+
 
 ## Configuration file
 
@@ -119,11 +150,11 @@ unless the dataset is used for publishing via SeaBee.
 grouping: grouping_name                 # E.g. project name and/or larger area
 area: area_name                         # Name of specific location
 datetime: '197001010000'                # 'yyyymmddHHMM' or 'yyyymmdd'. Note: Quotes required
-nfiles: 1                               # [not used for hyperspectral?]
+nfiles: 1                               # Number of images
 organisation: organization_name         # Responsible organisation
 creator_name: creator_name              # [Optional]. Data collector/pilot
-mosaic: false                           # [not used for hyperspectral?]
-classify: false                         # [not used for hyperspectral?]
+mosaic: false                           # [not used for hyperspectral images] 
+classify: false                         # [not used for hyperspectral images]
 theme: Habitat                          # SeaBee "theme" ('Seabirds', 'Mammals' or 'Habitat')
 spectrum_type: HSI                      # [Optional]. Sensor type ('RGB', 'MSI' or 'HSI')
 massipipe_options:                      # Massimal-specific options
@@ -151,6 +182,7 @@ massipipe_options:                      # Massimal-specific options
     overwrite: false                    # Whether to overwrite existing
     set_saturated_pixels_to_zero: true  # Set all pixel values to zero if any bands are saturated
     add_irradiance_to_header: true      # Adding calibrated irradiance to header (if available)
+    add_envi_mapinfo_to_header: true    # Add map info (geotransform) to radiance header
   radiance_rgb:                         # RGB GeoTIFF based on radiance cube
     create: true                        # Whether to create
     overwrite: false                    # Whether to overwrite existing
@@ -191,6 +223,13 @@ massipipe_options:                      # Massimal-specific options
     overwrite: false                    # Whether to overwrite existing
   mosaic:                               # Mosaic of RGB GeoTIFFs
     overview_factors: [2, 4, 8, 16, 32] # GeoTIFF overview factors ("pyramids")
+    visualization_mosaic: "radiance"    # What image type to use for dataset visualization
+    radiance_rgb:                       # Mosaic for radiance_rgb
+      create: false                     # Whether to create
+      overwrite: true                   # Whether to overwrite existing
+    radiance_gc_rgb:                    # Mosaic for radiance_gc
+      create: false                     # Whether to create
+      overwrite: true                   # Whether to overwrite existing
     reflectance_gc_rgb:                 # Mosaic for reflectance_gc_rgb
       create: false                     # Whether to create
       overwrite: true                   # Whether to overwrite existing
