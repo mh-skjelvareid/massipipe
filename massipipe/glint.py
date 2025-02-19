@@ -115,7 +115,7 @@ class HedleyGlintCorrector:
 
         Parameters
         ----------
-        smooth_with_savitsky_golay : bool, default True
+        smooth_spectra : bool, default True
             Whether to smooth glint corrected images using a Savitzky-Golay filter.
         subtract_dark_spec: bool
             Whether to subtract estimated minimum value in training data (for each
