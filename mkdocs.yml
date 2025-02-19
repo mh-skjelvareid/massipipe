@@ -12,6 +12,8 @@ plugins:
 - mkdocstrings:
     handlers:
       python:
+        selection:
+          members: __all__
         options:
           docstring_style: numpy
           docstring_options:
@@ -25,16 +27,7 @@ plugins:
 nav:
   - Introduction: index.md
   - Example Usage: example_usage.md
-  - Configuration reference: config_ref.md
-  - Pipeline reference: pipeline_ref.md
-  - Quicklook reference: quicklook_ref.md
-  - Radiance calibration reference: radiance_ref.md
-  - Irradiance calibration reference: irradiance_ref.md
-  - Reflectance calculation reference: reflectance_ref.md
-  - IMU data processing and simple georeferencing reference: georeferencing_ref.md
-  - Mosaicing reference: mosaic_ref.md
-  - Utilities reference: utils_ref.md
-
+  - API Reference: api.md
 
 markdown_extensions:
   - toc:
