@@ -5,8 +5,9 @@ conversion to radiance, conversion to reflectance, and glint correction of image
 shallow water environments.
 
 The package was developed during a project which used a Resonon Pika-L hyperspectral
-camera, and parts of the package are specific to this camera. However, other parts are
-more general and can be used with any hyperspectral image.
+camera, and parts of the package (radiance and irradiance conversion) are specific to
+this camera. However, other parts are more general and can be used with any
+hyperspectral image.
 """
 
 # External imports
