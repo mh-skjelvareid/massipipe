@@ -1,3 +1,5 @@
+"""Module for exporting dataset to zip archive"""
+
 # Imports
 from __future__ import annotations
 
@@ -14,18 +16,42 @@ logger = logging.getLogger(__name__)
 
 
 def copy_visualization_mosaic(source_mosaic: Path, dest_mosaic_dir: Path):
-    """Copy mosaic best suited for visualization to separate directory"""
+    """Copy mosaic best suited for visualization to a separate directory.
+
+    Parameters
+    ----------
+    source_mosaic : Path
+        The path to the source mosaic file that needs to be copied.
+    dest_mosaic_dir : Path
+        The directory where the mosaic file will be copied to.
+
+    Notes
+    -----
+    This function will create the destination directory if it does not already exist.
+    """
+
     logger.info("---- COPYING MOSAIC USED FOR VISUALIZATION ----")
 
     dest_mosaic_dir.mkdir(exist_ok=True)
     if source_mosaic.exists():
-        shutil.copy(source_mosaic, dest_mosaic_dir)
+        shutil.copy2(source_mosaic, dest_mosaic_dir)
     else:
         logger.error(f"Mosaic {source_mosaic} does not exist")
 
 
 def create_readme_file(dataset_dir: Path):
-    """Create a default readme file for the dataset"""
+    """Create a default readme file for the dataset.
+
+    Parameters
+    ----------
+    dataset_dir : Path
+        The directory where the dataset is stored.
+
+    Returns
+    -------
+    Path
+        The path to the created readme file.
+    """
     readme_file_path = dataset_dir / "readme.md"
     try:
         write_readme(readme_file_path)
@@ -35,7 +61,18 @@ def create_readme_file(dataset_dir: Path):
 
 
 def create_license_file(dataset_dir: Path):
-    """Create a default license file for the dataset"""
+    """Create a default license file for the dataset.
+
+    Parameters
+    ----------
+    dataset_dir : Path
+        The directory where the dataset is stored.
+
+    Returns
+    -------
+    Path
+        The path to the created license file.
+    """
     license_file_path = dataset_dir / "license.md"
     try:
         write_license(license_file_path)
@@ -67,7 +104,35 @@ def export_dataset_zip(
     mosaic_visualization_dir: Path,
     config_file_path: Path,
 ):
-    """Export selected parts of dataset to zip file"""
+    """Export selected parts of dataset to a zip file.
+
+    Parameters
+    ----------
+    dataset_dir : Path
+        The directory containing the dataset to be exported.
+    quicklook_dir : Path
+        The directory containing quicklook images.
+    radiance_dir : Path
+        The directory containing radiance data.
+    imudata_dir : Path
+        The directory containing IMU data.
+    mosaic_visualization_dir : Path
+        The directory containing mosaic visualizations.
+    config_file_path : Path
+        The path to the configuration file.
+
+    Returns
+    -------
+    Path
+        The path to the created zip file.
+
+    Notes
+    -----
+    This function creates a zip archive containing the specified parts of the dataset,
+    including quicklook images, radiance data, IMU data, mosaic visualizations, and
+    configuration file. It also includes a README and LICENSE file generated for the dataset.
+    """
+
     logger.info("---- EXPORTING DATASET TO ZIP ARCHIVE ----")
 
     readme_file_path = create_readme_file(dataset_dir)

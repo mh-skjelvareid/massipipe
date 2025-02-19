@@ -1,3 +1,5 @@
+"""Module for generating README.md file for dataset."""
+
 # Imports
 import logging
 from pathlib import Path
