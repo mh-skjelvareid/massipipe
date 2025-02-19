@@ -1,3 +1,5 @@
+"""Module for generating a dataset license file (CC-BY-4.0)."""
+
 # Imports
 import logging
 from pathlib import Path

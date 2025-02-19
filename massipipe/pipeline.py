@@ -274,7 +274,7 @@ class Pipeline:
 
         Examples
         --------
-        >>> PipelineProcessor._get_image_number("ExampleLocation_Pika_L_5.bil.hdr")
+        >>> Pipeline._get_image_number("ExampleLocation_Pika_L_5.bil.hdr")
         5
 
         Notes
@@ -1061,7 +1061,7 @@ class Pipeline:
                 self.convert_radiance_images_to_reflectance()
             except FileNotFoundError:
                 logger.exception(
-                    "Missing input radiance / irradiance files, " "skipping reflectance conversion."
+                    "Missing input radiance / irradiance files, skipping reflectance conversion."
                 )
             except Exception:
                 logger.exception("Error while converting from radiance to reflectance")
