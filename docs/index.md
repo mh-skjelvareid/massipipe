@@ -73,24 +73,28 @@ the dataset. The pipeline runs and produces all default output image products
 mosaic)
 
 After processing, the dataset has the following structure (files not shown), with
-processed files in folders `0b_quicklook`, `1a_radiance`, `1b_radiance_gc`, `imudata`,
-and `mosaics`. Logs from each processing are saved to the `logs` folder.
+processed files in folders `1a_radiance`, `geotransform`, `imudata`, `mosaics`, and
+`quicklook`. Logs from each processing are saved to the `logs` folder.
 ``` { .text .no-copy }
     ├── 0_raw
     │   ├── <Raw data folder 1>
     │   ├── <Raw data folder 2>
     │   └── ...
-    ├── 0b_quicklook
     ├── 1a_radiance
-    ├── 1b_radiance_gc
-    │   └── rgb
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec.hdr
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip.hdr
+    │   └── ...
     ├── calibration
     │   ├── downwelling_calibration_spectra
     │   └── radiance_calibration_frames
     ├── geotransform
     ├── imudata
     ├── logs
-    └── mosaics
+    ├── mosaics
+    ├── quicklook
+    └── config.seabee.yaml
 ```
 
 Note that if some data is missing (e.g. downwelling irradiance), some of the data
