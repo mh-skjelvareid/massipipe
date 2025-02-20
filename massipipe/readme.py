@@ -20,7 +20,8 @@ used, and the type and formatting of the data provided.
 2. [Hyperspectral imaging system](#hyperspectral-imaging-system)
 3. [UAV platform for hyperspectral imaging](#uav-platform-for-hyperspectral-imaging)
 4. [Field operations](#field-operations)
-5. [Dataset contents](#dataset-contents)
+5. [MassiPipe data processing pipeline](#massipipe-data-processing-pipeline)
+6. [Dataset contents](#dataset-contents)
 
 ## The MASSIMAL research project 
 This dataset was collected as part of the "MASSIMAL" project (Mapping of Algae and
@@ -221,9 +222,10 @@ Pilot was used for flight planning, while in 2023,
 
 ### Splitting flight lines into multiple images
 The Airborne Remote Sensing System is set up so that if an image reaches the limit of
-2000 lines, the image is saved, and additional data is recorded into a new image. The
-practical effect of this is that images along a single continuous flight line are split
-into multiple images - typically 5-10 images per line. 
+2000 lines (2000 pixels vertically), the image is saved, and image recording continues
+in a new image file. The practical effect of this is that images along a single
+continuous flight line are split into multiple images - typically 4-10 images for each
+flight line.
 
 ### Autoexposure
 The Airborne Remote Sensing System includes an autoexposure feature. With this, the
@@ -235,7 +237,9 @@ re-calculated between each image.
 Note that using autoexposure occasionally resulted in suboptimal gain and shutter
 values. For example, if the UAV was above (dark) water at the time of autoexposure and
 then flew over (bright) land before the autoexposure could be recalculated, parts of the
-image became saturated, resulting in invalid pixels. 
+image became saturated, resulting in invalid pixels. In processed images, saturated
+pixels are set to zero across all channels (even if only a subset of channels were
+saturated), to indicate that the spectrum is invalid. 
 
 ### Mounting on gimbal
 For most of the datasets collected in the project, the data was collected with the
@@ -246,28 +250,60 @@ directly, without requiring georectification.
 Before takeoff, the gimbal was adjusted to point the camera in the nadir direction, with
 the camera line of sight being perpendicular to the direction of flight. During sharp
 turns, typically between straight flight lines, the yawing movement would cause the
-camera heading to "lab behind" that of the UAV for some time. However, the gimbal
-eventually returned the camera to the original orientation relative to the UAV.  
+camera heading to "lag behind" that of the UAV for some time. However, the gimbal
+eventually returned the camera to the original orientation relative to the UAV. This
+behavior was not ideal, but no solution to avoid it was found during fieldwork.  
 
 ## Massipipe data processing pipeline
-The dataset has been processed by
-[MassiPipe](https://github.com/mh-skjelvareid/massipipe), a data processing pipeline
-developed as part of the MASSIMAL project. Developent of the pipeline has been based on
-data from the Resonon Pika-L hyperspectral camera, but many elements of the pipeline
-(e.g. reflectance calculation, sun glint correction) are general and can be applied to
-any hyperspectral image.  
+The dataset has been processed by "MassiPipe", a data processing pipeline developed as
+part of the MASSIMAL project. Developent of the pipeline has been based on data from the
+Resonon Pika-L hyperspectral camera, but many elements of the pipeline (e.g. reflectance
+calculation, sun glint correction) are general and can be applied to any hyperspectral
+image.  
 
-MassiPipe can be used to automatically generate additional image products, based on the
+MassiPipe can be used to automatically generate additional image products, e.g.
+reflectance images and glint corrected images, based on the
 radiance images distributed in the dataset. See details in the description of dataset
 contents below. 
+
+- MassiPipe GitHub repository: https://github.com/mh-skjelvareid/massipipe
+- DOI for MassiPipe: [10.5281/zenodo.14748766](https://doi.org/10.5281/zenodo.14748766)
+
+The dataset was processed by version 0.3.0 of MassiPipe. Batch processing was run using a
+Jupyter Notebook running on a "deep-learning-tools" package (v.9.1.1) available through
+the [NIRD Toolkit](https://documentation.sigma2.no/nird_toolkit/overview.html). This is
+a service  offered by the Norwegian Research Infrastructure Services (NRIS) and run by
+[Sigma2](https://www.sigma2.no/). 
 
 ## Dataset contents
 The following is a general description which is valid for most of the datasets produced
 by the MASSIMAL project. Some deviations from this description may exist for special
-cases, usually caused by technical problems during field work.
+cases, usually caused by technical problems during field work. 
 
-The same base file name is used for multiple types of data (e.g. IMU data and images),
-this enables identification of which files belong together. 
+All datasets are named using the same pattern. Here are two examples:
+
+    massimal_larvik_kongsbakkebukta_202308301328_hsi
+
+Here, "massimal" is the project name, "larvik" is the name of the general area,
+"kongsbakkebukta" is the name of the specific location, "202308301328" is the date and
+time when the first image was taken (using the pattern yyyymmddHHMM), and "hsi" is an
+abbreviation of hyperspectral image. Some times the timestamp is followed by a "tag"
+with additional information, like in the example below:
+
+    massimal_larvik_olbergholmen_202308300959-south1_hsi
+
+There are multiple files associated with a single hyperspectral image. To make it easy
+to indentify files belonging together, all use the same base file name, for example:
+
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_quicklook.png
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_irradiance.spec
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_irradiance.spec.hdr
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_radiance.bip
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_radiance.bip.hdr
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_imudata.json
+
+The files are numbered with three digits (012 above), starting from 000.
+
 
 
 ### Configuration file - config.seabee.yaml 
@@ -286,11 +322,12 @@ image products.
 The "quicklook" images are color images saved in the PNG format, to be used for getting
 a quick overview of the dataset. The data displayed as red, green and blue (RGB)
 corresponds to slices of the hyperspectral radiance image extracted at the "RGB
-wavelengths" set in the config file. Each color channel has also been individually
-contrast stretched, using the 2nd and 98th percentiles of the original data to set the
-lower and upper ends of the range of values displayed. Note that since the image
-statistics change from image to image, identical objects or nature types may appear
-different in different images. The images are also not georeferenced. 
+wavelengths" set in the configuration (typically 640, 550 and 460 nm). Each color
+channel has also been individually contrast stretched, using the 2nd and 98th
+percentiles of the original data to set the lower and upper ends of the range of values
+displayed. Note that since the image statistics change from image to image, identical
+objects or nature types may appear different in different images. The images are also
+not georeferenced. 
 
 It is not recommended to use the quicklook images for any type of analysis - use the
 radiance data (or further processed image products) instead. 
@@ -481,7 +518,6 @@ amounts of sun and sky glint in the water surface, the mosaic is created based o
 corrected" radiance. In these cases, the file name ends in *_rad_gc_rgb.tiff. See
 [massipipe.glint](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/glint.py)
 for details on glint correction. 
-
 
 
  
