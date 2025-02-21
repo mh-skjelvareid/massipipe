@@ -31,9 +31,9 @@ def copy_visualization_mosaic(source_mosaic: Path, dest_mosaic_dir: Path):
     """
 
     logger.info("---- COPYING MOSAIC USED FOR VISUALIZATION ----")
-
     dest_mosaic_dir.mkdir(exist_ok=True)
     if source_mosaic.exists():
+        logger.info(f"Copying {source_mosaic.name} to {dest_mosaic_dir}")
         shutil.copy2(source_mosaic, dest_mosaic_dir)
     else:
         logger.error(f"Mosaic {source_mosaic} does not exist")
@@ -54,6 +54,7 @@ def create_readme_file(dataset_dir: Path):
     """
     readme_file_path = dataset_dir / "readme.md"
     try:
+        logger.info(f"Writing readme file {readme_file_path}")
         write_readme(readme_file_path)
     except IOError:
         logger.error(f"Error while writing readme file {readme_file_path}")
@@ -75,6 +76,7 @@ def create_license_file(dataset_dir: Path):
     """
     license_file_path = dataset_dir / "license.md"
     try:
+        logger.info(f"Writing license file {license_file_path}")
         write_license(license_file_path)
     except IOError:
         logger.error(f"Error while writing license file {license_file_path}")
@@ -85,6 +87,7 @@ def _add_element_to_archive(dataset_dir: Path, archive: zipfile.ZipFile, element
     """Add element in dataset (file/dir) to opened archive (zip file)"""
     try:
         if element.exists():
+            logger.info(f"Adding {element.relative_to(dataset_dir)} to archive.")
             if element.is_dir():
                 for file_path in element.rglob("*"):
                     archive.write(file_path, arcname=file_path.relative_to(dataset_dir))

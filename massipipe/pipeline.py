@@ -1153,7 +1153,6 @@ class Pipeline:
             self.mosaic_visualization_dir,
             self.config_file_path,
         )
-        logger.info(f"Dataset exported to {zip_file_path}")
 
 
 def find_datasets(
