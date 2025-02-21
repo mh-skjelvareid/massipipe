@@ -88,7 +88,7 @@ def _add_element_to_archive(dataset_dir: Path, archive: zipfile.ZipFile, element
     try:
         if element.exists():
             if element.is_dir():
-                for file_path in element.rglob("*"):
+                for file_path in sorted(element.rglob("*")):
                     logger.info(f"Adding {file_path.relative_to(dataset_dir)} to archive.")
                     archive.write(file_path, arcname=file_path.relative_to(dataset_dir))
             else:
