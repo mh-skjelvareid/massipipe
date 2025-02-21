@@ -330,8 +330,8 @@ The dataset har the following structure:
     │   ├── <DatasetName>_<ImageNumber>_quicklook.png
     │   └── ...
     ├── config.seabee.yaml
-    ├── LICENSE
-    └── README.md
+    ├── license.md
+    └── readme.md
 
 All datasets are named using the same pattern. Here is an example:
 
