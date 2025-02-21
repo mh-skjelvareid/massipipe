@@ -144,7 +144,7 @@ def export_dataset_zip(
 
     zip_dir.mkdir(exist_ok=True)
 
-    with zipfile.ZipFile(zip_file_path, mode="w") as archive:
+    with zipfile.ZipFile(zip_file_path, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
         _add_element_to_archive(dataset_dir, archive, quicklook_dir)
         _add_element_to_archive(dataset_dir, archive, radiance_dir)
         _add_element_to_archive(dataset_dir, archive, imudata_dir)
