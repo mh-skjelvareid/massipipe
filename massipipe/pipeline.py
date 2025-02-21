@@ -179,7 +179,6 @@ class Pipeline:
             logger.warning(f"No configuration loaded for {self.dataset_dir}.")
             return
         self.config = full_config.massipipe_options
-        logger.info(f"Pipeline configured with \n{pprint.pformat(full_config.model_dump())}")
 
     def _configure_file_logging(self) -> None:
         """Configure file logging for pipeline execution.
@@ -1125,6 +1124,11 @@ class Pipeline:
 
     def run(self) -> None:
         """Run all processing steps"""
+
+        logger.info(
+            f"Running pipeline using configuration \n{pprint.pformat(self.config.model_dump())}"
+        )
+
         self.run_quicklook()
         if self.data_starting_point == "raw":
             self.run_raw_data_processing()
