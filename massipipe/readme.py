@@ -11,9 +11,11 @@ TEXT = r"""
 # MASSIMAL hyperspectral image dataset
 
 This readme file is part of a dataset containing hyperspectral images of shallow-water
-marine habitats collected using a UAV / drone. This file provides details on the
-research project that collected the images, technical details regarding the equipment
-used, and the type and formatting of the data provided.  
+marine habitats collected using an unmanned aerial vehicle (UAV, or "drone"). This file
+provides details on the research project that collected the images, the imaging
+equipment used, post-processing of the data, and the type and formatting of the data
+provided.  
+
 
 ## Table of contents
 1. [The MASSIMAL research project](#the-massimal-research-project)
@@ -22,6 +24,7 @@ used, and the type and formatting of the data provided.
 4. [Field operations](#field-operations)
 5. [MassiPipe data processing pipeline](#massipipe-data-processing-pipeline)
 6. [Dataset contents](#dataset-contents)
+
 
 ## The MASSIMAL research project 
 This dataset was collected as part of the "MASSIMAL" project (Mapping of Algae and
@@ -56,39 +59,44 @@ Additional information about the project can be found on the following websites:
 - [SeaBee data portal with Massimal
   data](https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&f=dataset)
 
+  
 ## Hyperspectral imaging system
 Hyperspectral imaging was performed using a "[Airborne Remote Sensing
 System](https://resonon.com/hyperspectral-airborne-remote-sensing-system)" manufactured
 by Resonon. The system was configured with the following components:
 
+
 ### Hyperspectral camera
 A [Pika-L](https://resonon.com/Pika-L) hyperspectral camera fitted with a lens with 8 mm
-focal length and 36.5 degree field (see [lens
-options](https://resonon.com/objective-lenses)) of view was used for all image
-acquisitions. The Pika-L is a pushbroom sensor; it measures light coming from a narrow
-line in the imaged scene. The light from the line is reflected by a diffraction grating,
-which splits the light into its spectral components, and onto a 900x600 pixel sensor. A
-single image frame corresponds to 900 spatial pixels with the light intensity sampled at
-600 wavelengths in the 390-1030 nm range. By default, pairs of spectral pixels are
-binned, resulting in 300 spectral channels. Resonon lists that the Pika-L has a spectral
-range of 400-1000 nm and 281 spectral channels, indicating that the channels at the high
-and low ends of the spectra are usually discarded.
+focal length and 36.5 degree field of view (see [lens
+options](https://resonon.com/objective-lenses)) was used for all image acquisitions. The
+Pika-L is a pushbroom sensor; it measures light coming from a narrow line in the imaged
+scene. The light from the line is reflected by a diffraction grating, which splits the
+light into its spectral components, onto a 900x600 pixel sensor. A single image frame
+corresponds to 900 spatial pixels, with the light intensity sampled at 600 wavelengths
+in the 390-1030 nm range. By default, pairs of spectral pixels are binned, resulting in
+300 spectral channels. Resonon lists that the Pika-L has a spectral range of 400-1000 nm
+and 281 spectral channels, indicating that the channels at the high and low ends of the
+spectra are usually discarded. 
 
-To create a 2D image where each pixel has 300 spectral channels, the camera has to be
-moved across the area of interest. The number of across-track pixels is always 900,
-corresponding to the number of spatial pixels of the sensor, while the number of
-along-track pixels depends on how many image lines are acquired. 
+To create a 2D image of a scene, the camera has to be moved across the area of interest
+with the line-of-view perpendicular to the direction of motion. The number of
+across-track pixels is always 900, corresponding to the number of spatial pixels of the
+sensor, while the number of along-track pixels depends on how many image lines are
+acquired. 
 
 The along-track sampling distance on the ground is given by the speed of the camera
-multiplied by camera frame rate. The across-track sampling distance is defined by the
-camera field of view (36.5 degrees) and the relative distance between the camera and the
-ground. In the Massimal project, UAV altitude and speed were adjusted to keep the two
-sampling distances as similar as possible.
+platform divided by camera frame rate. The across-track sampling distance is defined by
+the camera field of view and the relative distance between the camera and the ground. In
+the Massimal project, the frame rate was always set to 100 frames per second, and the
+UAV altitude and speed were adjusted to keep the two ground sampling distances as
+similar as possible (typically around 3.5 cm).
 
-The spectral resolution (FWHM) averages around 2.7 nm. The table below shows the FWHM
-for selected channels based on Resonon's general design documents. Individual cameras
-may vary slightly, but Resonon states the data aligns well with experiments. Note the
-local minimum of 2.24 nm at ~470 nm and the local maximum of 2.94 nm at ~745 nm.
+The spectral resolution (FWHM) of the camera's 300 spectral channels averages around 2.7
+nm. The table below shows the FWHM for selected channels based on Resonon's general
+design documents. Individual cameras may vary slightly, but Resonon states the data
+aligns well with experiments. Note the local minimum of 2.24 nm at ~470 nm and the local
+maximum of 2.94 nm at ~745 nm.
 
 | Wavelength (nm) | FWHM (nm) |
 | :-------------: | :-------: |
@@ -134,40 +142,41 @@ local minimum of 2.24 nm at ~470 nm and the local maximum of 2.94 nm at ~745 nm.
 |             985 |      2.47 |
 |            1000 |      2.49 |
 
+
 ### On-board computer
-A small on-board computer made by Resonon was used for controlling the camera, logging
-sensor data, and communicating with the ground station. The computer ran a Linux-based
-imaging firmware made by Resonon. 
+The hyperspectral camera, IMU and radio modem for communicating with the ground station
+were controlled by a small on-board computer. The computer was an [Intel
+NUC](https://en.wikipedia.org/wiki/Next_Unit_of_Computing) (7th generation, model
+NUC7i7DNK) running a Linux-based imaging firmware made by Resonon. 
+
 
 ### Inertial measurement unit (IMU)
 An SBG Ellipse 2N inertial measurement unit was connected to the onboard computer. The
 IMU consists of 3 accelerometers and 3 gyroscopes to measure translational and angular
 accelerations of the camera, a GNSS receiver for measuring position and velocity, a
 barometric altimeter for aiding altitude measurement, and a magnetometer aiding in
-measurement of heading. The sensor data are combined in an extended Kalman filter to
+heading measurement. The sensor data are combined in an extended Kalman filter to
 produce estimates of camera position (latitude, longitude, altitude) and orientation
-(pitch, roll, yaw). The specified accuracy for the GNSS receiver was 2.0 m CEP. Note
-that the GNSS receiver was not able to use real-time post-processing kinematic
-positioning (RTK/PPK). 
+(pitch, roll, yaw). The specified accuracy for the GNSS receiver was 2.0 m CEP.
+Real-time or post-processing kinematic positioning (RTK/PPK) was not available for the
+IMU.
+
 
 ### Downwelling irradiance measurement
 The (spectral) downwelling irradiance is a measurement of the total intensity of light
-coming from the sky, measured as power per area per wavelength (typically W/(m$^2$*nm)).
-The downwelling irradiance can be used as part of a calculation of the how much light is
-reflected from the ground, for different wavelengths. While the amount of
-reflected light from an object can vary drastically, depending on weather, time of day
-etc., the reflectance of the object can remain more or less constant. This makes
-reflectance useful for habitat mapping. In the Massimal project, downwelling irradiance
-was measured with the purpose of calculating hyperspectral reflectance images. 
+coming from the sky, measured as power per area per wavelength (typically W/(m²·nm)).
+The downwelling irradiance can be combined with a hyperspectral image to calculate the
+reflectance for each image pixel.
  
 A Flame-S-VIS-NIR spectrometer with a CC-3-DA cosine collector manufactured by Ocean
-Insight was used to measure downwelling spectral irradiance for each hyperspectral image
-that was acquired. The spectrometer has a spectral range of 350-1000 nm, with optical
-resolution of 1.33 nm and spectral sampling of 0.3-0.4 nm. The spectrometer was mounted
-directly to one of the arms of the UAV. 
+Insight was used to measure downwelling spectral irradiance. The spectrometer has 2048
+spectral channels covering the range of 350-1000 nm. The optical resolution is 1.33 nm
+and the spectral sampling distance is 0.3-0.4 nm. The spectrometer was mounted directly
+to one of the arms of the UAV. 
 
-Note that for some datasets, downwelling irradiance was not measured due to a technical
-failure (poor cable connection between spectrometer and on-board computer).
+**Note that for some datasets, downwelling irradiance was not measured due to a technical
+failure (poor cable connection between spectrometer and on-board computer).**
+
 
 ## UAV platform for hyperspectral imaging
 
@@ -177,7 +186,7 @@ manufactured by DJI, a hexacopter design with 6 propellers, each 21 inches long.
 model was chosen because 
 
 - Resonon has used the same model to carry their airborne hyperspectral systems.
-- The model is one of the most affordable commercially produced UAVs with high enough
+- The model is one of the most affordable commercially available UAVs with high enough
   payload capacity to carry the hyperspectral system.
 - DJI offered a compatible gimbal that was well suited for the hyperspectral camera.
 
@@ -185,30 +194,40 @@ model was chosen because
 A typical flight lasted approximately 10 minutes, with a safety margin of at least 30 %
 remaining battery capacity. Six TB47S batteries were used to power the UAV, and three
 sets of batteries were used to enable multiple flights and battery changing in the
-field. The arms and propellers of the UAV can be folded for transport. When fully
-extended, the UAV has a "wingspan" and height of approximately 1.65 and 0.75 meters,
-respectively. During transportation, the UAV was folded and transported in a case
-measuring 0.8x0.7x0.7 meters.
+field. 
+
+The arms and propellers of the UAV can be folded for transport. When fully extended, the
+UAV has a "wingspan" and height of approximately 1.65x0.75 meters. During
+transportation, the UAV was folded and transported in a case measuring 0.8x0.7x0.7
+meters.
+
 
 ### Gimbal
-The hyperspectral camera and the onboard computer were mounted to a DJI [Ronin-MX
-gimbal](https://www.dji.com/no/ronin-mx). The gimbal has 3 axes (pitch, roll and yaw)
-and decoupled the movement of the UAV from that of the camera. The camera was kept
-pointing directly downwards ("nadir") with the line of sight perpendicular to the
-forward movement of the drone. For yawing movements, the gimbal was set to follow the
-heading of the UAV, but with low angular accelerations. 
+The hyperspectral camera and the onboard computer were mounted to a DJI
+[Ronin-MX](https://www.dji.com/no/ronin-mx) 3-axis gimbal. The purpose of the gimbal was
+to keep the camera level and to "decouple" it mechanically from the UAV, which uses
+tilting of the aircraft for manouvering. 
+
+The camera was kept pointing directly downwards ("nadir") with the line of sight
+perpendicular to the forward movement of the drone. For yawing movements, the gimbal was
+set to follow the heading of the UAV, but with low angular accelerations. 
+
 
 ### Radio modem
 For most missions, a lightweight radio modem (Digi XBee, 2.4 GHz) was used for
-communication between the ground station and the on-board computer. 
+communication between the ground station and the on-board computer. The communication
+link was mainly used for configuring imaging missions and monitoring that data recording
+was proceeding as planned.
 
 
 ## Field operations
+
 ### Ground station
 All datasets were acquired with a UAV ground station close to the area of interest
 (usually 500 meters or less), with clear visual line of sight to the UAV. In some cases
 a ground station could be set up close to the road, and in some cases all equipment had
 to be transported via a small boat.  
+
 
 ### Mission setup
 Most imaging missions were performed by defining a target area of interest, creating a
@@ -216,9 +235,10 @@ Most imaging missions were performed by defining a target area of interest, crea
 describing the area, and uploading the KML file to the UAV on-board computer. The
 Airborne Remote Sensing System senses when the UAV is inside the target area, and
 automatically starts and stops the recording accordingly. The KML file was also used in
-flight planning software to create way points for flight lines. In 2021 and 2022, DJI
-Pilot was used for flight planning, while in 2023,
+flight planning software to create waypoints for flight lines. During field campaigns in
+2021 and 2022, DJI Pilot was used for flight planning, while in 2023,
 [UgCS](https://www.sphengineering.com/flight-planning/ugcs) was used.
+
 
 ### Splitting flight lines into multiple images
 The Airborne Remote Sensing System is set up so that if an image reaches the limit of
@@ -227,45 +247,48 @@ in a new image file. The practical effect of this is that images along a single
 continuous flight line are split into multiple images - typically 4-10 images for each
 flight line.
 
+
 ### Autoexposure
 The Airborne Remote Sensing System includes an autoexposure feature. With this, the
 camera gain and shutter is automatically adjusted, based on test images acquired by the
-camera, to bring the distribution of values into a suitable part of the camera dynamic
-range. Autoexposure was used on a per-image basis, meaning that gain and shutter were
-re-calculated between each image.  
+camera, to bring the distribution of image values into a suitable part of the camera
+dynamic range. Autoexposure was used on a per-image basis, meaning that camera gain and
+shutter were adjusted between each image.  
 
 Note that using autoexposure occasionally resulted in suboptimal gain and shutter
 values. For example, if the UAV was above (dark) water at the time of autoexposure and
 then flew over (bright) land before the autoexposure could be recalculated, parts of the
 image became saturated, resulting in invalid pixels. In processed images, saturated
-pixels are set to zero across all channels (even if only a subset of channels were
-saturated), to indicate that the spectrum is invalid. 
+pixels are set to zero across all channels, to indicate that the spectrum is invalid. 
 
-### Mounting on gimbal
+
+### Gimbal operation
 For most of the datasets collected in the project, the data was collected with the
-camera mounted on a 3-axis stabilizing gimbal. Using a gimbal decoupled the movement of
-the camera from that of the UAV, such that the hyperspectral images could be interpreted
-directly, without requiring georectification.  
+camera mounted on a 3-axis stabilizing gimbal. Before takeoff, the gimbal was adjusted
+to point the camera in the nadir direction, with the camera line of sight being
+perpendicular to the direction of flight. During sharp turns, typically between straight
+flight lines, the yawing movement would cause the camera heading to "lag behind" that of
+the UAV for some time. However, the gimbal eventually returned the camera to the
+original orientation relative to the UAV. This behavior was not ideal, and it probably
+contributes to a "skewing" artifact seen in some images, but no solution to avoid it was
+found during fieldwork.  
 
-Before takeoff, the gimbal was adjusted to point the camera in the nadir direction, with
-the camera line of sight being perpendicular to the direction of flight. During sharp
-turns, typically between straight flight lines, the yawing movement would cause the
-camera heading to "lag behind" that of the UAV for some time. However, the gimbal
-eventually returned the camera to the original orientation relative to the UAV. This
-behavior was not ideal, but no solution to avoid it was found during fieldwork.  
 
-## Massipipe data processing pipeline
+## MassiPipe data processing pipeline
 The dataset has been processed by "MassiPipe", a data processing pipeline developed as
-part of the MASSIMAL project. Developent of the pipeline has been based on data from the
-Resonon Pika-L hyperspectral camera, but many elements of the pipeline (e.g. reflectance
-calculation, sun glint correction) are general and can be applied to any hyperspectral
-image.  
+part of the MASSIMAL project. The pipeline has been used to 
 
-MassiPipe can be used to automatically generate additional image products, e.g.
-reflectance images and glint corrected images, based on the
-radiance images distributed in the dataset. See details in the description of dataset
-contents below. 
+- Convert raw hyperspectral images to radiance
+- Convert raw spectrometer data to downwelling irradiance
+- Process IMU data and create a "geotransform" for each image 
+- Adding irradiance and geotransform data to radiance image header
+- Create RGB versions of the images, including mosaics
+ 
+MassiPipe can also be used to automatically generate additional image products, e.g.
+reflectance images and glint corrected images, based on the radiance images distributed
+in the dataset. See details in the description of dataset contents below. 
 
+- MassiPipe documentation: https://mh-skjelvareid.github.io/massipipe/
 - MassiPipe GitHub repository: https://github.com/mh-skjelvareid/massipipe
 - DOI for MassiPipe: [10.5281/zenodo.14748766](https://doi.org/10.5281/zenodo.14748766)
 
@@ -275,41 +298,62 @@ the [NIRD Toolkit](https://documentation.sigma2.no/nird_toolkit/overview.html). 
 a service  offered by the Norwegian Research Infrastructure Services (NRIS) and run by
 [Sigma2](https://www.sigma2.no/). 
 
+
 ## Dataset contents
 The following is a general description which is valid for most of the datasets produced
 by the MASSIMAL project. Some deviations from this description may exist for special
-cases, usually caused by technical problems during field work. 
+cases. Review your specific dataset to check what type of data is included. 
 
-All datasets are named using the same pattern. Here are two examples:
+Note that the raw data is not distributed as part of the dataset, as calibrated radiance
+images was considered more generally useful than raw data. Due to storage and bandwidth
+concerns, only one version of each hyperspectral image was included in the dataset. 
+
+
+### Dataset structure and file naming
+The dataset har the following structure:
+
+    ├── 1a_radiance
+    │   ├── rgb    
+    │   |   ├── <DatasetName>_<ImageNumber>_radiance_rgb.tiff
+    │   |   └── ...
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec
+    │   ├── <DatasetName>_<ImageNumber>_irradiance.spec.hdr
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip
+    │   ├── <DatasetName>_<ImageNumber>_radiance.bip.hdr
+    │   └── ...
+    ├── imudata
+    │   ├── <DatasetName>_<ImageNumber>_imudata.json
+    │   └── ...
+    ├── orthomosaic
+    │   └── <DatasetName>_<ImageType>_rgb.tiff
+    ├── quicklook
+    │   ├── <DatasetName>_<ImageNumber>_quicklook.png
+    │   └── ...
+    ├── config.seabee.yaml
+    ├── LICENSE
+    └── README.md
+
+All datasets are named using the same pattern. Here is an example:
 
     massimal_larvik_kongsbakkebukta_202308301328_hsi
 
 Here, "massimal" is the project name, "larvik" is the name of the general area,
 "kongsbakkebukta" is the name of the specific location, "202308301328" is the date and
 time when the first image was taken (using the pattern yyyymmddHHMM), and "hsi" is an
-abbreviation of hyperspectral image. Some times the timestamp is followed by a "tag"
-with additional information, like in the example below:
+abbreviation of "hyperspectral image". For some datasets the timestamp is followed by a
+tag with additional information, like the "-south1" tag in the example below:
 
     massimal_larvik_olbergholmen_202308300959-south1_hsi
 
-There are multiple files associated with a single hyperspectral image. To make it easy
-to indentify files belonging together, all use the same base file name, for example:
+Individual files are numbered with three digits, starting from 000. An example:
 
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_quicklook.png
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_irradiance.spec
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_irradiance.spec.hdr
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_radiance.bip
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_radiance.bip.hdr
-    massimal_larvik_kongsbakkebukta_202308301328_hsi_012_imudata.json
-
-The files are numbered with three digits (012 above), starting from 000.
-
+    massimal_larvik_kongsbakkebukta_202308301328_hsi_000_quicklook.png
 
 
 ### Configuration file - config.seabee.yaml 
 The configuration file contains metadata about the dataset, and the parameters for
 processing the dataset using MassiPipe. The file name includes "seabee" because the
-dataset was perpared for publication and interactive exploration through the SeaBee data
+dataset was prepared for publication and interactive exploration through the SeaBee data
 portal, run by [SeaBee](https://seabee.no/) (Norwegian Infrastructure for Drone-based
 Research, Mapping and Monitoring in the Coastal Zone).
 
@@ -318,97 +362,112 @@ documentation](https://mh-skjelvareid.github.io/massipipe/). The configuration f
 be edited to re-run the processing with modified parameters, and/or produce additional
 image products. 
 
+
 ### Quicklook
-The "quicklook" images are color images saved in the PNG format, to be used for getting
-a quick overview of the dataset. The data displayed as red, green and blue (RGB)
+The "quicklook" images are color images saved in PNG format, to be used for getting a
+quick overview of the dataset. The data displayed as red, green and blue (RGB)
 corresponds to slices of the hyperspectral radiance image extracted at the "RGB
 wavelengths" set in the configuration (typically 640, 550 and 460 nm). Each color
 channel has also been individually contrast stretched, using the 2nd and 98th
 percentiles of the original data to set the lower and upper ends of the range of values
-displayed. Note that since the image statistics change from image to image, identical
-objects or nature types may appear different in different images. The images are also
-not georeferenced. 
+displayed. 
 
-It is not recommended to use the quicklook images for any type of analysis - use the
-radiance data (or further processed image products) instead. 
+Note that since the image statistics change from image to image, the percentile
+stretching may cause identical objects or nature types to appear different in different
+images. Quicklook images are also not georeferenced. It is not recommended to use the
+quicklook images for any type of analysis - use the radiance data (or further processed
+image products) instead. 
+
 
 ### IMU data
+During image acquisition, the stream of IMU data is logged to a text file (\*.lcf), and
+timestamps for each image line is logged to another file (\*.times). The timing of IMU
+data sampling and image line acquisition is not synchronized in the raw data. In
+post-processing, IMU data is interpolated to match the timestamps for each image line.
+E.g., if the image contains 2000 lines, each IMU data field has 2000 corresponding
+values.
+
 IMU data is stored as JSON files with 7 fields:
 - **time**: Time represented as a single floating-point value, describing the number of
   seconds passed since January 1st 1970 (["UNIX
-  time"](https://en.wikipedia.org/wiki/Unix_time)) 
+  time"](https://en.wikipedia.org/wiki/Unix_time)). 
 - **roll**: Camera roll measured in radians. Positive values correspond to "right wing
   up", or pointing the camera to the right side of the flight line. 
-- **pitch**: Camera pitch measured in radians. 
+- **pitch**: Camera pitch measured in radians. Positive values correspond "nose up", or
+  pointing the camera forward, relative to nadir.
 - **yaw**: Camera heading, measured in radians. Zero at due north, pi/2 at due east.
-- **longitude**: Longitude in decimal degrees, positive for east longitude
-- **latitude**: Latitude in decimal degrees, positive for northern hemisphere
+- **longitude**: Longitude in decimal degrees, positive for east longitude.
+- **latitude**: Latitude in decimal degrees, positive for northern hemisphere.
 - **altitude**: Altitude in meters relative to the WGS-84 ellipsiod.
-
-All values have been interpolated to match the lines of the hyperspectral image. E.g.,
-if the image contains 2000 lines, each field has 2000 corresponding values. 
 
 *Note that while roll, pitch, longitude and latitude are relatively accurate, yaw and
 altitude are less so.* The magnetometer which the IMU used to measure yaw (heading)
 turned out to have poor accuracy, despite repeated calibrations. Absolute altitude
-values also appear to be accurate only to approximately +/- 10 m, probably due to
+values also appear to be accurate only to approximately +/- 7 m, probably due to
 limited accuracy when estimating altitude from GPS / GNSS. However, relative altitude
 values for the same flight (same dataset) are fairly consistent, probably because
 altitude estimation was aided by a barometric pressure sensor.  
 
+
 ### Downwelling irradiance spectra
-For many of the datasets recorded in the project, the downwelling irradiance been
-collected using a cosine collctor and a spectrometer, both mounted on top of the UAV
-with the hyperspectral camera. In these cases, a downwelling irradiance spectrum has
+For many of the datasets recorded in the project, a downwelling irradiance spectrum has
 been recorded for each hyperspectral image. The irradiance spectra are placed together
 with the hyperspectral images in the folder named 1a_radiance, and are saved in the same
-ENVI format as the hyperspectral images. The file name extensions are *.spec and
-*.spec.hdr for the binary and header files, respectively. 
+ENVI format as the hyperspectral images. The file name extensions are \*.spec and
+\*.spec.hdr for the binary and header files, respectively. 
 
-The raw irradiance spectrum has been calibrated and converted to units of W/(m2*nm) by
-subtracting a dark current spectrum and multiplying with a gain spectrum. The
-wavelengths of the irradiance spectrum have also been calibrated by detecting
-[Fraunhofer lines](https://en.wikipedia.org/wiki/Fraunhofer_lines) in the recorded
-spectra. A polynomial was fitted to the detected Fraunhofer lines, for which the
-wavelengths are well-known, and the polynomial was used to calculate calibrated
-wavelengths for every channel of the irradiance spectrum. 
+The raw spectrum has been converted to units of W/(m²·nm) by subtracting a dark current
+spectrum and multiplying with a gain spectrum. The wavelengths of the irradiance
+spectrum have also been calibrated by detecting [Fraunhofer
+lines](https://en.wikipedia.org/wiki/Fraunhofer_lines) in the recorded spectra. A
+polynomial was fitted to the detected Fraunhofer lines, for which the wavelengths are
+well-known, and the polynomial was used to calculate calibrated wavelengths for every
+channel of the irradiance spectrum. 
 
-For additional details regarding the calibration, see
-[massipipe.irradiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/irradiance.py)
+For additional details regarding the calibration, see the code in
+[massipipe.irradiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/irradiance.py).
+
+Note that the spectral resolution is much higher for the irradiance spectrometer than
+for the hyperspectral camera. When using the irradiance spectrum for calculating
+reflectance images, the spectrum should be smoothed and resampled to match the spectral
+characteristics of the camera. Where possible, such a smoothed and resampled spectrum
+has been written to the radiance image header. See the section on [irradiance in
+radiance header files](#solar-irradiance) for details. 
 
 
 ### Radiance hyperspectral images
 
 #### File format
-The radiance hyperspectral images are placed in the folder called 1a_radiance, and
+The radiance hyperspectral images are placed in a the folder called `1a_radiance`, and
 constitute the largest and most important part of the dataset. The radiance images are
 saved in the [ENVI
 format](https://www.nv5geospatialsoftware.com/docs/ENVIImageFiles.html), which splits
-the data into two parts: A binary file, typically with file extension *.bil , *.bip or
-*.bsq, and a pure text file with metadata, typically with the same file name as the
-binary file, but with an additional *.hdr extension.
+the data into two parts: 
+- A binary file with file extension \*.bip (e.g. `image.bip`), and
+- A text file with metadata, with the same file name as the binary file,
+  but with an additional \*.hdr extension (e.g. `image.bip.hdr`).
 
+  
 #### Calibration and physical units
-The radiance image has been converted from a raw image with digital numbers to a
-calibrated image with units of
-[microflicks](https://en.wikipedia.org/wiki/Flick_(physics)). The calibration consists
-of two steps; subtracting the dark current noise from every image frame, and then
-multiplying every frame with a "gain" frame which converts digital numbers to
-microflicks. For a more in-depth view of the calibration process, see the code at
+The radiance image has been converted from a raw image to a calibrated image with units
+of [microflicks](https://en.wikipedia.org/wiki/Flick_(physics)) (µW/(cm²·µm·sr)). The
+microflick unit may seem arbitrary or outdated, but is used here because typical values
+are well suited for encoding using 16-bit unsigned integers.  
+
+The calibration consists of two steps; subtracting the dark current noise from every
+image frame, and then multiplying every frame with a "gain" frame which converts digital
+numbers to microflicks. For details on the calibration process, see the code at
 [massipipe.radiance](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/radiance.py).
 
-Note that the raw data is not distributed as part of the dataset, as calibrated radiance
-data was considered more generally useful than raw data. Due to storage and bandwidth
-concerns, only one version of the image was included in the dataset. 
 
-#### Georeferencing
+#### Georeferencing ("map info")
 The radiance image headers include the field "[map
 info](https://www.nv5geospatialsoftware.com/docs/ENVIHeaderFiles.html)", which provides
-details on georeferencing of the image. 
+information on georeferencing of the image. 
 
 Georeferencing or georectification of an image is the process of placing each image
 pixel at a defined position on the surface of the Earth. If accurate measurements of the
-camera's position and orientation is available, in addition to a surface elevation
+camera's position and orientation is available, together with a surface elevation
 model, it is possible to perform georectification very accurately. However, since the
 heading and altitude measurements from the IMU used in this project were not very
 accurate, georectified versions of the hyperspectral images (using e.g. Resonons
@@ -420,24 +479,29 @@ georectified image.
 
 For the reasons listed above, the images in the dataset have not been fully
 georectified. However, a simplified georectification based on an [affine
-transform](https://en.wikipedia.org/wiki/Affine_transformation) has been applied. The
+transform](https://en.wikipedia.org/wiki/Affine_transformation) has been applied. A
+common application of the affine transform is so-called "[world
+files](https://en.wikipedia.org/wiki/World_file)" for georeferencing raster images.  The
 affine transform scales, rotates and translates an image from its original pixel
-coordinates into a geospatial coordinate reference system. A common application of the
-affine transform is so-called "[world files](https://en.wikipedia.org/wiki/World_file)"
-for georeferencing raster images. 
+coordinates into a geospatial coordinate reference system. This has been found to
+produce "good enough" georectification, given the quality of the IMU data, while also
+being lossless.  
+
 
 The affine transform has been calculated based on the IMU data and on the camera field
 of view. See
 [massipipe.georeferencing](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/georeferencing.py)
-for details.
+for details. 
 
 The "map info" field in the image header does not list the parameters of the affine
 transform directly, but it is possible to translate between the two. For an in-depth
-explanation, see "[Understanding AVIRIS-NG data in ENVI format with rotated
+explanation, see the tutorial "[Understanding AVIRIS-NG data in ENVI format with rotated
 grid](https://github.com/ornldaac/AVIRIS-NG_ENVI-rotatedgrid)". 
 
-Here is an example of map info from a hyperspectral image: map info = {UTM, 1, 1,
-565020.16, 6541378.72, 0.0355271, 0.0369927, 32, North, WGS-84, rotation=19.060428}.
+Here is an example of map info from a hyperspectral image: 
+
+`map info = {UTM, 1, 1, 565020.16, 6541378.72, 0.0355271, 0.0369927, 32, North, WGS-84,
+rotation=19.060428}.`
 
 The map info parameters are (in order):
 1. Projection name (always UTM for this project)
@@ -468,28 +532,32 @@ georectification than than provided by the affine transform:
   QGIS "georeferencer" tool is one option to do this manually. 
 
 
-#### Downwelling irradiance
-For the hyperspectral images where downwelling irradiance was also measured, the
-downwelling irradiance spectrum has been included in the header file of the radiance
-image, under the field "[solar
+#### Solar irradiance
+Where possible, the downwelling irradiance spectrum has been included in the header file
+of the radiance image, under the field "[solar
 irradiance](https://www.nv5geospatialsoftware.com/docs/EnterOptionalHeaderInformation.html#SolarIrradiance)".
 This field is one of the standard (but optional) fields of the ENVI data format, and is
 usually used to specify the "top of atmosphere" irradiance for satellite imaging. The
-units of solar irradiance are W/(m$^2$*µm), and the number of spectral channels and the
+units of solar irradiance are W/(m²·µm), and the number of spectral channels and the
 wavelengths of the irradiance values correspond to those of the hyperspectral image. To
 achieve this, the original irradiance measurements have been smoothed using a Gaussian
 kernel with FWHM of 3.5 nm, and then resampled to match the wavelengths of the
 hyperspectral camera. Note that spectral smoothing is needed for the shape of irradiance
 spectrum to be closer to that of the spectra in the hyperspectral images. Because of its
-higher spectral resolution, the original irradiance spectrum has some very deep valleys
-caused by Fraunhofer lines. 
+higher spectral resolution, the original irradiance spectrum has some very sharp and
+deep valleys caused by Fraunhofer lines. 
 
 In the Massimal project, the purpose of measuring downwelling irradiance is to calculate
-a reflectance image. Many definitions of reflectance as a concept exist. One common
-defininition is $\rho = (\pi*L)/E$, where $L$ denotes radiance (i.e. hyperspectral
-image) and $E$ denotes downwelling irradiance. Under the simplifying assumption that all
-objects in the image act as a Lambertian reflector, i.e. that an incoming ray of light
-is reflected equally in all directions, $\rho$ corresponds to the [spectral irradiance
+a reflectance image. While the amount of reflected light from an object can vary
+drastically, depending on weather, time of day etc., the reflectance of the object can
+remain more or less constant. This makes reflectance useful for habitat mapping. 
+
+Many definitions of reflectance exist. One common defininition is $\rho =
+(\pi*L)/E$, where $L$ denotes radiance (i.e. hyperspectral image) and $E$ denotes
+downwelling irradiance. Under the simplifying assumption that all objects in the image
+act as a [Lambertian reflector](https://en.wikipedia.org/wiki/Lambertian_reflectance),
+i.e. that an incoming ray of light is reflected equally in all directions, $\rho$
+corresponds to the [spectral irradiance
 reflectance](https://www.oceanopticsbook.info/view/inherent-and-apparent-optical-properties/reflectances),
 the ratio between upwelling and downwelling irradiances.  An alternative definition,
 [remote sensing
@@ -497,30 +565,45 @@ reflectance](https://www.oceanopticsbook.info/view/inherent-and-apparent-optical
 $R$, omits the scaling factor $\pi$, such that $R = L/E$. The unit of $R$ is inverse
 steradians. 
 
-Note that the units of radiance in the hyperspectral image (microflicks, uW/(cm2*um*sr))
-and the units of downwelling irradiance in the ENVI header (W/(m2*um)) are not directly
+Note that the units of radiance in the hyperspectral image (microflicks, µW/(cm²·µm·sr))
+and the units of downwelling irradiance in the ENVI header (W/(m²·µm)) are not directly
 compatible. To convert the irradiance values from those in the header to units that
-match the radiance images, multiply the irradiance values by 100.
+match the radiance images, multiply the irradiance values by 100. 
+
+The MassiPipe pipeline can be configured to calculate reflectance images ($\rho$) directly from
+radiance images and the irradiance spectrum in the header. 
+
+
+### Radiance RGB GeoTIFFs
+The folder `1a_radiance` has a subfolder named `rgb`, which contains RGB versions of the
+radiance images, saved as GeoTIFF files. The red, green and blue images are "slices" of
+the hyperspectral image at three wavelengths, as for the [quicklook](#quicklook) image.
+However, the GeoTIFF contains the original values from the radiance image, and has not
+been contrast stretched. 
+
+The GeoTIFF images are georeferenced, and are useful as "lightweight" representations of
+the hyperspectral image. Use compatible software (e.g. QGIS) to view the GeoTIFF
+image in a geospatial context. 
 
 
 ### Mosaic
 The mosaic is a single RGB GeoTIFF file for visualization of all the images in the
-dataset. The mosaic is generated based on the 16-bit integer values of radiance
-hyperspectral images, but after combining all the images, each color channel of the
-mosaic is percentile stretched (in the same way as for quicklook images), and finally
-the mosaic is converted to 8-bit integer format. Note that the conversion creates a
-suitable image contrast and also compresses the image, but that the values of the image
-lose their physical units. 
+dataset. The mosaic is generated based on radiance RGB GeoTIFFs, but after combining all
+the images, each color channel of the mosaic is percentile stretched (in the same way as
+for quicklook images), and finally the mosaic is converted to 8-bit integer format. Note
+that the conversion creates a suitable image contrast and compresses the image, but that
+the values of the image lose their physical units. 
 
 For most datasets, the mosaic is created directly from radiance data. The file name of
-the mosaic then ends in *_rad_rgb.tiff. However, for some datasets with significant
+the mosaic then ends in \*_rad_rgb.tiff. However, for some datasets with significant
 amounts of sun and sky glint in the water surface, the mosaic is created based on "glint
-corrected" radiance. In these cases, the file name ends in *_rad_gc_rgb.tiff. See
+corrected" radiance. In these cases, the file name ends in *_rad_gc_rgb.tiff. 
+
+Glint corrected radiance images are not distributed with the dataset, but can be
+generated from the radiance images, for example by using MassiPipe. See the code at
 [massipipe.glint](https://github.com/mh-skjelvareid/massipipe/blob/main/massipipe/glint.py)
 for details on glint correction. 
 
-
- 
 
 """
 
