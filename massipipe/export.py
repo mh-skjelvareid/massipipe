@@ -90,6 +90,7 @@ def create_license_file(dataset_dir: Path):
 
 def _add_element_to_archive(dataset_dir: Path, archive: zipfile.ZipFile, element: Path):
     """Add element in dataset (file/dir) to opened archive (zip file)"""
+    # TODO: Exclude hidden directories and files, e.g. ".ipynb_checkpoints"
     try:
         if element.exists():
             if element.is_dir():
