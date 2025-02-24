@@ -15,6 +15,11 @@ from massipipe.readme import write_readme
 logger = logging.getLogger(__name__)
 
 
+def configure_export_log_file_handler(file_handler: logging.FileHandler):
+    """Configure the export module logger to use the provided file handler."""
+    logger.addHandler(file_handler)
+
+
 def copy_visualization_mosaic(source_mosaic: Path, dest_mosaic_dir: Path):
     """Copy mosaic best suited for visualization to a separate directory.
 

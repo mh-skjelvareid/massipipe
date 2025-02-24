@@ -17,7 +17,11 @@ from typing import Sequence, Union
 from pydantic import ValidationError
 
 from massipipe.config import Config, export_template_yaml, read_config, write_config
-from massipipe.export import copy_visualization_mosaic, export_dataset_zip
+from massipipe.export import (
+    configure_export_log_file_handler,
+    copy_visualization_mosaic,
+    export_dataset_zip,
+)
 from massipipe.georeferencing import (
     ImuDataParser,
     ImuGeoTransformer,
@@ -107,7 +111,7 @@ class Pipeline:
         self.logs_dir = self.dataset_dir / "logs"
 
         # Configure logging
-        self._configure_file_logging()
+        self.log_file_handler = self._configure_file_logging()
 
         # Read config file
         config_file_path = self.dataset_dir / config_file_name
@@ -180,7 +184,7 @@ class Pipeline:
             return
         self.config = full_config.massipipe_options
 
-    def _configure_file_logging(self) -> None:
+    def _configure_file_logging(self) -> logging.FileHandler:
         """Configure file logging for pipeline execution.
 
         Creates a logs directory if needed and initializes a file handler with a
@@ -193,15 +197,17 @@ class Pipeline:
         log_path = self.logs_dir / log_file_name
 
         # Add file handler to module-level logger
-        file_handler = logging.FileHandler(log_path)
+        log_file_handler = logging.FileHandler(log_path)
         formatter = logging.Formatter(
             fmt="%(asctime)s %(levelname)s: %(message)s", datefmt="%H:%M:%S"
         )
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(logging.INFO)
-        logger.addHandler(file_handler)
+        log_file_handler.setFormatter(formatter)
+        log_file_handler.setLevel(logging.INFO)
+        logger.addHandler(log_file_handler)
         logger.info("-" * 64)
         logger.info(f"File logging for {self.dataset_base_name} initialized.")
+
+        return log_file_handler
 
     def _check_data_starting_point(self) -> str:
         """Determine if processing should start from raw or radiance data.
@@ -1138,6 +1144,10 @@ class Pipeline:
 
     def export(self) -> None:
         """Export dataset to ZIP file for archival / publishing"""
+
+        # Configure export module logger to use pipeline file log handler
+        configure_export_log_file_handler(self.log_file_handler)
+
         # Copy "best" mosaic to separate directory
         if self.config.mosaic.visualization_mosaic == "radiance":
             copy_visualization_mosaic(self.mosaic_rad_path, self.mosaic_visualization_dir)
@@ -1145,7 +1155,7 @@ class Pipeline:
             copy_visualization_mosaic(self.mosaic_rad_gc_path, self.mosaic_visualization_dir)
 
         # Package selected processed data as ZIP file
-        zip_file_path = export_dataset_zip(
+        export_dataset_zip(
             self.dataset_dir,
             self.quicklook_dir,
             self.radiance_dir,
