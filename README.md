@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14748766.svg)](https://doi.org/10.5281/zenodo.14748766)
+
 # MassiPipe - a data processing pipeline for MASSIMAL hyperspectral images
 Pipeline and library for processing hyperspectral images. The pipeline was developed as
 part of the MASSIMAL project; "Mapping of Algae and Seagrass using Spectral Imaging and
