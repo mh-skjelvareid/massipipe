@@ -106,7 +106,7 @@ class Pipeline:
         self.imudata_dir = self.dataset_dir / "imudata"
         self.geotransform_dir = self.dataset_dir / "geotransform"
         self.mosaic_dir = self.dataset_dir / "mosaics"
-        self.mosaic_visualization_dir = self.dataset_dir / "orthomosaic"
+        self.mosaic_visualization_dir = self.dataset_dir / "orthophoto"
         self.calibration_dir = self.dataset_dir / "calibration"
         self.logs_dir = self.dataset_dir / "logs"
 
@@ -1150,9 +1150,14 @@ class Pipeline:
 
         # Copy "best" mosaic to separate directory
         if self.config.mosaic.visualization_mosaic == "radiance":
-            copy_visualization_mosaic(self.mosaic_rad_path, self.mosaic_visualization_dir)
+            mosaic_source_path = self.mosaic_rad_path
         else:
-            copy_visualization_mosaic(self.mosaic_rad_gc_path, self.mosaic_visualization_dir)
+            mosaic_source_path = self.mosaic_rad_gc_path
+
+        mosaic_dest_path = (
+            self.mosaic_visualization_dir / f"{mosaic_source_path.stem}_orthophoto.original.tif"
+        )
+        copy_visualization_mosaic(mosaic_source_path, mosaic_dest_path)
 
         # Package selected processed data as ZIP file
         export_dataset_zip(

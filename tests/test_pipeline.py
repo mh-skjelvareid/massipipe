@@ -9,6 +9,7 @@ def test_pipeline_end_to_end(example_dataset_dir):
     pp.config.radiance_gc.create = True  # Enable creation of radiance images
     pp.config.radiance_gc_rgb.create = True  # Enable creation of radiance RGB images
     pp.config.radiance_gc.reference_image_numbers = [0, 1]  # Add glint correction reference images
+    pp.config.reflectance.create = True  # Enable creation of reflectance images
     pp.config.mosaic.radiance_gc_rgb.create = True  # Enable creation of glint corr. radiance mosaic
 
     pp.run()

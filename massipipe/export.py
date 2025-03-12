@@ -20,15 +20,15 @@ def configure_export_log_file_handler(file_handler: logging.FileHandler):
     logger.addHandler(file_handler)
 
 
-def copy_visualization_mosaic(source_mosaic: Path, dest_mosaic_dir: Path):
+def copy_visualization_mosaic(source_mosaic_path: Path, dest_mosaic_path: Path):
     """Copy mosaic best suited for visualization to a separate directory.
 
     Parameters
     ----------
     source_mosaic : Path
         The path to the source mosaic file that needs to be copied.
-    dest_mosaic_dir : Path
-        The directory where the mosaic file will be copied to.
+    dest_mosaic : Path
+        The new path of the copied mosaic file.
 
     Notes
     -----
@@ -36,12 +36,12 @@ def copy_visualization_mosaic(source_mosaic: Path, dest_mosaic_dir: Path):
     """
 
     logger.info("---- COPYING MOSAIC USED FOR VISUALIZATION ----")
-    dest_mosaic_dir.mkdir(exist_ok=True)
-    if source_mosaic.exists():
-        logger.info(f"Copying {source_mosaic.name} to {dest_mosaic_dir}")
-        shutil.copy2(source_mosaic, dest_mosaic_dir)
+    dest_mosaic_path.parent.mkdir(exist_ok=True)
+    if source_mosaic_path.exists():
+        logger.info(f"Copying {source_mosaic_path.name} to {dest_mosaic_path.parent}")
+        shutil.copy2(source_mosaic_path, dest_mosaic_path)
     else:
-        logger.error(f"Mosaic {source_mosaic} does not exist")
+        logger.error(f"Mosaic {source_mosaic_path} does not exist")
 
 
 def create_readme_file(dataset_dir: Path):
@@ -113,6 +113,7 @@ def export_dataset_zip(
     imudata_dir: Path,
     mosaic_visualization_dir: Path,
     config_file_path: Path,
+    zip_dir_name: str = "processed",
 ):
     """Export selected parts of dataset to a zip file.
 
@@ -149,7 +150,7 @@ def export_dataset_zip(
     license_file_path = create_license_file(dataset_dir)
 
     # Create zip file export paths
-    zip_dir = dataset_dir / "processed"  # Standard folder for SeaBee processed files
+    zip_dir = dataset_dir / zip_dir_name
     zip_file_path = zip_dir / (dataset_dir.name + ".zip")
 
     zip_dir.mkdir(exist_ok=True)
