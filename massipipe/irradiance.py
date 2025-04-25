@@ -227,6 +227,16 @@ class WavelengthCalibrator:
         Calibrate wavelength based on spectrum with highest SNR (among many).
     update_header_wavelengths(header_path)
         Update header file with calibrated wavelengths.
+
+    Notes
+    -----
+    The method used here is very similar to that described in the paper cited below.
+    However, note that only a 2nd degree polynomial is used here.
+
+    Mori et al. (2024):
+    "Fraunhofer line-based wavelength-calibration method without calibration targets for
+    planetary lander instruments", Planetary and Space Science , Vol. 240, 2024-01, p. 105835
+    https://doi.org/10.1016/j.pss.2023.105835.
     """
 
     def __init__(self):
