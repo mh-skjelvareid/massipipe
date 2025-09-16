@@ -15,7 +15,7 @@ EXAMPLE_DATA_PATH = (
 
 
 @pytest.fixture(scope="session")
-def example_dataset_dir(tmp_path_factory):
+def example_dataset_dir(tmp_path_factory):  # tmp_path_factory: pytest fixture for temp. dirs.
     """Create temporary folder with example data"""
     # Create temporary directory and extract contents of ZIP file
     tmp_dir = tmp_path_factory.mktemp("example_data")
