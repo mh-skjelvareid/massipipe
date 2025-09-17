@@ -14,7 +14,7 @@ hyperspectral image.
 import logging
 
 # Internal imports
-from .config import Config, read_config
+from .config import Config, read_config, update_yaml
 from .export import export_dataset_zip
 from .georeferencing import ImuDataParser, ImuGeoTransformer, georeferenced_hyspec_to_rgb_geotiff
 from .glint import FlatSpecGlintCorrector, HedleyGlintCorrector
@@ -64,6 +64,7 @@ __all__ = [
     "save_envi",
     "save_png",
     "savitzky_golay_filter",
+    "update_yaml",
     "write_envi_header",
     "export_dataset_zip",
 ]

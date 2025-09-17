@@ -4,6 +4,7 @@ Provides functions for reading, writing, and exporting YAML configuration files,
 and defines Pydantic models for Massipipe processing options.
 """
 
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Sequence, Tuple, Union
@@ -30,6 +31,96 @@ def write_config(data: dict, yaml_path: Union[Path, str]) -> None:
     """Write config data formatted as dictionary to YAML file"""
     with open(yaml_path, "w") as yaml_file:
         yaml.safe_dump(data, yaml_file, default_flow_style=False, sort_keys=False)
+
+
+def update_dict(dictionary: dict, keys: list[str], value: Any, key_must_exist: bool) -> dict:
+    """
+    Updates or adds a value in a nested dictionary based on a list of keys.
+
+    Parameters
+    ----------
+    dictionary : dict
+        The original dictionary to be updated.
+    keys : list[str]
+        A list of keys representing the path to the value in the nested dictionary.
+    value : Any
+        The value to set at the specified key path.
+    key_must_exist : bool
+        If True, raises a warning if the final key does not exist in the dictionary.
+        If False, adds the key-value pair to the dictionary if the key does not exist.
+
+    Returns
+    -------
+    dict
+        A new dictionary with the updated or added key-value pair.
+
+    Raises
+    ------
+    KeyError
+        If any of the intermediate keys in `keys` do not exist in the dictionary.
+
+    Warns
+    -----
+    UserWarning
+        If `key_must_exist` is True and the final key does not exist in the dictionary.
+
+    Examples
+    --------
+    >>> original_dict = {"a": {"b": {"c": 1}}}
+    >>> updated = update_dict(original_dict, ["a", "b", "d"], 2, key_must_exist=False)
+    >>> print(updated)
+    {'a': {'b': {'c': 1, 'd': 2}}}
+    """
+
+    updated_dict = dictionary.copy()
+    dict_subtree = updated_dict
+
+    # Get to dict level above last key
+    for key in keys[0:-1]:
+        if key in dict_subtree:
+            dict_subtree = dict_subtree[key]
+        else:
+            if key_must_exist:
+                raise KeyError(f"Key {key} does not exist in dictionary")
+            else:
+                dict_subtree[key] = {}  # Create before descending
+                dict_subtree = dict_subtree[key]
+
+    # Update or add last key
+    if key_must_exist:
+        if keys[-1] in dict_subtree:
+            dict_subtree[keys[-1]] = value
+        else:
+            raise KeyError(f"Key {keys[-1]} does not exist in dictionary.")
+    else:
+        dict_subtree[keys[-1]] = value
+
+    return updated_dict
+
+
+def update_yaml(yaml_file: Path, keys: list[str], value: Any, key_must_exist: bool = False) -> None:
+    """
+    Updates a YAML configuration file by modifying or adding a value at the specified
+    key path.
+
+    Parameters
+    ----------
+    yaml_file : Path
+        The path to the YAML file to be updated.
+    keys : list[str]
+        A list of keys representing the hierarchical path in the YAML structure where
+        the value should be updated.
+    value : Any
+        The new value to set at the specified key path.
+    key_must_exist : bool, default False
+        If True, raises an error if the specified key path does not exist in the YAML
+        structure. If False, creates the key path if it does not exist.
+
+    """
+
+    yaml_dict = read_config(yaml_file)
+    updated_dict = update_dict(yaml_dict, keys, value, key_must_exist)
+    write_config(updated_dict, yaml_file)
 
 
 #### DEFINE PYDANTIC CONFIG STRUCTURE ####
