@@ -551,9 +551,7 @@ def percentile_stretch_image(
     return image_stretched.astype(np.uint8)
 
 
-def convert_long_lat_to_utm(
-    long: ArrayLike, lat: ArrayLike
-) -> tuple[NDArray, NDArray, Union[int, None]]:
+def convert_long_lat_to_utm(long: ArrayLike, lat: ArrayLike) -> tuple[NDArray, NDArray, int]:
     """Convert longitude and latitude coordinates (WGS84) to UTM.
 
     Parameters
@@ -569,7 +567,7 @@ def convert_long_lat_to_utm(
         UTM x coordinate(s) ("Easting").
     UTMy : NDArray
         UTM y coordinate(s) ("Northing").
-    UTM_epsg : int or None
+    UTM_epsg : int
         EPSG code (integer) for UTM zone.
     """
     utm_crs_list = pyproj.database.query_utm_crs_info(
@@ -585,7 +583,11 @@ def convert_long_lat_to_utm(
     proj = Proj(utm_crs)
     UTMx, UTMy = proj(long, lat)
 
-    return np.array(UTMx), np.array(UTMy), utm_crs.to_epsg()
+    utm_epsg = utm_crs.to_epsg()
+    if utm_epsg is None:
+        raise ValueError("Could not determine EPSG code for UTM CRS")
+
+    return np.array(UTMx), np.array(UTMy), utm_epsg
 
 
 def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:
@@ -722,7 +724,7 @@ def random_sample_image(
     if ignore_zeros:
         mask = ~np.all(image == 0, axis=2)
     else:
-        mask = np.ones(image.shape[0:2])
+        mask = np.ones(image.shape[0:2], dtype=bool)
 
     # Calculate number of samples
     n_samp = np.int64(sample_frac * np.count_nonzero(mask))
