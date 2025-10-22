@@ -168,3 +168,4 @@ notebooks/debugging/
 notebooks/develop_features/
 notebooks/prelim_tests/
 notebooks/modify_datasets/
+uv.lock
