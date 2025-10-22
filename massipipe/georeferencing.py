@@ -20,6 +20,7 @@ from rasterio.plot import reshape_as_raster
 from rasterio.profiles import DefaultGTiffProfile
 from rasterio.transform import Affine
 from rasterio.warp import Resampling, calculate_default_transform, reproject
+from scipy.interpolate import make_smoothing_spline
 
 import massipipe.utils as mpu
 
@@ -1016,3 +1017,84 @@ def _calc_pushbroom_pixel_angles(opening_angle: float, n_pixels: int) -> NDArray
 
     # Convert pixel distances to angles (radians) and return
     return np.atan(pixel_x_norm)
+
+
+def calc_heading_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
+    """Calculate heading (unit vector) from smoothed x,y positions"""
+
+    # Fit smoothing splines
+    sx = make_smoothing_spline(t, x)
+    sy = make_smoothing_spline(t, y)
+
+    # First derivatives (velocity components)
+    dx_dt = sx.derivative()(t)
+    dy_dt = sy.derivative()(t)
+
+    # Unit vector along track
+    v_alongtrack = np.vstack((dx_dt, dy_dt))
+    u_alongtrack = v_alongtrack / np.linalg.norm(v_alongtrack, axis=0)
+
+    return u_alongtrack.T
+
+
+def calc_acrosstrack_unit_vectors(
+    u_alongtrack: NDArray,
+) -> NDArray:
+    """Calculate acrosstrack unit vectors from alongtrack unit vectors"""
+    # Rotate 90 degrees CW to get acrosstrack unit vectors
+    # TODO: Verify direction
+    u_acrosstrack = np.zeros_like(u_alongtrack)
+    u_acrosstrack[:, 0] = u_alongtrack[:, 1]
+    u_acrosstrack[:, 1] = -u_alongtrack[:, 0]
+
+    return u_acrosstrack
+
+
+def calc_pixel_ground_positions(
+    camera_pos: NDArray,
+    camera_alt: NDArray,
+    pitch_angles: NDArray,
+    roll_angles: NDArray,
+    pixel_roll_offsets: NDArray,
+    u_alongtrack: NDArray,
+    u_acrosstrack: NDArray,
+) -> NDArray:
+    """Calculate ground positions of each pixel given camera positions and path unit vectors
+
+    Parameters
+    ----------
+    camera_pos : NDArray, shape (n_pos,2)
+        Camera x,y position (m) for each image line
+    camera_alt : NDArray, shape (n_pos,)
+        Camera x,y altitude (m) for each image line
+    pitch_angles : NDArray, shape (n_pos,)
+        Camera pitch angle (rad., positive for "nose up"), for each image line
+    roll_angles : NDArray, shape (n_pos,)
+        Camera roll angle (rad., positive for "right wing up"), for each image line
+    pixel_roll_offsets : NDArray, shape (n_pix,)
+        Pixel roll offsets (rad.) from camera center, for each pixel
+    u_alongtrack : NDArray, shape (n_pos,2)
+        Unit vector (x,y) pointing along-track, for each image line
+    u_acrosstrack : NDArray, shape (n_pos,2)
+        Unit vector (x,y) pointing across-track, for each image line
+
+    Returns
+    -------
+    NDArray, shape (n_pos,n_pix,2)
+        Pixel ground positions (x,y) for each image line and pixel
+    """
+    # Reshape to fit (n_pos,n_pix,2) pattern (2 for x,y coordinates)
+    camera_alt = camera_alt.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+    pitch_angles = pitch_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+    roll_angles = roll_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+    pixel_roll_offsets = pixel_roll_offsets.reshape(1, -1, 1)  # shape (1,n_pix,1)
+    u_alongtrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
+    u_acrosstrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
+
+    # Calculate pixel along- and acrosstrack offsets from camera center
+    alongtrack_offsets = camera_alt * np.tan(pitch_angles) * u_alongtrack
+    acrosstrack_offsets = camera_alt * np.tan(roll_angles + pixel_roll_offsets) * u_acrosstrack
+
+    # Calculate pixel positions
+    pixel_positions = camera_pos + alongtrack_offsets + acrosstrack_offsets
+    return pixel_positions
