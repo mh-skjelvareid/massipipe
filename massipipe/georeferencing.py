@@ -1003,3 +1003,16 @@ def georeferenced_hyspec_to_rgb_geotiff(
                 for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
                     dst.write(band_data, i)
                     dst.set_band_description(i, band_name)
+
+
+def _calc_pushbroom_pixel_angles(opening_angle: float, n_pixels: int) -> NDArray:
+    """Calculate angles (rad.) of each pixel for a simple pushbroom camera model"""
+    # Assume unit distance from focal point to pixel array
+    # Calculate norm. dist. from center to array edge
+    edge_pixel_x_norm = np.tan(np.radians(opening_angle / 2))
+
+    # Calculate norm. array distance from center
+    pixel_x_norm = np.linspace(-edge_pixel_x_norm, edge_pixel_x_norm, n_pixels)
+
+    # Convert pixel distances to angles (radians) and return
+    return np.atan(pixel_x_norm)
