@@ -10,6 +10,8 @@ The first operation is fairly specific to the camera and IMU used. The second is
 general and can be implemented using available libraries. 
 
 ## Calculating pixel locations
+
+### General approach
 - Calculate per-line camera center (pitch/roll) based on 
     - fixed pitch/roll offsets
     - and pitch/roll IMU measurements
@@ -18,6 +20,15 @@ general and can be implemented using available libraries.
     - per-line along-track and across-track unit vectors
     - per-line position (UTM) 
     - pixel angles (pitch vector / roll matrix)
+
+## Calculating pixel angles per-line
+Ideally we'd have a detailed camera model - this could possibly be made based on lab
+measurements. Lacking that, we'd have to use camera opening angle and number of pixels. 
+- Assume unit distance from pixel array to focal point
+- Calculate location of edge pixels (tan(angle/2), -tan(angle/2))
+- Calculate location of all pixels between (x = linspace(x_min,x_max,n_pixels))
+- Calculate angle for each pixel(pixel_roll = atan(x))
+
 
 ## Resampling to regular grid
 
