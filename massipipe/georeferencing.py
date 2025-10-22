@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pyproj
 import rasterio
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from rasterio.plot import reshape_as_raster
@@ -1098,3 +1098,60 @@ def calc_pixel_ground_positions(
     # Calculate pixel positions
     pixel_positions = camera_pos + alongtrack_offsets + acrosstrack_offsets
     return pixel_positions
+
+
+def calc_pixel_coordinates_from_imu_data(
+    imu_data: dict[str, ArrayLike],
+    camera_opening_angle: float = 36.5,
+    n_pix: int = 900,
+    camera_pitch_offset: float = 0,
+    camera_roll_offset: float = 0,
+) -> Tuple[NDArray, int]:
+    """Calculate pixel ground coordinates from IMU data and simple pushbroom camera model
+
+    Parameters
+    ----------
+    imu_data : dict[str, ArrayLike]
+        IMU data with keys: 'time', 'latitude', 'longitude', 'altitude', 'pitch', 'roll'
+    camera_opening_angle : float, optional
+        Pushbroom camera opening angle (degrees)
+    n_pix : int, optional
+        Number of pixels in pushbroom camera
+    camera_pitch_offset : float, optional
+        Constant pitch offset to add to IMU pitch data (rad.)
+    camera_roll_offset : float, optional
+        Constant roll offset to add to IMU roll data (rad.)
+
+    Returns
+    -------
+    pixel_utm_positions : NDArray, shape (n_pos,n_pix,2)
+        Pixel ground positions (x,y in meters) for each image line and pixel
+    utm_epsg : int
+        EPSG code for UTM zone used.
+    """
+    # Convert camera lat/lon to UTM (meters)
+    utm_x, utm_y, utm_epsg = mpu.convert_long_lat_to_utm(
+        imu_data["longitude"], imu_data["latitude"]
+    )
+
+    # Get pixel angles
+    pixel_roll_angles = (
+        _calc_pushbroom_pixel_angles(camera_opening_angle, n_pix) + camera_roll_offset
+    )
+
+    # Get alongtrack and acrosstrack unit vectors
+    u_alongtrack = calc_heading_from_positions(np.array(imu_data["time"]), utm_x, utm_y)
+    u_acrosstrack = calc_acrosstrack_unit_vectors(u_alongtrack)
+
+    # Calculate pixel ground positions
+    pixel_utm_positions = calc_pixel_ground_positions(
+        camera_pos=np.vstack((utm_x, utm_y)).T,
+        camera_alt=np.array(imu_data["altitude"]),
+        pitch_angles=np.array(imu_data["pitch"]) + camera_pitch_offset,
+        roll_angles=np.array(imu_data["roll"]) + camera_roll_offset,
+        pixel_roll_offsets=pixel_roll_angles,
+        u_alongtrack=u_alongtrack,
+        u_acrosstrack=u_acrosstrack,
+    )
+
+    return pixel_utm_positions, utm_epsg
