@@ -37,5 +37,5 @@ def test_irradiance_converter(irrad_cal_file_path, example_raw_spec):
     irrad_converter = massipipe.IrradianceConverter(irrad_cal_file_path)
     raw_spec, _, raw_spec_meta = example_raw_spec
     irrad_spec = irrad_converter.convert_raw_spectrum_to_irradiance(raw_spec, raw_spec_meta)
-    assert np.all(irrad_spec < 1.0)
+    # assert np.all(irrad_spec < 1.0) # Not true if including all bands (wl < 360 nm)
     np.testing.assert_allclose(irrad_spec.squeeze()[500], 0.74095922)
