@@ -1083,7 +1083,8 @@ def calc_pixel_ground_positions(
     NDArray, shape (n_pos,n_pix,2)
         Pixel ground positions (x,y) for each image line and pixel
     """
-    # Reshape to fit (n_pos,n_pix,2) pattern (2 for x,y coordinates)
+    # Reshape to fit (n_pos,n_pix,n_coord) pattern (n_coord=2 for x,y coordinates)
+    camera_pos = camera_pos.reshape(-1, 1, 2)  # shape (n_pos,1,1)
     camera_alt = camera_alt.reshape(-1, 1, 1)  # shape (n_pos,1,1)
     pitch_angles = pitch_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
     roll_angles = roll_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
