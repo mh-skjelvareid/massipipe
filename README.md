@@ -33,14 +33,15 @@ with pip.
 Create environment with GDAL and rasterio, installing from conda-forge channel (change
 "massipipe" environment name and python version to your preference):
 
-    conda create -n massipipe -c conda-forge python=3.10 gdal rasterio
+    conda create -n massipipe python=3.12 
+    conda activate massipipe    
+    conda install -c conda-forge gdal rasterio
 
 Download massipipe from the [massipipe GitHub
 repository](https://github.com/mh-skjelvareid/massipipe) (download as zip or use git
 clone). Navigate to the root folder of the repo and install using pip ("." indicates
 installation of package in current directory):
 
-    conda activate massipipe
     pip install .
 
 If you're a developer, you may want to install massipipe in "editable" mode instead, and
