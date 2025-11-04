@@ -1044,8 +1044,8 @@ def calc_acrosstrack_unit_vectors(
     # Rotate 90 degrees CW to get acrosstrack unit vectors
     # TODO: Verify direction
     u_acrosstrack = np.zeros_like(u_alongtrack)
-    u_acrosstrack[:, 0] = u_alongtrack[:, 1]
-    u_acrosstrack[:, 1] = -u_alongtrack[:, 0]
+    u_acrosstrack[:, 0] = -u_alongtrack[:, 1]
+    u_acrosstrack[:, 1] = u_alongtrack[:, 0]
 
     return u_acrosstrack
 
@@ -1090,7 +1090,7 @@ def calc_pixel_ground_positions(
     roll_angles = roll_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
     pixel_roll_offsets = pixel_roll_offsets.reshape(1, -1, 1)  # shape (1,n_pix,1)
     u_alongtrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
-    u_acrosstrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
+    u_acrosstrack = u_acrosstrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
 
     # Calculate pixel along- and acrosstrack offsets from camera center
     alongtrack_offsets = camera_alt * np.tan(pitch_angles) * u_alongtrack
