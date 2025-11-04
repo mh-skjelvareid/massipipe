@@ -51,7 +51,8 @@ dev = [
   "numpydoc-linter",
   "mkdocs",
   "mkdocstrings-python",
-  "mkdocs-material"
+  "mkdocs-material",
+  "pyresample",
 ]
 
 [project.urls]
