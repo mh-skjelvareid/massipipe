@@ -1040,9 +1040,19 @@ def calc_heading_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
 def calc_acrosstrack_unit_vectors(
     u_alongtrack: NDArray,
 ) -> NDArray:
-    """Calculate acrosstrack unit vectors from alongtrack unit vectors"""
-    # Rotate 90 degrees CW to get acrosstrack unit vectors
-    # TODO: Verify direction
+    """Calculate acrosstrack unit vectors from alongtrack unit vectors
+
+    # Notes:
+    --------
+    There are two options for the direction of the acrosstrack vector, corresponding to
+    clockwise or counterclockwise rotation of the alongtrack vector. For an image, the
+    rows (corresponding to the y axis) are indexed from the top down. To get a vector
+    that points right along the x axis (along increasing column indices in the image),
+    the vector must be rotated **counterclockwise**. Rotating the opposite direction
+    will result in flipping the image in the acrosstrack direction.
+
+    """
+    # Rotate 90 degrees CCW to get acrosstrack unit vectors
     u_acrosstrack = np.zeros_like(u_alongtrack)
     u_acrosstrack[:, 0] = -u_alongtrack[:, 1]
     u_acrosstrack[:, 1] = u_alongtrack[:, 0]
