@@ -12,13 +12,17 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pyproj
+import pyresample
 import rasterio
 from numpy.typing import ArrayLike, NDArray
+from pyproj import CRS, Proj
+from pyresample.geometry import AreaDefinition, SwathDefinition
+from pyresample.kd_tree import resample_nearest
 from rasterio.crs import CRS
 from rasterio.io import MemoryFile
 from rasterio.plot import reshape_as_raster
 from rasterio.profiles import DefaultGTiffProfile
-from rasterio.transform import Affine
+from rasterio.transform import Affine, from_bounds
 from rasterio.warp import Resampling, calculate_default_transform, reproject
 from scipy.interpolate import make_smoothing_spline
 
@@ -923,6 +927,403 @@ class SimpleGeoreferencer:
             raise
 
 
+class FlatTerrainOrthorectifier:
+    """Line-by-line orthorectification of hyperspectral images assuming flat terrain"""
+
+    def __init__(
+        self,
+        camera_opening_angle: float = 36.5,
+        camera_n_pix: int = 900,
+        camera_pitch_offset: float = 0,
+        camera_roll_offset: float = 0,
+        radius_of_influence: float | None = None,
+        nodata_fill_value=np.nan,
+    ):
+        """Initialize orthorectifier"""
+
+        self.camera_opening_angle = camera_opening_angle
+        self.camera_n_pix = camera_n_pix
+        self.camera_pitch_offset = np.radians(camera_pitch_offset)
+        self.camera_roll_offset = np.radians(camera_roll_offset)
+        self.radius_of_influence = radius_of_influence
+        self.nodata_fill_value = nodata_fill_value
+
+    def _calc_pushbroom_pixel_angles(self) -> NDArray:
+        """Calculate angles (rad.) of each pixel for a simple pushbroom camera model"""
+        # Assume unit distance from focal point to pixel array
+        # Calculate norm. dist. from center to array edge
+        edge_pixel_x_norm = np.tan(np.radians(self.camera_opening_angle / 2))
+
+        # Calculate norm. array distance from center
+        pixel_x_norm = np.linspace(-edge_pixel_x_norm, edge_pixel_x_norm, self.camera_n_pix)
+
+        # Convert pixel distances to angles (radians) and return
+        return np.atan(pixel_x_norm)
+
+    def _calc_pixel_ground_positions(
+        self,
+        camera_pos: NDArray,
+        camera_alt: NDArray,
+        pitch_angles: NDArray,
+        roll_angles: NDArray,
+        pixel_roll_offsets: NDArray,
+        u_alongtrack: NDArray,
+        u_acrosstrack: NDArray,
+    ) -> NDArray:
+        """Calculate ground positions of each pixel given camera positions and path unit vectors
+
+        Parameters
+        ----------
+        camera_pos : NDArray, shape (n_pos,2)
+            Camera x,y position (m) for each image line
+        camera_alt : NDArray, shape (n_pos,)
+            Camera x,y altitude (m) for each image line
+        pitch_angles : NDArray, shape (n_pos,)
+            Camera pitch angle (rad., positive for "nose up"), for each image line
+        roll_angles : NDArray, shape (n_pos,)
+            Camera roll angle (rad., positive for "right wing up"), for each image line
+        pixel_roll_offsets : NDArray, shape (n_pix,)
+            Pixel roll offsets (rad.) from camera center, for each pixel
+        u_alongtrack : NDArray, shape (n_pos,2)
+            Unit vector (x,y) pointing along-track, for each image line
+        u_acrosstrack : NDArray, shape (n_pos,2)
+            Unit vector (x,y) pointing across-track, for each image line
+
+        Returns
+        -------
+        NDArray, shape (n_pos,n_pix,2)
+            Pixel ground positions (x,y) for each image line and pixel
+        """
+        # Reshape to fit (n_pos,n_pix,n_coord) pattern (n_coord=2 for x,y coordinates)
+        camera_pos = camera_pos.reshape(-1, 1, 2)  # shape (n_pos,1,1)
+        camera_alt = camera_alt.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+        pitch_angles = pitch_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+        roll_angles = roll_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
+        pixel_roll_offsets = pixel_roll_offsets.reshape(1, -1, 1)  # shape (1,n_pix,1)
+        u_alongtrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
+        u_acrosstrack = u_acrosstrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
+
+        # Calculate pixel along- and acrosstrack offsets from camera center
+        alongtrack_offsets = camera_alt * np.tan(pitch_angles) * u_alongtrack
+        acrosstrack_offsets = camera_alt * np.tan(roll_angles + pixel_roll_offsets) * u_acrosstrack
+
+        # Calculate pixel positions
+        pixel_positions = camera_pos + alongtrack_offsets + acrosstrack_offsets
+        return pixel_positions
+
+    def calc_pixel_coordinates_from_imu_data(
+        self,
+        imu_data: dict[str, ArrayLike],
+    ) -> Tuple[NDArray, int]:
+        """Calculate pixel ground coordinates from IMU data and simple pushbroom camera model
+
+        Parameters
+        ----------
+        imu_data : dict[str, ArrayLike]
+            IMU data with keys: 'time', 'latitude', 'longitude', 'altitude', 'pitch', 'roll'
+        camera_opening_angle : float, optional
+            Pushbroom camera opening angle (degrees)
+        n_pix : int, optional
+            Number of pixels in pushbroom camera
+        camera_pitch_offset : float, optional
+            Constant pitch offset to add to IMU pitch data (rad.)
+        camera_roll_offset : float, optional
+            Constant roll offset to add to IMU roll data (rad.)
+
+        Returns
+        -------
+        pixel_utm_positions : NDArray, shape (n_pos,n_pix,2)
+            Pixel ground positions (x,y in meters) for each image line and pixel
+        utm_epsg : int
+            EPSG code for UTM zone used.
+        """
+        # Convert camera lat/lon to UTM (meters)
+        utm_x, utm_y, utm_epsg = mpu.convert_long_lat_to_utm(
+            imu_data["longitude"], imu_data["latitude"]
+        )
+
+        # Get pixel angles
+        pixel_roll_angles = self._calc_pushbroom_pixel_angles() + self.camera_roll_offset
+
+        # Get alongtrack and acrosstrack unit vectors
+        u_alongtrack = calc_alongtrack_vectors_from_positions(
+            np.array(imu_data["time"]), utm_x, utm_y
+        )
+        u_acrosstrack = calc_acrosstrack_unit_vectors(u_alongtrack)
+
+        # Calculate pixel ground positions
+        pixel_utm_positions = self._calc_pixel_ground_positions(
+            camera_pos=np.vstack((utm_x, utm_y)).T,
+            camera_alt=np.array(imu_data["altitude"]),
+            pitch_angles=np.array(imu_data["pitch"]) + self.camera_pitch_offset,
+            roll_angles=np.array(imu_data["roll"]) + self.camera_roll_offset,
+            pixel_roll_offsets=pixel_roll_angles,
+            u_alongtrack=u_alongtrack,
+            u_acrosstrack=u_acrosstrack,
+        )
+
+        return pixel_utm_positions, utm_epsg
+
+    def _create_area_definition(self, pixel_utm_positions: NDArray, utm_epsg: int):
+        gsd = estimate_resolution_from_pixel_coordinates(pixel_utm_positions)
+        utm_x_min = np.min(pixel_utm_positions[:, :, 0])
+        utm_x_max = np.max(pixel_utm_positions[:, :, 0])
+        utm_y_min = np.min(pixel_utm_positions[:, :, 1])
+        utm_y_max = np.max(pixel_utm_positions[:, :, 1])
+        width = int((utm_x_max - utm_x_min) / gsd)
+        height = int((utm_y_max - utm_y_min) / gsd)
+
+        area_def = pyresample.geometry.AreaDefinition(
+            area_id="utm_grid",
+            description="UTM orthorectified area",
+            proj_id="utm",
+            projection=CRS.from_epsg(utm_epsg),
+            width=width,
+            height=height,
+            area_extent=(utm_x_min, utm_y_min, utm_x_max, utm_y_max),
+        )
+        return area_def
+
+    def _create_swath_definition(self, pixel_utm_coordinates, utm_epsg: int):
+        # Convert UTM coordinates to lat/long
+        proj = Proj(utm_epsg)
+        pixel_lon, pixel_lat = proj(
+            pixel_utm_coordinates[:, :, 0], pixel_utm_coordinates[:, :, 1], inverse=True
+        )
+        # Define swath (NOTE: MUST BE LONG/LAT)
+        swath_def = pyresample.geometry.SwathDefinition(
+            lons=pixel_lon,
+            lats=pixel_lat,
+        )
+        return swath_def
+
+    def _resample_swath_to_grid(
+        self, image: NDArray, area_def: AreaDefinition, swath_def: SwathDefinition, gsd: float
+    ) -> NDArray:
+        """Resample image to regular grid using pyresample (kd-tree nearest neighbor)"""
+
+        # Set radius of influence
+        radius_of_influence = (
+            self.radius_of_influence if self.radius_of_influence is not None else gsd
+        )
+
+        # Resample using pyresample
+        result = pyresample.kd_tree.resample_nearest(
+            swath_def,
+            image,
+            area_def,
+            radius_of_influence=radius_of_influence,
+            fill_value=self.nodata_fill_value,  # type: ignore
+        )
+        return np.array(result)  # Ensure array type
+
+    def _create_geotiff_profile(
+        self,
+        image: NDArray,
+        area_def: AreaDefinition,
+        crs_epsg: int,
+    ) -> dict:
+        """Create profile for writing image as geotiff using rasterio
+
+        Parameters
+        ----------
+        image: NDArray
+            Path to image header (used to get image shape)
+        area_def: AreaDefinition
+            Pyresample AreaDefinition describing the output grid
+        crs_epsg: int
+            EPSG code for CRS used.
+
+        Returns
+        -------
+        profile: dict
+            GeoTIFF profile to be used when saving GeoTIFF image.
+        """
+        # Get image shape (n_lines, n_samples, n_bands)
+        height, width, n_bands = image.shape
+
+        # Build transform from area extent
+        transform = from_bounds(*area_def.area_extent, width=width, height=height)
+
+        # Create profile
+        profile = DefaultGTiffProfile()
+        profile.update(
+            height=height,
+            width=width,
+            count=n_bands,
+            dtype=str(image.dtype),
+            crs=CRS.from_epsg(crs_epsg),
+            transform=transform,
+            nodata=self.nodata_fill_value,
+        )
+
+        return profile  # type: ignore
+
+    def save_orthorectified_image(
+        self,
+        ortho_image: NDArray,
+        geotiff_profile: dict,
+        geotiff_path: Path | str,
+    ):
+        """Save orthorectified image as GeoTIFF file
+
+        Parameters
+        ----------
+        ortho_image : NDArray
+            Orthorectified image array (lines, samples, bands)
+        geotiff_profile : dict
+            GeoTIFF profile for orthorectified image
+        geotiff_path : Path | str
+            Path to output GeoTIFF file
+        """
+        try:
+            with rasterio.Env():
+                with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
+                    dataset.write(reshape_as_raster(ortho_image))
+        except Exception as e:
+            logger.error(f"Error saving orthorectified GeoTIFF: {e}")
+            raise
+
+    def orthorectify_image(
+        self, image: NDArray, imu_data: dict
+    ) -> Tuple[NDArray, AreaDefinition, int]:
+        """Orthorectify hyperspectral image using IMU data"""
+        # Calculate pixel ground coordinates
+        pixel_utm_positions, utm_epsg = self.calc_pixel_coordinates_from_imu_data(imu_data)
+
+        # Estimate ground sampling distance (GSD)
+        gsd = estimate_resolution_from_pixel_coordinates(pixel_utm_positions)
+
+        # Create pyresample area and swath definitions
+        area_def = self._create_area_definition(pixel_utm_positions, utm_epsg)
+        swath_def = self._create_swath_definition(pixel_utm_positions, utm_epsg)
+
+        # Resample image to regular grid
+        ortho_image = self._resample_swath_to_grid(image, area_def, swath_def, gsd)
+
+        return ortho_image, area_def, utm_epsg
+
+    def orthorectify_image_file(
+        self,
+        image_path: Path | str,
+        imu_data_path: Path | str,
+        geotiff_path: Path | str,
+    ):
+        """Orthorectify hyperspectral image using IMU data and simple pushbroom camera model
+
+        Parameters
+        ----------
+        image_path : Path | str
+            Path to hyperspectral image header.
+        imu_data_path : Path | str
+            Path to IMU data file (JSON format).
+        geotiff_path : Path | str
+            Path to (output) GeoTIFF file.
+        """
+        # Read image
+        image, wl, _ = mpu.read_envi(image_path)
+
+        # Read IMU data
+        imu_data = mpu.read_json(imu_data_path)
+
+        # Orthorectify image
+        ortho_image, area_def, utm_epsg = self.orthorectify_image(image, imu_data)
+
+        # Create GeoTIFF profile
+        geotiff_profile = self._create_geotiff_profile(ortho_image, area_def, utm_epsg)
+
+        # Save orthorectified image as GeoTIFF
+        self.save_orthorectified_image(ortho_image, geotiff_profile, geotiff_path)
+
+
+def calc_alongtrack_vectors_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
+    """Calculate heading (unit vector) from smoothed x,y positions
+
+    Parameters
+    ----------
+    t : NDArray
+        Time array
+    x : NDArray
+        x positions
+    y : NDArray
+        y positions
+
+    Returns
+    -------
+    u_alongtrack : NDArray, shape (n_pos,2)
+        Along-track unit vector at each position
+    """
+
+    # Fit smoothing splines
+    sx = make_smoothing_spline(t, x)
+    sy = make_smoothing_spline(t, y)
+
+    # First derivatives (velocity components)
+    dx_dt = sx.derivative()(t)
+    dy_dt = sy.derivative()(t)
+
+    # Unit vector along track
+    v_alongtrack = np.vstack((dx_dt, dy_dt))
+    u_alongtrack = v_alongtrack / np.linalg.norm(v_alongtrack, axis=0)
+
+    return u_alongtrack.T
+
+
+def calc_acrosstrack_unit_vectors(
+    u_alongtrack: NDArray,
+) -> NDArray:
+    """Calculate acrosstrack unit vectors from alongtrack unit vectors
+
+    Parameters
+    ----------
+    u_alongtrack : NDArray, shape (n_pos,2)
+        Along-track unit vector at each position
+
+    # Notes:
+    --------
+    There are two options for the direction of the acrosstrack vector, corresponding to
+    clockwise or counterclockwise rotation of the alongtrack vector. For an image, the
+    rows (corresponding to the y axis) are indexed from the top down. To get a vector
+    that points right along the x axis (along increasing column indices in the image),
+    the vector must be rotated **counterclockwise**. Rotating the opposite direction
+    will result in flipping the image in the acrosstrack direction.
+
+    """
+    # Rotate 90 degrees CCW to get acrosstrack unit vectors
+    u_acrosstrack = np.zeros_like(u_alongtrack)
+    u_acrosstrack[:, 0] = -u_alongtrack[:, 1]
+    u_acrosstrack[:, 1] = u_alongtrack[:, 0]
+
+    return u_acrosstrack
+
+
+def estimate_resolution_from_pixel_coordinates(
+    pixel_utm_coordinates: NDArray,
+) -> float:
+    """Estimate ground sampling distance (GSD) from pixel UTM coordinates.
+
+    Parameters
+    ----------
+    pixel_utm_coordinates : np.ndarray
+        Array of shape (n_rows, n_cols, 2) containing UTM coordinates for each pixel.
+
+    Returns
+    -------
+    gsd : float
+        Estimated ground sampling distance (GSD) in meters.
+    """
+    # Calculate differences between adjacent pixels
+    delta_x = np.diff(pixel_utm_coordinates[:, :, 0], axis=1)
+    delta_y = np.diff(pixel_utm_coordinates[:, :, 1], axis=0)
+
+    # Estimate GSD as the median of the absolute differences
+    gsd_x = np.median(np.abs(delta_x))
+    gsd_y = np.median(np.abs(delta_y))
+
+    # Return the larger GSD rounded to the next significant digit
+    return mpu.round_float_up(float(max(gsd_x, gsd_y)))
+
+
 def envi_map_info_to_geotransform(envi_map_info: str) -> Tuple[Affine, int]:
     """Parse ENVI map info to extract affine transform and EPSG code
 
@@ -1004,165 +1405,3 @@ def georeferenced_hyspec_to_rgb_geotiff(
                 for i, (band_data, band_name) in enumerate(zip(bands_data, band_names), start=1):
                     dst.write(band_data, i)
                     dst.set_band_description(i, band_name)
-
-
-def _calc_pushbroom_pixel_angles(opening_angle: float, n_pixels: int) -> NDArray:
-    """Calculate angles (rad.) of each pixel for a simple pushbroom camera model"""
-    # Assume unit distance from focal point to pixel array
-    # Calculate norm. dist. from center to array edge
-    edge_pixel_x_norm = np.tan(np.radians(opening_angle / 2))
-
-    # Calculate norm. array distance from center
-    pixel_x_norm = np.linspace(-edge_pixel_x_norm, edge_pixel_x_norm, n_pixels)
-
-    # Convert pixel distances to angles (radians) and return
-    return np.atan(pixel_x_norm)
-
-
-def calc_heading_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
-    """Calculate heading (unit vector) from smoothed x,y positions"""
-
-    # Fit smoothing splines
-    sx = make_smoothing_spline(t, x)
-    sy = make_smoothing_spline(t, y)
-
-    # First derivatives (velocity components)
-    dx_dt = sx.derivative()(t)
-    dy_dt = sy.derivative()(t)
-
-    # Unit vector along track
-    v_alongtrack = np.vstack((dx_dt, dy_dt))
-    u_alongtrack = v_alongtrack / np.linalg.norm(v_alongtrack, axis=0)
-
-    return u_alongtrack.T
-
-
-def calc_acrosstrack_unit_vectors(
-    u_alongtrack: NDArray,
-) -> NDArray:
-    """Calculate acrosstrack unit vectors from alongtrack unit vectors
-
-    # Notes:
-    --------
-    There are two options for the direction of the acrosstrack vector, corresponding to
-    clockwise or counterclockwise rotation of the alongtrack vector. For an image, the
-    rows (corresponding to the y axis) are indexed from the top down. To get a vector
-    that points right along the x axis (along increasing column indices in the image),
-    the vector must be rotated **counterclockwise**. Rotating the opposite direction
-    will result in flipping the image in the acrosstrack direction.
-
-    """
-    # Rotate 90 degrees CCW to get acrosstrack unit vectors
-    u_acrosstrack = np.zeros_like(u_alongtrack)
-    u_acrosstrack[:, 0] = -u_alongtrack[:, 1]
-    u_acrosstrack[:, 1] = u_alongtrack[:, 0]
-
-    return u_acrosstrack
-
-
-def calc_pixel_ground_positions(
-    camera_pos: NDArray,
-    camera_alt: NDArray,
-    pitch_angles: NDArray,
-    roll_angles: NDArray,
-    pixel_roll_offsets: NDArray,
-    u_alongtrack: NDArray,
-    u_acrosstrack: NDArray,
-) -> NDArray:
-    """Calculate ground positions of each pixel given camera positions and path unit vectors
-
-    Parameters
-    ----------
-    camera_pos : NDArray, shape (n_pos,2)
-        Camera x,y position (m) for each image line
-    camera_alt : NDArray, shape (n_pos,)
-        Camera x,y altitude (m) for each image line
-    pitch_angles : NDArray, shape (n_pos,)
-        Camera pitch angle (rad., positive for "nose up"), for each image line
-    roll_angles : NDArray, shape (n_pos,)
-        Camera roll angle (rad., positive for "right wing up"), for each image line
-    pixel_roll_offsets : NDArray, shape (n_pix,)
-        Pixel roll offsets (rad.) from camera center, for each pixel
-    u_alongtrack : NDArray, shape (n_pos,2)
-        Unit vector (x,y) pointing along-track, for each image line
-    u_acrosstrack : NDArray, shape (n_pos,2)
-        Unit vector (x,y) pointing across-track, for each image line
-
-    Returns
-    -------
-    NDArray, shape (n_pos,n_pix,2)
-        Pixel ground positions (x,y) for each image line and pixel
-    """
-    # Reshape to fit (n_pos,n_pix,n_coord) pattern (n_coord=2 for x,y coordinates)
-    camera_pos = camera_pos.reshape(-1, 1, 2)  # shape (n_pos,1,1)
-    camera_alt = camera_alt.reshape(-1, 1, 1)  # shape (n_pos,1,1)
-    pitch_angles = pitch_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
-    roll_angles = roll_angles.reshape(-1, 1, 1)  # shape (n_pos,1,1)
-    pixel_roll_offsets = pixel_roll_offsets.reshape(1, -1, 1)  # shape (1,n_pix,1)
-    u_alongtrack = u_alongtrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
-    u_acrosstrack = u_acrosstrack.reshape(-1, 1, 2)  # shape (n_pos,1,2)
-
-    # Calculate pixel along- and acrosstrack offsets from camera center
-    alongtrack_offsets = camera_alt * np.tan(pitch_angles) * u_alongtrack
-    acrosstrack_offsets = camera_alt * np.tan(roll_angles + pixel_roll_offsets) * u_acrosstrack
-
-    # Calculate pixel positions
-    pixel_positions = camera_pos + alongtrack_offsets + acrosstrack_offsets
-    return pixel_positions
-
-
-def calc_pixel_coordinates_from_imu_data(
-    imu_data: dict[str, ArrayLike],
-    camera_opening_angle: float = 36.5,
-    n_pix: int = 900,
-    camera_pitch_offset: float = 0,
-    camera_roll_offset: float = 0,
-) -> Tuple[NDArray, int]:
-    """Calculate pixel ground coordinates from IMU data and simple pushbroom camera model
-
-    Parameters
-    ----------
-    imu_data : dict[str, ArrayLike]
-        IMU data with keys: 'time', 'latitude', 'longitude', 'altitude', 'pitch', 'roll'
-    camera_opening_angle : float, optional
-        Pushbroom camera opening angle (degrees)
-    n_pix : int, optional
-        Number of pixels in pushbroom camera
-    camera_pitch_offset : float, optional
-        Constant pitch offset to add to IMU pitch data (rad.)
-    camera_roll_offset : float, optional
-        Constant roll offset to add to IMU roll data (rad.)
-
-    Returns
-    -------
-    pixel_utm_positions : NDArray, shape (n_pos,n_pix,2)
-        Pixel ground positions (x,y in meters) for each image line and pixel
-    utm_epsg : int
-        EPSG code for UTM zone used.
-    """
-    # Convert camera lat/lon to UTM (meters)
-    utm_x, utm_y, utm_epsg = mpu.convert_long_lat_to_utm(
-        imu_data["longitude"], imu_data["latitude"]
-    )
-
-    # Get pixel angles
-    pixel_roll_angles = (
-        _calc_pushbroom_pixel_angles(camera_opening_angle, n_pix) + camera_roll_offset
-    )
-
-    # Get alongtrack and acrosstrack unit vectors
-    u_alongtrack = calc_heading_from_positions(np.array(imu_data["time"]), utm_x, utm_y)
-    u_acrosstrack = calc_acrosstrack_unit_vectors(u_alongtrack)
-
-    # Calculate pixel ground positions
-    pixel_utm_positions = calc_pixel_ground_positions(
-        camera_pos=np.vstack((utm_x, utm_y)).T,
-        camera_alt=np.array(imu_data["altitude"]),
-        pitch_angles=np.array(imu_data["pitch"]) + camera_pitch_offset,
-        roll_angles=np.array(imu_data["roll"]) + camera_roll_offset,
-        pixel_roll_offsets=pixel_roll_angles,
-        u_alongtrack=u_alongtrack,
-        u_acrosstrack=u_acrosstrack,
-    )
-
-    return pixel_utm_positions, utm_epsg
