@@ -960,3 +960,37 @@ def resample_cube_spectrally(image: NDArray, old_wl: NDArray, new_wl: NDArray) -
         lambda spec: np.interp(x=new_wl, xp=old_wl, fp=spec), axis=2, arr=image
     )  # np.interp() only accepts 1d arrays, use apply_along_axis for full 3D cube
     return image_interp
+
+
+def round_float_up(num: float, to_digit: int = 2) -> float:
+    """Rounds a float up to next value, specifing precision.
+
+    Parameters
+    ----------
+    num : float
+        The number to round up.
+    to_digit : int, default = 2
+        The digit position to round to (1 = first significant digit, 2 = second, etc.)
+        Must be >= 1.
+
+    Returns
+    -------
+    float
+        The rounded float.
+
+    Examples
+    --------
+    >>> round_float_up(0.01123, to_digit=2)
+    0.012
+    >>> round_float_up(1234, to_digit=2)
+    1300.0
+    """
+    if num == 0:
+        return 0
+    if to_digit < 1:
+        raise ValueError("to_digit must be >= 1")
+    if to_digit % 1 != 0:
+        raise TypeError("to_digit must be an integer")
+
+    rounding_factor = 10 ** (np.floor(np.log10(np.abs(num))) - (to_digit - 1))
+    return np.ceil(num / rounding_factor) * rounding_factor
