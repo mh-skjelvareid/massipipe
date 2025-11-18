@@ -513,6 +513,7 @@ def rgb_subset_from_hsi(
 def percentile_stretch_image(
     image: NDArray,
     percentiles: tuple[float, float] = (2, 98),
+    treat_saturated_pixels_as_invalid: bool = True,
     saturation_value: int = 2**12 - 1,
 ) -> NDArray:
     """Scale array values within percentile limits to range 0-255.
@@ -523,6 +524,9 @@ def percentile_stretch_image(
         Image, shape (n_lines, n_samples, n_bands).
     percentiles : tuple of float, optional
         Lower and upper percentiles for stretching.
+    treat_saturated_pixels_as_invalid: bool
+        Whether to detect saturated pixels and set these to zero.
+        If True, values greater than or equal to saturation_value are treated as invalid.
     saturation_value : int, optional
         Saturation value for the image.
 
@@ -533,22 +537,42 @@ def percentile_stretch_image(
         Image intensity values are stretched so that the lower
         percentile corresponds to 0 and the higher percentile corresponds
         to 255 (maximum value for unsigned 8-bit integer, typical for PNG/JPG).
-        Pixels for which one or more bands are saturated are set to zero.
+        Pixels for which one or more bands are NaN or saturated are set to zero.
     """
-    assert image.ndim == 3
-    saturated = np.any(image >= saturation_value, axis=2)
-    image_stretched = np.zeros_like(image, dtype=np.float64)
+    # Convert to 3D array if single band
+    if image.ndim != 3:
+        if image.ndim == 2:
+            image = image.reshape(image.shape + (1,))
+        else:
+            raise ValueError(
+                f"Input image must have 2 or 3 dimensions, input image has {image.ndim}."
+            )
 
+    # Determine which pixels are invalid (NaN or saturated)
+    nan_mask = np.any(np.isnan(image), axis=2)
+    if treat_saturated_pixels_as_invalid:
+        saturated_mask = np.any(image >= saturation_value, axis=2)
+        invalid_mask = saturated_mask | nan_mask
+    else:
+        invalid_mask = nan_mask
+
+    # Percentile stretch each image band
+    image_stretched = np.zeros_like(image, dtype=np.float64)
     for band_index in range(image.shape[2]):
         image_band = image[:, :, band_index]
-        p_low, p_high = np.percentile(image_band[~saturated], percentiles)
+        p_low, p_high = np.percentile(image_band[~invalid_mask], percentiles)
         image_band[image_band < p_low] = p_low
         image_band[image_band > p_high] = p_high
         p_range = p_high - p_low
         image_stretched[:, :, band_index] = (image_band - p_low) * (255 / p_range)
 
-    image_stretched[saturated] = 0
-    return image_stretched.astype(np.uint8)
+    # Set invalid pixels to zero
+    image_stretched[invalid_mask] = 0
+
+    # Cast as 8-bit, and convert back to 2D if single band
+    image_stretched = np.squeeze(image_stretched.astype(np.uint8))
+
+    return image_stretched
 
 
 def convert_long_lat_to_utm(long: ArrayLike, lat: ArrayLike) -> tuple[NDArray, NDArray, int]:
