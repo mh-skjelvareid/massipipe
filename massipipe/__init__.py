@@ -76,7 +76,7 @@ __all__ = [
 ]
 
 # Package version
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # Initialize logger
 logger = logging.getLogger(__name__)
