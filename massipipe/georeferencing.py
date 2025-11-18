@@ -934,19 +934,55 @@ class FlatTerrainOrthorectifier:
         self,
         camera_opening_angle: float = 36.5,
         camera_n_pix: int = 900,
-        camera_pitch_offset: float = 0,
         camera_roll_offset: float = 0,
+        camera_pitch_offset: float = 0,
+        camera_yaw_offset: float = 0,
+        camera_altitude_offset: float = 0,
         radius_of_influence: float | None = None,
-        nodata_fill_value=np.nan,
+        nodata_fill_value: float = np.nan,
+        estimate_yaw_from_positions: bool = False,
     ):
-        """Initialize orthorectifier"""
+        """Initialize orthorectifier with constants
+
+        Parameters
+        ----------
+        camera_opening_angle : float, optional
+            _description_, by default 36.5
+        camera_n_pix : int, optional
+            _description_, by default 900
+        camera_roll_offset : float, optional
+            Offset (in degrees) between the real roll angle and that measured by the IMU.
+            If the camera points to the right (relative to IMU) the offset is positive.
+        camera_pitch_offset : float, optional
+            Offset (in degrees) between the real pitch angle and that measured by the IMU.
+            If the camera points forwards relative to the IMU, the offset is positive.
+        camera_yaw_offset : float, optional
+            Offset (in degrees) between the real pitch angle and that measured by the IMU.
+            If the camera is clockwise offset relative to IMU measurements, the
+            offset is positive.
+        camera_altitude_offset : float, optional
+            Offset (in meters) between the real altitude and that measured by the IMU.
+            If the altitude above ground is larger than the IMU altitude, the offset is positive.
+        radius_of_influence : float | None, optional
+            Radius of neigbor pixels considered for nearest-neighbor resampling
+            (meters). If None, radius of influence is set to twice the ground sampling distance.
+        nodata_fill_value : _type_, optional
+            Which value to use for "no data" (outside swath), by default np.nan
+        estimate_yaw_from_positions: bool
+            Whether to estimate yaw from positions rather than using yaw measurements
+            from IMU. Useful if yaw measurements are inaccurate.
+        """
 
         self.camera_opening_angle = camera_opening_angle
         self.camera_n_pix = camera_n_pix
-        self.camera_pitch_offset = np.radians(camera_pitch_offset)
-        self.camera_roll_offset = np.radians(camera_roll_offset)
+        self.camera_roll_offset = camera_roll_offset
+        self.camera_pitch_offset = camera_pitch_offset
+        self.camera_yaw_offset = camera_yaw_offset
+        self.camera_altitude_offset = camera_altitude_offset
+
         self.radius_of_influence = radius_of_influence
         self.nodata_fill_value = nodata_fill_value
+        self.estimate_yaw_from_positions = estimate_yaw_from_positions
 
     def _calc_pushbroom_pixel_angles(self) -> NDArray:
         """Calculate angles (rad.) of each pixel for a simple pushbroom camera model"""
@@ -1005,7 +1041,10 @@ class FlatTerrainOrthorectifier:
 
         # Calculate pixel along- and acrosstrack offsets from camera center
         alongtrack_offsets = camera_alt * np.tan(pitch_angles) * u_alongtrack
-        acrosstrack_offsets = camera_alt * np.tan(roll_angles + pixel_roll_offsets) * u_acrosstrack
+        # NOTE: A positive camera roll angle ("right wing up") corresponds to an offset
+        # in the opposite direction of the across-track unit vector. The sign of the
+        # roll angles is therefore flipped in the calculation below.
+        acrosstrack_offsets = camera_alt * np.tan(-roll_angles + pixel_roll_offsets) * u_acrosstrack
 
         # Calculate pixel positions
         pixel_positions = camera_pos + alongtrack_offsets + acrosstrack_offsets
@@ -1021,14 +1060,6 @@ class FlatTerrainOrthorectifier:
         ----------
         imu_data : dict[str, ArrayLike]
             IMU data with keys: 'time', 'latitude', 'longitude', 'altitude', 'pitch', 'roll'
-        camera_opening_angle : float, optional
-            Pushbroom camera opening angle (degrees)
-        n_pix : int, optional
-            Number of pixels in pushbroom camera
-        camera_pitch_offset : float, optional
-            Constant pitch offset to add to IMU pitch data (rad.)
-        camera_roll_offset : float, optional
-            Constant roll offset to add to IMU roll data (rad.)
 
         Returns
         -------
@@ -1043,20 +1074,25 @@ class FlatTerrainOrthorectifier:
         )
 
         # Get pixel angles
-        pixel_roll_angles = self._calc_pushbroom_pixel_angles() + self.camera_roll_offset
+        pixel_roll_angles = self._calc_pushbroom_pixel_angles()
 
         # Get alongtrack and acrosstrack unit vectors
-        u_alongtrack = calc_alongtrack_vectors_from_positions(
-            np.array(imu_data["time"]), utm_x, utm_y
-        )
+        if self.estimate_yaw_from_positions:
+            time = np.array(imu_data["time"])
+            u_alongtrack = calc_alongtrack_vectors_from_positions(time, utm_x, utm_y)
+        else:
+            yaw = np.array(imu_data["yaw"]) - np.radians(self.camera_yaw_offset)
+            u_alongtrack = calc_alongtrack_vectors_from_yaw_angles(yaw)
+
         u_acrosstrack = calc_acrosstrack_unit_vectors(u_alongtrack)
 
         # Calculate pixel ground positions
+        # Offset angles are converted from degrees to radians
         pixel_utm_positions = self._calc_pixel_ground_positions(
             camera_pos=np.vstack((utm_x, utm_y)).T,
-            camera_alt=np.array(imu_data["altitude"]),
-            pitch_angles=np.array(imu_data["pitch"]) + self.camera_pitch_offset,
-            roll_angles=np.array(imu_data["roll"]) + self.camera_roll_offset,
+            camera_alt=np.array(imu_data["altitude"]) - self.camera_altitude_offset,
+            pitch_angles=np.array(imu_data["pitch"]) - np.radians(self.camera_pitch_offset),
+            roll_angles=np.array(imu_data["roll"]) - np.radians(self.camera_roll_offset),
             pixel_roll_offsets=pixel_roll_angles,
             u_alongtrack=u_alongtrack,
             u_acrosstrack=u_acrosstrack,
@@ -1104,7 +1140,7 @@ class FlatTerrainOrthorectifier:
 
         # Set radius of influence
         radius_of_influence = (
-            self.radius_of_influence if self.radius_of_influence is not None else gsd
+            self.radius_of_influence if self.radius_of_influence is not None else 2 * gsd
         )
 
         # Resample using pyresample
@@ -1159,7 +1195,7 @@ class FlatTerrainOrthorectifier:
 
         return profile  # type: ignore
 
-    def _save_orthorectified_image(
+    def _save_orthorectified_image_as_geotiff(
         self,
         ortho_image: NDArray,
         wavelengths: NDArray,
@@ -1262,7 +1298,25 @@ class FlatTerrainOrthorectifier:
         geotiff_profile = self._create_geotiff_profile(ortho_image, area_def, utm_epsg)
 
         # Save orthorectified image as GeoTIFF
-        self._save_orthorectified_image(ortho_image, wl, geotiff_profile, geotiff_path)
+        self._save_orthorectified_image_as_geotiff(ortho_image, wl, geotiff_profile, geotiff_path)
+
+
+def calc_alongtrack_vectors_from_yaw_angles(yaw: NDArray) -> NDArray:
+    """Calculate alongtrack vectors based on yaw angles
+
+    Parameters
+    ----------
+    yaw : NDArray
+        Yaw angles in radians, shape (n_lines,)
+
+    Returns
+    -------
+    u_alongtrack: NDArray
+        (x,y) coordinates for alongtrack unit vectors, shape (n_lines,2)
+    """
+    u_alongtrack_x = np.sin(yaw)
+    u_alongtrack_y = np.cos(yaw)
+    return np.vstack((u_alongtrack_x, u_alongtrack_y)).T
 
 
 def calc_alongtrack_vectors_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
