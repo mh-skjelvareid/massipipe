@@ -513,6 +513,7 @@ def rgb_subset_from_hsi(
 def percentile_stretch_image(
     image: NDArray,
     percentiles: tuple[float, float] = (2, 98),
+    treat_saturated_pixels_as_invalid: bool = True,
     saturation_value: int = 2**12 - 1,
 ) -> NDArray:
     """Scale array values within percentile limits to range 0-255.
@@ -523,6 +524,9 @@ def percentile_stretch_image(
         Image, shape (n_lines, n_samples, n_bands).
     percentiles : tuple of float, optional
         Lower and upper percentiles for stretching.
+    treat_saturated_pixels_as_invalid: bool
+        Whether to detect saturated pixels and set these to zero.
+        If True, values greater than or equal to saturation_value are treated as invalid.
     saturation_value : int, optional
         Saturation value for the image.
 
@@ -533,27 +537,45 @@ def percentile_stretch_image(
         Image intensity values are stretched so that the lower
         percentile corresponds to 0 and the higher percentile corresponds
         to 255 (maximum value for unsigned 8-bit integer, typical for PNG/JPG).
-        Pixels for which one or more bands are saturated are set to zero.
+        Pixels for which one or more bands are NaN or saturated are set to zero.
     """
-    assert image.ndim == 3
-    saturated = np.any(image >= saturation_value, axis=2)
-    image_stretched = np.zeros_like(image, dtype=np.float64)
+    # Convert to 3D array if single band
+    if image.ndim != 3:
+        if image.ndim == 2:
+            image = image.reshape(image.shape + (1,))
+        else:
+            raise ValueError(
+                f"Input image must have 2 or 3 dimensions, input image has {image.ndim}."
+            )
 
+    # Determine which pixels are invalid (NaN or saturated)
+    nan_mask = np.any(np.isnan(image), axis=2)
+    if treat_saturated_pixels_as_invalid:
+        saturated_mask = np.any(image >= saturation_value, axis=2)
+        invalid_mask = saturated_mask | nan_mask
+    else:
+        invalid_mask = nan_mask
+
+    # Percentile stretch each image band
+    image_stretched = np.zeros_like(image, dtype=np.float64)
     for band_index in range(image.shape[2]):
         image_band = image[:, :, band_index]
-        p_low, p_high = np.percentile(image_band[~saturated], percentiles)
+        p_low, p_high = np.percentile(image_band[~invalid_mask], percentiles)
         image_band[image_band < p_low] = p_low
         image_band[image_band > p_high] = p_high
         p_range = p_high - p_low
         image_stretched[:, :, band_index] = (image_band - p_low) * (255 / p_range)
 
-    image_stretched[saturated] = 0
-    return image_stretched.astype(np.uint8)
+    # Set invalid pixels to zero
+    image_stretched[invalid_mask] = 0
+
+    # Cast as 8-bit, and convert back to 2D if single band
+    image_stretched = np.squeeze(image_stretched.astype(np.uint8))
+
+    return image_stretched
 
 
-def convert_long_lat_to_utm(
-    long: ArrayLike, lat: ArrayLike
-) -> tuple[NDArray, NDArray, Union[int, None]]:
+def convert_long_lat_to_utm(long: ArrayLike, lat: ArrayLike) -> tuple[NDArray, NDArray, int]:
     """Convert longitude and latitude coordinates (WGS84) to UTM.
 
     Parameters
@@ -569,7 +591,7 @@ def convert_long_lat_to_utm(
         UTM x coordinate(s) ("Easting").
     UTMy : NDArray
         UTM y coordinate(s) ("Northing").
-    UTM_epsg : int or None
+    UTM_epsg : int
         EPSG code (integer) for UTM zone.
     """
     utm_crs_list = pyproj.database.query_utm_crs_info(
@@ -585,7 +607,11 @@ def convert_long_lat_to_utm(
     proj = Proj(utm_crs)
     UTMx, UTMy = proj(long, lat)
 
-    return np.array(UTMx), np.array(UTMy), utm_crs.to_epsg()
+    utm_epsg = utm_crs.to_epsg()
+    if utm_epsg is None:
+        raise ValueError("Could not determine EPSG code for UTM CRS")
+
+    return np.array(UTMx), np.array(UTMy), utm_epsg
 
 
 def get_vis_ind(wl: NDArray, vis_band: tuple[float, float] = (400.0, 730.0)) -> NDArray:
@@ -722,7 +748,7 @@ def random_sample_image(
     if ignore_zeros:
         mask = ~np.all(image == 0, axis=2)
     else:
-        mask = np.ones(image.shape[0:2])
+        mask = np.ones(image.shape[0:2], dtype=bool)
 
     # Calculate number of samples
     n_samp = np.int64(sample_frac * np.count_nonzero(mask))
@@ -958,3 +984,37 @@ def resample_cube_spectrally(image: NDArray, old_wl: NDArray, new_wl: NDArray) -
         lambda spec: np.interp(x=new_wl, xp=old_wl, fp=spec), axis=2, arr=image
     )  # np.interp() only accepts 1d arrays, use apply_along_axis for full 3D cube
     return image_interp
+
+
+def round_float_up(num: float, to_digit: int = 2) -> float:
+    """Rounds a float up to next value, specifing precision.
+
+    Parameters
+    ----------
+    num : float
+        The number to round up.
+    to_digit : int, default = 2
+        The digit position to round to (1 = first significant digit, 2 = second, etc.)
+        Must be >= 1.
+
+    Returns
+    -------
+    float
+        The rounded float.
+
+    Examples
+    --------
+    >>> round_float_up(0.01123, to_digit=2)
+    0.012
+    >>> round_float_up(1234, to_digit=2)
+    1300.0
+    """
+    if num == 0:
+        return 0
+    if to_digit < 1:
+        raise ValueError("to_digit must be >= 1")
+    if to_digit % 1 != 0:
+        raise TypeError("to_digit must be an integer")
+
+    rounding_factor = 10 ** (np.floor(np.log10(np.abs(num))) - (to_digit - 1))
+    return np.ceil(num / rounding_factor) * rounding_factor
