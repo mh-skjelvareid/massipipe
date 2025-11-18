@@ -1159,9 +1159,10 @@ class FlatTerrainOrthorectifier:
 
         return profile  # type: ignore
 
-    def save_orthorectified_image(
+    def _save_orthorectified_image(
         self,
         ortho_image: NDArray,
+        wavelengths: NDArray,
         geotiff_profile: dict,
         geotiff_path: Path | str,
     ):
@@ -1171,14 +1172,21 @@ class FlatTerrainOrthorectifier:
         ----------
         ortho_image : NDArray
             Orthorectified image array (lines, samples, bands)
+        wavelengths : NDArray
+            1D array with wavelengths for each band, shape (bands,)
         geotiff_profile : dict
             GeoTIFF profile for orthorectified image
         geotiff_path : Path | str
             Path to output GeoTIFF file
         """
+        band_names = [f"{wl:.3f}" for wl in wavelengths]
+
         try:
             with rasterio.Env():
                 with rasterio.open(geotiff_path, "w", **geotiff_profile) as dataset:
+                    if band_names:
+                        for i in range(dataset.count):
+                            dataset.set_band_description(i + 1, band_names[i])
                     dataset.write(reshape_as_raster(ortho_image))
         except Exception as e:
             logger.error(f"Error saving orthorectified GeoTIFF: {e}")
@@ -1187,7 +1195,28 @@ class FlatTerrainOrthorectifier:
     def orthorectify_image(
         self, image: NDArray, imu_data: dict
     ) -> Tuple[NDArray, AreaDefinition, int]:
-        """Orthorectify hyperspectral image using IMU data"""
+        """Orthorectify hyperspectral image using IMU data
+
+        Parameters
+        ----------
+        image : NDArray
+            Hyperspectral image, shape (lines, samples, bands)
+        imu_data : dict
+            Dict with IMU data, with keys "time", "latitude", "longitude", "pitch",
+            "roll", "yaw", and "altitude" (see ImuDataParser). Each value is a numeric
+            array with length matching the number of lines in the hyperspectral image.
+
+        Returns
+        -------
+        orthorectified_image: NDArray
+            Image orthorectified to UTM grid.
+        area_definition: AreaDefinition
+            Pyresample object describing the area (extent and raster resolution)
+            corresponding to the orthorectified image.
+        utm_espg: int
+            ESPG code for the UTM CRS used.
+
+        """
         # Calculate pixel ground coordinates
         pixel_utm_positions, utm_epsg = self.calc_pixel_coordinates_from_imu_data(imu_data)
 
@@ -1233,7 +1262,7 @@ class FlatTerrainOrthorectifier:
         geotiff_profile = self._create_geotiff_profile(ortho_image, area_def, utm_epsg)
 
         # Save orthorectified image as GeoTIFF
-        self.save_orthorectified_image(ortho_image, geotiff_profile, geotiff_path)
+        self._save_orthorectified_image(ortho_image, wl, geotiff_profile, geotiff_path)
 
 
 def calc_alongtrack_vectors_from_positions(t: NDArray, x: NDArray, y: NDArray) -> NDArray:
