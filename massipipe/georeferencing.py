@@ -947,9 +947,9 @@ class FlatTerrainOrthorectifier:
         Parameters
         ----------
         camera_opening_angle : float, optional
-            _description_, by default 36.5
+            Opening angle (degrees) of pushbroom camera, by default 36.5
         camera_n_pix : int, optional
-            _description_, by default 900
+            Number of spatial pixels in pushbroom camera, by default 900
         camera_roll_offset : float, optional
             Offset (in degrees) between the real roll angle and that measured by the IMU.
             If the camera points to the right (relative to IMU) the offset is positive.
@@ -1100,7 +1100,26 @@ class FlatTerrainOrthorectifier:
 
         return pixel_utm_positions, utm_epsg
 
-    def _create_area_definition(self, pixel_utm_positions: NDArray, utm_epsg: int):
+    def _create_area_definition(
+        self, pixel_utm_positions: NDArray, utm_epsg: int
+    ) -> AreaDefinition:
+        """Create AreaDefinition based on pixel coordinates
+
+        Parameters
+        ----------
+        pixel_utm_positions : NDArray
+            UTM coordinates (easting, northing) for each pixel in the input image.
+            Shape (n_lines, n_samples, 2).
+        utm_epsg : int
+            EPSG code for the UTM zone.
+
+        Returns
+        -------
+        AreaDefinition
+            Pyresample AreaDefinition object created based on outer x/y bounds of pixel
+            positions. The resolution is estimated median spacing of x and y coordinates
+            in the pixel positions.
+        """
         gsd = estimate_resolution_from_pixel_coordinates(pixel_utm_positions)
         utm_x_min = np.min(pixel_utm_positions[:, :, 0])
         utm_x_max = np.max(pixel_utm_positions[:, :, 0])
@@ -1120,7 +1139,25 @@ class FlatTerrainOrthorectifier:
         )
         return area_def
 
-    def _create_swath_definition(self, pixel_utm_coordinates, utm_epsg: int):
+    def _create_swath_definition(
+        self, pixel_utm_coordinates: NDArray, utm_epsg: int
+    ) -> SwathDefinition:
+        """Create swath definition based on spatial pixel coordinates for image
+
+        Parameters
+        ----------
+        pixel_utm_coordinates : NDArray
+            UTM coordinates (easting, northing) for each pixel in the input image.
+            Shape (n_lines, n_samples, 2).
+        utm_epsg : int
+            EPSG code for UTM zone.
+
+        Returns
+        -------
+        SwathDefinition
+            pyresample SwathDefinition object, created based on utm pixel coordinates
+            converted to longitude and latitude.
+        """
         # Convert UTM coordinates to lat/long
         proj = Proj(utm_epsg)
         pixel_lon, pixel_lat = proj(
@@ -1136,7 +1173,24 @@ class FlatTerrainOrthorectifier:
     def _resample_swath_to_grid(
         self, image: NDArray, area_def: AreaDefinition, swath_def: SwathDefinition, gsd: float
     ) -> NDArray:
-        """Resample image to regular grid using pyresample (kd-tree nearest neighbor)"""
+        """Resample image to regular grid using pyresample (kd-tree nearest neighbor)
+
+        Parameters
+        ----------
+        image : NDArray
+            Image with shape (n_lines, n_samples, n_bands)
+        area_def : AreaDefinition
+            pyresample AreaDefinition object for resampling
+        swath_def : SwathDefinition
+            pyresample SwathDefinition object
+        gsd : float
+            Ground sampling distance (resolution) in meters
+
+        Returns
+        -------
+        NDArray
+            Image resampled to regularly spaced grid, using neares-neighbor resampling.
+        """
 
         # Set radius of influence
         radius_of_influence = (
@@ -1152,6 +1206,46 @@ class FlatTerrainOrthorectifier:
             fill_value=self.nodata_fill_value,  # type: ignore
         )
         return np.array(result)  # Ensure array type
+
+    def orthorectify_image(
+        self, image: NDArray, imu_data: dict
+    ) -> Tuple[NDArray, AreaDefinition, int]:
+        """Orthorectify hyperspectral image using IMU data
+
+        Parameters
+        ----------
+        image : NDArray
+            Hyperspectral image, shape (lines, samples, bands)
+        imu_data : dict
+            Dict with IMU data, with keys "time", "latitude", "longitude", "pitch",
+            "roll", "yaw", and "altitude" (see ImuDataParser). Each value is a numeric
+            array with length matching the number of lines in the hyperspectral image.
+
+        Returns
+        -------
+        orthorectified_image: NDArray
+            Image orthorectified to UTM grid.
+        area_definition: AreaDefinition
+            Pyresample object describing the area (extent and raster resolution)
+            corresponding to the orthorectified image.
+        utm_espg: int
+            ESPG code for the UTM CRS used.
+
+        """
+        # Calculate pixel ground coordinates
+        pixel_utm_positions, utm_epsg = self.calc_pixel_coordinates_from_imu_data(imu_data)
+
+        # Estimate ground sampling distance (GSD)
+        gsd = estimate_resolution_from_pixel_coordinates(pixel_utm_positions)
+
+        # Create pyresample area and swath definitions
+        area_def = self._create_area_definition(pixel_utm_positions, utm_epsg)
+        swath_def = self._create_swath_definition(pixel_utm_positions, utm_epsg)
+
+        # Resample image to regular grid
+        ortho_image = self._resample_swath_to_grid(image, area_def, swath_def, gsd)
+
+        return ortho_image, area_def, utm_epsg
 
     def _create_geotiff_profile(
         self,
@@ -1228,53 +1322,13 @@ class FlatTerrainOrthorectifier:
             logger.error(f"Error saving orthorectified GeoTIFF: {e}")
             raise
 
-    def orthorectify_image(
-        self, image: NDArray, imu_data: dict
-    ) -> Tuple[NDArray, AreaDefinition, int]:
-        """Orthorectify hyperspectral image using IMU data
-
-        Parameters
-        ----------
-        image : NDArray
-            Hyperspectral image, shape (lines, samples, bands)
-        imu_data : dict
-            Dict with IMU data, with keys "time", "latitude", "longitude", "pitch",
-            "roll", "yaw", and "altitude" (see ImuDataParser). Each value is a numeric
-            array with length matching the number of lines in the hyperspectral image.
-
-        Returns
-        -------
-        orthorectified_image: NDArray
-            Image orthorectified to UTM grid.
-        area_definition: AreaDefinition
-            Pyresample object describing the area (extent and raster resolution)
-            corresponding to the orthorectified image.
-        utm_espg: int
-            ESPG code for the UTM CRS used.
-
-        """
-        # Calculate pixel ground coordinates
-        pixel_utm_positions, utm_epsg = self.calc_pixel_coordinates_from_imu_data(imu_data)
-
-        # Estimate ground sampling distance (GSD)
-        gsd = estimate_resolution_from_pixel_coordinates(pixel_utm_positions)
-
-        # Create pyresample area and swath definitions
-        area_def = self._create_area_definition(pixel_utm_positions, utm_epsg)
-        swath_def = self._create_swath_definition(pixel_utm_positions, utm_epsg)
-
-        # Resample image to regular grid
-        ortho_image = self._resample_swath_to_grid(image, area_def, swath_def, gsd)
-
-        return ortho_image, area_def, utm_epsg
-
     def orthorectify_image_file(
         self,
         image_path: Path | str,
         imu_data_path: Path | str,
         geotiff_path: Path | str,
-    ):
-        """Orthorectify hyperspectral image using IMU data and simple pushbroom camera model
+    ) -> None:
+        """Orthorectify hyperspectral image using IMU data and save result to file
 
         Parameters
         ----------
