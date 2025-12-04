@@ -29,6 +29,8 @@ Note that while positive pitch is almost always defined as "nose up", in some ca
 $$\phi = - \phi_\text{\ right wing up} $$
 
 ## Image pixel matrix
+The pushbroom camera captures images line-by-line, and images are displayed with lines stacked horizontally, starting from the top. Image indexing follows the matrix indexing convention, with ($i$,$j$) corresponding to row $i$ and column $j$. The number of rows and columns is denoted $M$ and $N$, respectively. Note that the $x$ axis aligns with the $i$ "axis", i.e. a higher row number corresponds to a position further forward, but that the $y$ axis and the $j$ "axis" point have opposite signs, i.e. a higher column number corresponds to a pixel further to the *left* when seen from above. 
+
 ![](figures/orthorect_image_grid.jpg)
 
 ## Looking angle
@@ -40,7 +42,7 @@ Images are displayed using the same layout as matrices, using row and column ind
 
 Assuming a centered fan, we can calculate the looking angle for each pixel based on the camera field of view (FOV). Note that the ordering of pixel indices matches the direction of positive roll.
 
-$$ \alpha_j =  \arctan  \left( -\tan \left( \frac{\text{FOV}}{2} \right) + j \cdot \frac{2 \cdot \tan(\frac{\text{FOV}}{2})}{N-1} \right) $$
+$$ \alpha_j =  \arctan  \left( -\tan \left( \frac{\text{FOV}}{2} \right) + j \cdot \frac{2 \cdot \tan \left( \frac{\text{FOV}}{2} \right)}{N-1} \right) $$
 
 ## Combined looking angle and roll 
 When mounting a push-broom camera on a UAV or an airplane, the typical orientation is with the camera pointed straight down and the fan spread out symmetrically "across-track", i.e. parallel to the pitch axis. The effective roll for a single pixel is given by the sum of the looking angle $\alpha_j$ and the overall camera roll $\phi$. 
@@ -55,12 +57,7 @@ The effect of non-zero pitch angles is to tilt the image "fan" forward (positive
 ![](figures/orthorect_pitch_angle.jpg)
 
 
-## "Boresight" angle offsets
-There is often a small, constant offset between the true rotation angles angles and thuse measured by the IMU. These offsets can be measured, a process sometimes called "boresight calibration", and be added to the IMU measurements to improve georectification accuracy. 
 
-$$\phi_{i,j} = \alpha_j + \phi_{\text{IMU},i} + \phi_{\text{offset}}$$
-$$\theta_i = \theta_{\text{IMU},i} + \theta_{\text{offset}}$$
-$$\psi_i = \psi_{\text{IMU},i} + \psi_{\text{offset}}$$
 
 
 
@@ -208,14 +205,21 @@ $$
 
 ![](figures/orthorect_line_rotation_and_offset.jpg)
 
+## "Boresight" angle offsets
+There is often a small, constant offset between the true rotation angles angles and those measured by the IMU. These offsets can be measured, a process sometimes called "boresight calibration", and be applied as an additional rotation to correct the IMU measurements. 
+
+$$R_\text{camera} = R_\text{boresight} \cdot R_\text{IMU}$$
+
+The boresight rotation follows the same general rotation matrix definition (and order) as defined above.
+
 # Using broadcasting to calculate coordinates for every pixel
 
 Camera position and rotation measurements are stored in arrays with the following dimensions, where $M$ denotes number of image rows and $N$ denotes number of image columns:
 
 | Measurement           | Shape     |
 |-----------------------|-----------|
-| $N_{\text{cam}}$      | (M,)      |
-| E                     | (M,)      |
+| $N_\text{cam}$        | (M,)      |
+| $E_\text{cam}$        | (M,)      |
 | H                     | (M,)      |
 | $\psi$                | (M,)      |
 | $\theta$              | (M,)      |
