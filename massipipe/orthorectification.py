@@ -109,7 +109,7 @@ class CameraModel:
             A NumPy array of shape (M, N, 3, 3) representing the ray rotation matrices.
             M is the number of camera rotations, and N is the number of pixel looking angles.
         """
-
+        # TODO: Double-check the order of rotation matrices here
         cam_rot_mat = cam_rot.as_matrix()  # (M, 3, 3)
         pixel_rot_mat = Rotation.from_euler("x", self.pixel_looking_angles()).as_matrix()
         return cam_rot_mat[:, np.newaxis, :, :] @ pixel_rot_mat[np.newaxis, ::, :, :]  # (M,N,3,3)
@@ -131,6 +131,10 @@ class CameraModel:
             A 3D array of shape (M, N, 2) containing the northing and easting offsets for each ray.
 
         """
+
+        # TODO: Double-check the multiplcation order for rotation matrices here
+        # The nadir ray should be rotated first in the camera frame, then to the IMU frame,
+        # then to the world frame
 
         # Create unit vectors for each ray
         ray_nadir = np.array([[0.0, 0.0, 1.0]]).T  # (3,1)
