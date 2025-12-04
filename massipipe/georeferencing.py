@@ -994,7 +994,7 @@ class FlatTerrainOrthorectifier:
         pixel_x_norm = np.linspace(-edge_pixel_x_norm, edge_pixel_x_norm, self.camera_n_pix)
 
         # Convert pixel distances to angles (radians) and return
-        return np.atan(pixel_x_norm)
+        return np.arctan(pixel_x_norm)
 
     def _calc_pixel_ground_positions(
         self,
