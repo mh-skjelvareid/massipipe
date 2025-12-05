@@ -12,8 +12,8 @@ class CameraModel:
         self,
         opening_angle_deg: float,
         n_pix: int,
-        imu_to_cam_rot_dcm: NDArray | None = None,
-        imu_to_cam_rot_euler: NDArray | None = None,
+        cam_to_imu_rot_dcm: NDArray | None = None,
+        cam_to_imu_rot_euler: NDArray | None = None,
         estimate_yaw_from_positions: bool = False,
     ):
         """
@@ -25,35 +25,38 @@ class CameraModel:
             The opening angle of the camera in degrees.
         n_pix : int
             The number of pixels per image line.
-        imu_to_cam_rot_dcm : NDArray, optional
-            Direction Cosine Matrix (DCM) representing the rotation from the IMU
-            to the camera. If provided, `imu_to_cam_rot_euler` must not be provided.
-        imu_to_cam_rot_euler : NDArray, optional
-            Euler angles (yaw, pitch, roll) representing the rotation from the IMU
-            to the camera. If provided, `imu_to_cam_rot_dcm` must not be provided.
+        cam_to_imu_rot_dcm : NDArray, optional
+            Direction Cosine Matrix (DCM) representing the rotation from the camera
+            to the IMU. If provided, `cam_to_imu_rot_euler` must not be provided.
+        cam_to_imu_rot_euler : NDArray, optional
+            Euler angles (yaw, pitch, roll) representing the rotation from the camera
+            to the IMU. If provided, `cam_to_imu_rot_dcm` must not be provided.
         estimate_yaw_from_positions : bool, optional
             Whether to estimate the yaw angle from positions. Default is False.
 
         Raises
         ------
         ValueError
-            If both `imu_to_cam_rot_dcm` and `imu_to_cam_rot_euler` are provided.
+            If both `cam_to_imu_rot_dcm` and `cam_to_imu_rot_euler` are provided.
         """
 
         self.opening_angle_deg = opening_angle_deg
         self.n_pix = n_pix
 
-        if imu_to_cam_rot_dcm is not None:
-            if imu_to_cam_rot_euler is not None:
+        if cam_to_imu_rot_dcm is not None:
+            if cam_to_imu_rot_euler is not None:
                 raise ValueError("Provide rotation as angles or DCM, not both.")
             else:
-                self.imu_to_cam_rot = Rotation.from_matrix(imu_to_cam_rot_dcm)
-        elif imu_to_cam_rot_euler is not None:
-            yaw, pitch, roll = imu_to_cam_rot_euler
-            self.imu_to_cam_rot = Rotation.from_euler("zyx", [yaw, pitch, roll])
+                self.cam_to_imu_rot = Rotation.from_matrix(cam_to_imu_rot_dcm)
+        elif cam_to_imu_rot_euler is not None:
+            yaw, pitch, roll = cam_to_imu_rot_euler
+            self.cam_to_imu_rot = Rotation.from_euler("zyx", [yaw, pitch, roll])
         else:
-            self.imu_to_cam_rot = Rotation.from_euler("zyx", [0.0, 0.0, 0.0])
+            self.cam_to_imu_rot = Rotation.from_euler("zyx", [0.0, 0.0, 0.0])
+
         self.estimate_yaw_from_positions = estimate_yaw_from_positions
+        if self.estimate_yaw_from_positions:
+            raise NotImplementedError("Yaw estimation from positions is not yet implemented.")
 
     def camera_rotations(self, yaw: NDArray, pitch: NDArray, roll: NDArray):
         """
@@ -72,13 +75,10 @@ class CameraModel:
         -------
         Rotation
             A batch of M rotation matrices representing the camera rotations.
+            R_cam_to_world = R_imu_to_world @ R_cam_to_imu
         """
-        imu_rot = Rotation.from_euler(
-            "zyx",
-            np.column_stack([yaw, pitch, roll]),
-        )
-
-        return self.imu_to_cam_rot * imu_rot  # Batch of M rotations
+        imu_rot = Rotation.from_euler("zyx", np.column_stack([yaw, pitch, roll]))
+        return imu_rot * self.cam_to_imu_rot  # Matrix multiplications (batch of M)
 
     def pixel_looking_angles(self) -> NDArray:
         """Calculate the looking angles for each pixel in the sensor.
@@ -112,6 +112,7 @@ class CameraModel:
         # TODO: Double-check the order of rotation matrices here
         cam_rot_mat = cam_rot.as_matrix()  # (M, 3, 3)
         pixel_rot_mat = Rotation.from_euler("x", self.pixel_looking_angles()).as_matrix()
+
         return cam_rot_mat[:, np.newaxis, :, :] @ pixel_rot_mat[np.newaxis, ::, :, :]  # (M,N,3,3)
 
     def intersect_rays_ground(self, ray_rot: NDArray, cam_alt: NDArray) -> NDArray:
