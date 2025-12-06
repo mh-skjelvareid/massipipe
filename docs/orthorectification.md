@@ -45,11 +45,12 @@ Assuming a centered fan, we can calculate the looking angle for each pixel based
 $$ \alpha_j =  \arctan  \left( -\tan \left( \frac{\text{FOV}}{2} \right) + j \cdot \frac{2 \cdot \tan \left( \frac{\text{FOV}}{2} \right)}{N-1} \right) $$
 
 ## Combined looking angle and roll 
-When mounting a push-broom camera on a UAV or an airplane, the typical orientation is with the camera pointed straight down and the fan spread out symmetrically "across-track", i.e. parallel to the pitch axis. The effective roll for a single pixel is given by the sum of the looking angle $\alpha_j$ and the overall camera roll $\phi$. 
+When mounting a push-broom camera on a UAV or an airplane, the typical orientation is with the camera pointed straight down and the fan spread out symmetrically "across-track", i.e. parallel to the pitch axis. If the camera and IMU frames of reference are perfectly aligned, the effective roll for a single pixel is given by the sum of the looking angle $\alpha_j$ and the overall camera roll $\phi$. 
 
 $$\phi_{i,j} = \alpha_j + \phi_{\text{IMU},i} $$
 
 ![](figures/orthorect_combined_roll_angle.jpg)
+
 
 ## Pitch angle
 The effect of non-zero pitch angles is to tilt the image "fan" forward (positive pitch) or backward (negative pitch) relative to [nadir](https://en.wikipedia.org/wiki/Nadir).
@@ -61,10 +62,24 @@ The effect of non-zero pitch angles is to tilt the image "fan" forward (positive
 
 
 
-# Calculating relative pixel offsets on the ground 
-We're assuming flat terrain under the camera and we want to calculate the location of each pixel on the ground.  We start with a unit vector pointing towards nadir, i.e. straight down, and we rotate the vector according to roll $\phi_{i,j}$, pitch $\theta_i$ and yaw $\psi_i$ for each pixel $(i,j)$. By extendig this vector until it reaches the ground below, we can calculate the coordinates of the pixel on the ground. To avoid clutter we don't include the $(i,j)$ indices in the derivation below. 
+# Rotation matrices
+We're assuming flat terrain under the camera and we want to calculate the location of each pixel on the ground.  We start with a unit vector pointing towards the center of the camera field of view (along the $x$ axis in the camera frame), and we want to apply a set of rotations to find the direction if this vector in the "world" reference frame (in NED coordinates, north, east and down). By extending the rotated vector until it reaches the ground below, we can calculate the north and east coordinates of the corresponding point on the ground. For simplicity we assume here the camera has "one pixel", and show a more general solution later.   
 
-Rotation is performed with three [rotation matrices](https://en.wikipedia.org/wiki/Rotation_matrix#General_3D_rotations):
+In general, rotation of a vector in 3D space is performed with a 3x3 matrix,
+
+$$\mathbf{v_\text{rotated}} = R \cdot \mathbf{v} = 
+\begin{bmatrix}
+    R_{xx} & R_{xy} & R_{xz}\\
+    R_{yx} & R_{yy} & R_{yz}\\
+    R_{zx} & R_{zy} & R_{zz} 
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+    v_x \\ v_y \\ v_z
+\end{bmatrix}
+$$
+
+Rotation matrices can be combined to effectively perform multiple rotation in succession. The three angles measured by the IMU (roll $\phi$, pitch $\theta$ and yaw $\psi$) describe three such combined rotations, performed around the $x$, $y$ and $z$ axis, respectively. The rotations are performed with the following three [rotation matrices](https://en.wikipedia.org/wiki/Rotation_matrix#General_3D_rotations):
 $$ R_x(\phi)=
 \begin{bmatrix}
 1 & 0 & 0\\
@@ -86,11 +101,18 @@ $$ R_z(\psi)=
 0 & 0 & 1
 \end{bmatrix}$$
 
-These matrices are combined to perform an "intrinsic" rotation of any column vector $\mathbf{v} = [x,y,z]^T$:
+Before the rotations are applied, the coordinate frames of the IMU (the "body") and the "world" are assumed to be aligned. This corresponds to the x-axis pointing forwards and to the north, the y-axis right and to the east, and the z-axis down, towards the center of the earth.  
 
-$$\mathbf{v}_{\text{rotated}} = R_z(\psi) R_y(\theta) R_x(\phi) \mathbf{v}$$
+These matrices are combined to perform an "intrinsic" rotation of any column vector $\mathbf{v} = [x,y,z]^T$ from the IMU frame to the world frame:
 
-where the order of operations is read from right to left, i.e. the rotation about the $x$-axis is applied first, then $y$, then $z$. We'll consider the combined rotation around the x and y axes first:
+$$\mathbf{v}_{\text{world}} = R_z(\psi) R_y(\theta) R_x(\phi) \mathbf{v}_\text{IMU}$$
+
+where the order of operations is read from right to left, i.e. the rotation about the $x$-axis is applied first, then $y$, then $z$. 
+
+
+
+# Pixel offsets on the ground - along-track and across-track 
+To understand how roll and pitch correspond to across- and alongtrack offsets, we'll first consider the combined rotation around the x and y axes:
 
 $$ 
 \begin{align}
@@ -115,11 +137,11 @@ $$
 \end{align}
 $$
 
-Let's now consider a unit vector $\mathbf{\hat{z}} = [0,0,1]^T$ pointing straight down, i.e. towards the middle of the field of view for the camera, in the case of zero roll and pitch. We can rotate this vector to create a new unit vector $\mathbf{\hat{r}}$ :
+Let's now consider a unit vector $\mathbf{\hat{z}} = [0,0,1]^T$ pointing straight down, i.e. towards the middle of the field of view for the camera, in the case of zero roll and pitch. We can rotate this vector to create a new unit vector $\mathbf{\hat{d}}$ :
 
 $$
 \begin{align}
-\mathbf{\hat{r}} &= R_y(\theta) \ R_x(\phi) \ \mathbf{\hat{z}} \\
+\mathbf{\hat{d}} &= R_y(\theta) \ R_x(\phi) \ \mathbf{\hat{z}} \\
 &= R_y(\theta) \ R_x(\phi) \cdot
 \begin{bmatrix}
     0 \\ 0 \\ 1 
@@ -139,7 +161,9 @@ $$
 \begin{bmatrix}
     r_x \\ r_y \\ H 
 \end{bmatrix} = 
-\|\mathbf{r}\| \cdot 
+t^* \mathbf{\hat{d}} = 
+
+t^*  
 \begin{bmatrix}
     \cos\phi \sin\theta\\
      -\sin \phi\\
@@ -147,119 +171,110 @@ $$
 \end{bmatrix}
 $$
 
-The z coordinate lets us solve for the length of the vector, $\|\mathbf{r}\| = \frac{H}{\cos \phi \cos \theta}$. Inserting this into the equation above, and only including $x$ and $y$ coordinates, we obtain 
+The z coordinate lets us solve for the length of the vector, $t^* = \frac{H}{\cos \phi \cos \theta}$. Inserting this into the equation above, we obtain 
 
 $$
-\mathbf{r_{xy}} =
+\mathbf{r} =
 \begin{bmatrix}
-    r_x \\ r_y 
+    r_x \\ r_y \\ H
 \end{bmatrix} = H \cdot 
 \begin{bmatrix}
     \frac{\cos\phi \sin\theta}{\cos \phi \cos \theta}\\[8pt]
-    \frac{-\sin \phi}{\cos \phi \cos \theta}\\
+    \frac{-\sin \phi}{\cos \phi \cos \theta}\\[6pt]
+    1
 \end{bmatrix} = H \cdot
 \begin{bmatrix}
     \tan \theta\\[4pt]
-    \frac{-\tan \phi}{\cos \theta}\\
+    \frac{-\tan \phi}{\cos \theta}\\[6pt]
+    1
 \end{bmatrix} 
 $$
 
 ![](figures/orthorect_3d_ground_offsets.jpg)
 
-The $\mathbf{r_{xy}}$ vector thus corresponds to the pixel offsets on the ground. The result matches our intuition when we consider tilting the push-broom "fan". (Remember that the $x$ axis points forward and the $y$ axis points to the right.)  
+The $r_x$ and $r_y$ values thus correspond to the along-track and across-track pixel offsets on the ground, respectively. The result matches our intuition:
 
-- A positive pitch $\theta$ tilts the whole fan forwards, i.e. along-track offset $r_x$ is positive.
-- A positive roll $\phi$ tilts the whole fan in to the left, i.e., across-track offset $r_y$ is negative. The term $\cos \theta$ in the denominator accounts for the fact that when the fan is tilted forwards or backwards (non-zero pitch), the rays of the fan spread out more before they intersect the ground plane.  
-
-
+- A positive pitch $\theta$ tilts the whole fan forwards, i.e. it results in a positive along-track offset $r_x$.
+- A positive roll $\phi$ tilts the whole fan in to the left, i.e., across-track offset $r_y$ is negative. The term $\cos \theta$ in the denominator is always positive for a down-looking camera, and accounts for the fact that when the fan is tilted forwards or backwards (non-zero pitch), the rays of the fan spread out more before they intersect the ground plane.  
 
 
-# Calculating pixel positions in the world reference frame
-To calculate the absolute position of a pixel we need to take into account the position and heading of the camera. We assume that the position is measured as northing $N_{\text{cam}}$ and easting $E_{\text{cam}}$, and that heading $\psi$ is a standard compass angle, measured clockwise relative to north. 
+# Including looking angles and orientation offsets
+There are two practical issues that can both be included as rotation matrices:
 
-The pixel offset vector $\mathbf{r_{xy}}$ can be rotated to the correct heading via the general $R_z(\psi)$ matrix listed above. We redefine $R_z(\psi)$ here to only include x and y coordinates: 
+- Individual pixels correspond to different "looking angles" in the camera reference frame, as mentioned above.
+- The camera and the IMU may not be perfectly aligned.
+
+These can be included in a chain of rotations, from the camera to the world frame. In the expression below, subscripts $i$ and $j$ correspond to the image row and column. 
+
+$$ R_{\text{world}\leftarrow\text{pixel},ij} = 
+R_{\text{world}\leftarrow\text{IMU},i} \cdot
+R_{\text{IMU}\leftarrow\text{camera}} \cdot
+R_{\text{camera}\leftarrow\text{pixel},j}
+$$
+
+The $R_{\text{camera}\leftarrow\text{pixel},j}$ matrix corresponds to a simple rotation around the $x$ axis to account for the looking angles $\alpha_j$:
+
+$$R_{\text{camera}\leftarrow\text{pixel},j} = R_x(\alpha_j)$$ 
+
+The $R_{\text{IMU}\leftarrow\text{camera}}$ matrix corresponds to the "offset" between camera and IMU frames. This needs to be measured or estimated (sometimes called "boresight calibration"). 
+
+Finally, $R_{\text{world}\leftarrow\text{IMU},i}$ corresponds to the roll, pitch and yaw rotations presented previously.
+
+$$R_{\text{world}\leftarrow\text{IMU},i} = R_z(\psi_i) R_y(\theta_i) R_x(\phi_i) $$
+
+
+
+
+# Pixel coordinates on the ground - general
+To calculate the ground position of a pixel based on a combined rotation matrix $R_{\text{world}\leftarrow\text{pixel}}$, we follow the same procedure as in the section on along- and across-track offsets. A downward-pointing unit vector $\hat{\mathbf{z}}$ in the camera (pixel) frame is rotated to a direction unit vector $\hat{\mathbf{d}}$ in the world frame.
 
 $$
-\mathbf{r_{xy,\text{rot}}} = 
-R_{z}(\psi) \cdot  \mathbf{r_{xy}} = 
+\begin{align}
+\hat{\mathbf{d}} &= R_{\text{world}\leftarrow\text{pixel}} \hat{\mathbf{z}} \\
+&=
 \begin{bmatrix}
-\cos\psi & -\sin\psi \\
-\sin\psi & \cos\psi
+    R_{xx} & R_{xy} & R_{xz}\\
+    R_{yx} & R_{yy} & R_{yz}\\
+    R_{zx} & R_{zy} & R_{zz} 
 \end{bmatrix} \cdot 
-\mathbf{r_{xy}}
-$$
-
-
-By adding the camera positions to the relative offsets, we get the an expression for the pixel location in absolute units of northing $N$ and easting $E$. 
-
-$$
 \begin{bmatrix}
-    N \\ E  
+    0 \\ 0 \\ 1 
 \end{bmatrix} = 
 \begin{bmatrix}
-    N_{\text{cam}} \\ E_{\text{cam}}  
-\end{bmatrix} +  
-R_{z}(\psi) \cdot  \mathbf{r_{xy}}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix} 
+\end{align}
 $$
 
+The direction vector is extended until it reaches the ground via parameterization, $\mathbf{d} = t^* \hat{\mathbf{d}}$. We can then use the $z$ component, corresponding to altitude above ground, to solve for $t^*$
 
-![](figures/orthorect_line_rotation_and_offset.jpg)
+$$ t^* = \frac{H}{R_{zz}}$$
 
-## "Boresight" angle offsets
-There is often a small, constant offset between the true rotation angles angles and those measured by the IMU. These offsets can be measured, a process sometimes called "boresight calibration", and be applied as an additional rotation to correct the IMU measurements. 
+and this gives us an expression for the vector $\mathbf{d}$ from the camera to the ground.
 
-$$R_\text{camera} = R_\text{boresight} \cdot R_\text{IMU}$$
+$$ 
+\mathbf{d} = 
+\frac{H}{R_{zz}} 
+\begin{bmatrix}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix}   
+$$
 
-The boresight rotation follows the same general rotation matrix definition (and order) as defined above.
+The coordinates of the camera are denoted $\mathbf{r}_\text{camera} = [N,E,0]^T$, where $N$ and $E$ denote northing and easting. The $z$ coordinate of the camera is zero by definition. We combine the camera position with the ray vector $\mathbf{d}$ to get the position of the pixel in world coordinates:
 
-# Using broadcasting to calculate coordinates for every pixel
+$$
+\begin{align}
+\mathbf{r}_\text{pixel} &= \mathbf{r}_\text{camera} + \mathbf{d} \\
+&= 
+\begin{bmatrix} N \\ E \\ 0 \end{bmatrix} + \frac{H}{R_{zz}} 
+\begin{bmatrix}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix} 
+\end{align}
+$$
 
-Camera position and rotation measurements are stored in arrays with the following dimensions, where $M$ denotes number of image rows and $N$ denotes number of image columns:
+This is repeated for every pixel $(i,j)$. We can highlight this by adding subscripts to the vector equation above:
 
-| Measurement           | Shape     |
-|-----------------------|-----------|
-| $N_\text{cam}$        | (M,)      |
-| $E_\text{cam}$        | (M,)      |
-| H                     | (M,)      |
-| $\psi$                | (M,)      |
-| $\theta$              | (M,)      |
-| $\phi$                | (M,N)     |
-
-We can construct a tensor containing all the pixel offsets $r_{xy}$, 
-    
-    r_xy = np.empty((M, 2, N))
-    r_xy[:, 0, :] =  np.tan(theta)[:, None]                  # Northing
-    r_xy[:, 1, :] = -np.tan(phi) / np.cos(theta)[:, None]    # Easting
-    r_xy *= H[:, None, None]                                 # Scale by altitude
-
-and a corresponding tensor with $M$ rotation matrices (one for each yaw angle),
-
-    R_z = np.empty((M, 2, 2))
-    R_z[:, 0, 0] =  np.cos(psi)
-    R_z[:, 0, 1] = -np.sin(psi)
-    R_z[:, 1, 0] =  np.sin(psi)
-    R_z[:, 1, 1] =  np.cos(psi)
-
-Finally, we can also stack camera northing and easting into a 3D tensor:
-
-    NE_cam = np.stack([N_cam, E_cam], axis=1)   # (M, 2)
-    NE_cam = NE_cam[:, None, :]                 # (M, 1, 2)
-
-These three tensors have shapes that are suitable for matrix multiplication and broadcasting :
-
-| Tensor      | Shape   |
-|-------------|---------|
-| `r`         | (M,2,N) | 
-| `R_z`       | (M,2,2) |
-| `NE_cam`    | (M,2,N) |
-
-Pixel positions can now be calculated as
-    
-    NE_pix = NE_cam + R_z @ r          # (M,2,2) @ (M,2,N) => (M,2,N)
-    NE_pix = NE_pix.transpose(0,2,1)   # (M,N,2)
-
-
-# Resampling to regular grid
-If the movement of the camera is slightly irregular due to movement of the camera platform, the "swath" the the camera images on the ground also becomes irregular. To make an orthorectified image, the swath needs to be resampled into a regular grid, typically one aligned with the northing and easting axes. The figure below illustrates this: The orange swath has a rectangular "bounding box" which defines the extent of the regular grid. Values inside the swath are resampled to the grid using nearest-neigbor resampling (preserving shapes of original spectra), while values outside (gray in figure) are marked as "no data".
-
-![](figures/orthorect_swath_in_rectangle.jpg)
+$$
+\mathbf{r}_{\text{pixel},ij} = \mathbf{r}_{\text{camera},i} + \mathbf{d}_{ij} 
+$$
