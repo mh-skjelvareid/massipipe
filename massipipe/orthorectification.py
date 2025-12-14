@@ -37,7 +37,7 @@ class CameraModel:
             Direction Cosine Matrix (DCM) representing the rotation from the camera
             to the IMU. If provided, `euler_to_imu_from_cam` must not be provided.
         euler_to_imu_from_cam : NDArray, optional
-            Euler angles (yaw, pitch, roll), in radians, representing the rotation
+            Euler angles (roll, pitch, yaw), in radians, representing the rotation
             from the camera to the IMU. If provided, `cam_to_imu_rot_dcm` must not
             be provided.
         altitude_offset : float, optional
@@ -63,13 +63,16 @@ class CameraModel:
         if (R_to_imu_from_cam is not None) and (euler_to_imu_from_cam is not None):
             raise ValueError("Provide rotation as angles or DCM, not both.")
 
+        # Create rotation from camera to IMU
+        # NOTE: "xyz" order corresponds to R_z(yaw) @ R_y(pitch) @ R_x(roll)
         if R_to_imu_from_cam is not None:
             self.R_to_imu_from_cam = Rotation.from_matrix(R_to_imu_from_cam)
         elif euler_to_imu_from_cam is not None:
-            yaw, pitch, roll = euler_to_imu_from_cam
-            self.R_to_imu_from_cam = Rotation.from_euler("zyx", [yaw, pitch, roll])
+            # roll, pitch, yaw = euler_to_imu_from_cam
+            # self.R_to_imu_from_cam = Rotation.from_euler("zyx", [yaw, pitch, roll])
+            self.R_to_imu_from_cam = Rotation.from_euler("xyz", euler_to_imu_from_cam)
         else:
-            self.R_to_imu_from_cam = Rotation.from_euler("zyx", [0.0, 0.0, 0.0])  # No rotation
+            self.R_to_imu_from_cam = Rotation.identity()  # No rotation
         self.altitude_offset = altitude_offset
 
     @property
@@ -85,34 +88,41 @@ class CameraModel:
         edge = np.tan(self.opening_angle_deg / 2)
         return np.arctan(np.linspace(-edge, edge, self.n_pix))
 
-    def _ray_rotation_matrices(self, yaw: NDArray, pitch: NDArray, roll: NDArray) -> NDArray:
+    def _ray_rotation_matrices(self, roll: NDArray, pitch: NDArray, yaw: NDArray) -> NDArray:
         """
         Compute the ray rotation matrices for a camera given its rotation and pixel looking angles.
 
         Parameters
         ----------
-        cam_rot : Rotation
-            A `scipy.spatial.transform.Rotation` object representing the camera's rotation.
-            The rotation is expected to be in the form of a matrix with shape (M, 3, 3),
-            where M is the number of rotation matrices.
+        roll : NDArray
+            A 1D array of shape (M,) representing the roll angles (in radians) of the camera.
+        pitch : NDArray
+            A 1D array of shape (M,) representing the pitch angles (in radians) of the camera.
+        yaw : NDArray
+            A 1D array of shape (M,) representing the yaw angles (in radians) of the camera.
 
         Returns
         -------
         NDArray
-            A NumPy array of shape (M, N, 3, 3) representing the ray rotation matrices.
+            A NumPy array of shape (M, N, 3, 3) representing the ray rotation matrices,
+            from the pixel / camera frame to the world frame.
             M is the number of camera rotations, and N is the number of pixel looking angles.
         """
 
-        # Create rotation objects
-        R_to_world_from_imu = Rotation.from_euler("zyx", np.column_stack([yaw, pitch, roll]))
-        R_to_world_from_cam = R_to_world_from_imu * self.R_to_imu_from_cam
+        # Create rotation to camera frame from pixel
         R_to_cam_from_pixel = Rotation.from_euler("x", self.pixel_looking_angles)
+
+        # Create rotation from camera to world
+        # NOTE: "xyz" order corresponds to R_z(yaw) @ R_y(pitch) @ R_x(roll)
+        # R_to_world_from_imu = Rotation.from_euler("zyx", np.column_stack([yaw, pitch, roll]))
+        R_to_world_from_imu = Rotation.from_euler("xyz", np.column_stack([roll, pitch, yaw]))
+        R_to_world_from_cam = R_to_world_from_imu * self.R_to_imu_from_cam
 
         # Convert to matrices
         R_world_cam = R_to_world_from_cam.as_matrix()  # (M,3,3)
         R_cam_pixel = R_to_cam_from_pixel.as_matrix()  # (N,3,3)
 
-        # Matrix multiplication (last two dims) via broadcasting
+        # Combine rotations via broadcasting and matrix multiplication (last two dims)
         return R_world_cam[:, np.newaxis, :, :] @ R_cam_pixel[np.newaxis, :, :, :]  # (M,N,3,3)
 
     def _camera_to_ground_vectors(
@@ -172,9 +182,9 @@ class CameraModel:
         camera_northing: NDArray,
         camera_easting: NDArray,
         camera_altitude: NDArray,
-        camera_yaw: NDArray,
-        camera_pitch: NDArray,
         camera_roll: NDArray,
+        camera_pitch: NDArray,
+        camera_yaw: NDArray,
     ) -> NDArray:
         """Calculate pixel ground positions in UTM coordinates.
 
@@ -186,12 +196,12 @@ class CameraModel:
             Camera easting positions, shape (M,).
         camera_altitude : NDArray
             Canera altitude positions, shape (M,).
-        camera_yaw : NDArray
-            Camera yaw angles in radians, zero at north, pi/2 at east. Shape (M,).
-        camera_pitch : NDArray
-            Camera pitch angles in radians, zero at horizon, positive looking up. Shape (M,).
         camera_roll : NDArray
             Camera roll angles in radians, zero at horizon, pos. for "right wing down". Shape (M,).
+        camera_pitch : NDArray
+            Camera pitch angles in radians, zero at horizon, positive looking up. Shape (M,).
+        camera_yaw : NDArray
+            Camera yaw angles in radians, zero at north, pi/2 at east. Shape (M,).
 
         Returns
         -------
@@ -208,12 +218,12 @@ class CameraModel:
         M = len(camera_northing)
         if not all(
             len(x) == M
-            for x in [camera_easting, camera_yaw, camera_pitch, camera_roll, camera_altitude]
+            for x in [camera_easting, camera_roll, camera_pitch, camera_yaw, camera_altitude]
         ):
             raise ValueError("All input arrays must have the same length")
 
         # Get camera rotations
-        R_to_world_from_pixel = self._ray_rotation_matrices(camera_yaw, camera_pitch, camera_roll)
+        R_to_world_from_pixel = self._ray_rotation_matrices(camera_roll, camera_pitch, camera_yaw)
 
         # Calculate ray direction vectors
         ray_vecs = self._camera_to_ground_vectors(R_to_world_from_pixel, camera_altitude)
@@ -402,7 +412,7 @@ class FlatTerrainOrthorectifier_2:
             Direction Cosine Matrix (DCM) representing rotation from camera to IMU. If provided,
             `imu_camera_rotation_euler` must not also be provided.
         imu_camera_rotation_euler : NDArray | None, optional
-            Euler angles (yaw, pitch, roll), in radians, representing rotation from camera to IMU.
+            Euler angles (roll, pitch, yaw), in radians, representing rotation from camera to IMU.
             If provided, `imu_camera_rotation_dcm` must not also be provided.
         camera_altitude_offset : float, optional
             Offset (in meters) between the real altitude and that measured by the IMU.
@@ -488,9 +498,9 @@ class FlatTerrainOrthorectifier_2:
             camera_northing=northing,
             camera_easting=easting,
             camera_altitude=altitude,
-            camera_yaw=yaw,
-            camera_pitch=pitch,
             camera_roll=roll,
+            camera_pitch=pitch,
+            camera_yaw=yaw,
         )
 
         # Create area and swath definitions
