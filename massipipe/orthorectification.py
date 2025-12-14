@@ -76,7 +76,7 @@ class CameraModel:
         self.altitude_offset = altitude_offset
 
     @property
-    def pixel_looking_angles(self) -> NDArray:
+    def looking_angles(self) -> NDArray:
         """Calculate the looking angles for each pixel in the sensor.
 
         Returns
@@ -110,7 +110,7 @@ class CameraModel:
         """
 
         # Create rotation to camera frame from pixel
-        R_to_cam_from_pixel = Rotation.from_euler("x", self.pixel_looking_angles)
+        R_to_cam_from_pixel = Rotation.from_euler("x", self.looking_angles)
 
         # Create rotation from camera to world
         # NOTE: "xyz" order corresponds to R_z(yaw) @ R_y(pitch) @ R_x(roll)
