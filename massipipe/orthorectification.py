@@ -57,6 +57,8 @@ class CameraModel:
             If both `cam_to_imu_rot_dcm` and `cam_to_imu_rot_euler` are provided.
         """
 
+        if cross_track_fov >= np.pi:
+            raise ValueError("Cross-track FOV must be less than pi radians (180 degrees).")
         self.opening_angle_deg = cross_track_fov
         self.n_pix = n_pix
 
@@ -110,10 +112,14 @@ class CameraModel:
         # Create rotation to camera frame from pixel
         R_cam_from_pixel = Rotation.from_euler("x", self.looking_angles)
 
-        # Create rotation from camera to world
+        # Create rotation from IMU to world
         # NOTE: "xyz" order corresponds to R_z(yaw) @ R_y(pitch) @ R_x(roll)
         R_world_from_imu = Rotation.from_euler("xyz", np.column_stack([roll, pitch, yaw]))
-        R_world_from_cam = R_world_from_imu * self.R_imu_from_cam
+
+        # Apply correction to misalignment between camera and IMU
+        # R_measured = R_imu_from_cam @ R_true
+        # R_true = R_imu_from_cam.inv() @ R_measured
+        R_world_from_cam = self.R_imu_from_cam.inv() * R_world_from_imu
 
         # Convert to matrices
         R_world_from_cam = R_world_from_cam.as_matrix()  # (M,3,3)
@@ -393,13 +399,15 @@ class FlatTerrainOrthorectifier_2:
         self,
         camera_fov: float,
         camera_cross_track_n_pixels: int,
-        imu_camera_rotation_dcm: NDArray | None = None,
-        imu_camera_rotation_euler: NDArray | None = None,
+        R_imu_from_camera_dcm: NDArray | None = None,
+        euler_imu_from_camera: NDArray | None = None,
         camera_altitude_offset: float = 0,
         radius_of_influence: float | None = None,
         nodata_fill_value: float = np.nan,
         ground_sampling_distance: float | None = None,
         estimate_yaw_from_positions: bool = False,
+        imu_roll_direction_is_right_wing_down: bool = True,
+        image_columns_increase_with_positive_y: bool = True,
     ):
         """Initialize orthorectifier with constants
 
@@ -409,10 +417,10 @@ class FlatTerrainOrthorectifier_2:
             Opening angle (radians) of pushbroom camera
         camera_cross_track_n_pixels : int
             Number of spatial pixels in pushbroom camera
-        imu_camera_rotation_dcm : NDArray | None, optional
+        R_imu_from_camera_dcm : NDArray | None, optional
             Direction Cosine Matrix (DCM) representing rotation from camera to IMU. If provided,
             `imu_camera_rotation_euler` must not also be provided.
-        imu_camera_rotation_euler : NDArray | None, optional
+        euler_imu_from_camera : NDArray | None, optional
             Euler angles (roll, pitch, yaw), in radians, representing rotation from camera to IMU.
             If provided, `imu_camera_rotation_dcm` must not also be provided.
         camera_altitude_offset : float, optional
@@ -429,21 +437,34 @@ class FlatTerrainOrthorectifier_2:
         estimate_yaw_from_positions: bool
             Whether to estimate yaw from positions rather than using yaw measurements
             from IMU. Useful if yaw measurements are inaccurate.
+        imu_roll_direction_is_right_wing_down : bool, optional
+            Whether roll angles are defined as positive for "right wing down".
+            If False, roll angles are assumed to be positive for "right wing up".
+        image_columns_increase_with_positive_y : bool, optional
+            Whether image columns indices increase with increasing y-axis coordinates.
+            If False, column indices are assumed to increase with decreasing y-axis coordinates.
+            A NED coordinate system in which the y-axis points to the right relative to direction
+            of travel is used.
         """
 
+        # Create helper objects; camera model, resampler, file writer
         self.camera_model = CameraModel(
             cross_track_fov=camera_fov,
             n_pix=camera_cross_track_n_pixels,
-            R_imu_from_cam=imu_camera_rotation_dcm,
-            euler_imu_from_cam=imu_camera_rotation_euler,
+            R_imu_from_cam=R_imu_from_camera_dcm,
+            euler_imu_from_cam=euler_imu_from_camera,
             altitude_offset=camera_altitude_offset,
         )
         self.resampler = Resampler(
             radius_of_influence=radius_of_influence, nodata=nodata_fill_value
         )
         self.file_writer = GeoTiffWriter(nodata=nodata_fill_value)
+
+        # Set other parameters
         self.gsd = ground_sampling_distance
         self.estimate_yaw_from_positions = estimate_yaw_from_positions
+        self.imu_roll_direction_is_right_wing_down = imu_roll_direction_is_right_wing_down
+        self.image_columns_increase_with_positive_y = image_columns_increase_with_positive_y
 
     def orthorectify_image(
         self,
@@ -493,6 +514,14 @@ class FlatTerrainOrthorectifier_2:
 
         if (yaw is None) or self.estimate_yaw_from_positions:
             yaw = heading_from_positions(time, northing, easting)
+
+        # Adjust roll direction if specified
+        if not self.imu_roll_direction_is_right_wing_down:
+            roll = -roll
+
+        # Adjust for image column direction if specified
+        if not self.image_columns_increase_with_positive_y:
+            image = np.flip(image, axis=1)
 
         # Calculate pixel ground positions
         pixel_utm_positions = self.camera_model.pixel_ground_positions(
