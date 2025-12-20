@@ -21,21 +21,6 @@ def sample_imu_angles(sample_angle):
 
 
 @pytest.fixture
-def sample_imu_data():
-    """Sample IMU data for testing"""
-    imu_data = {
-        "time": [0, 1, 2, 3, 4],
-        "roll": [0.0, 0.1, 0.2, 0.1, 0.0],
-        "pitch": [0.0, -0.1, -0.2, -0.1, 0.0],
-        "yaw": [0.0, 0.5, 1.0, 0.5, 0.0],
-        "altitude": [100, 101, 102, 101, 100],
-        "latitude": [65, 65, 65, 65, 65],
-        "longitude": [5, 5, 5, 5, 5],
-    }
-    return imu_data
-
-
-@pytest.fixture
 def sample_camera_model(sample_angle):
     return CameraModel(cross_track_fov=2 * sample_angle, n_pix=3)
 
@@ -55,40 +40,90 @@ def test_ray_rotation_dimensions(sample_angle, sample_camera_model, sample_imu_a
 def test_ray_rotation_roll(sample_angle, sample_camera_model, sample_imu_angles):
     ray_rot_mat = sample_camera_model._ray_rotation_matrices(*sample_imu_angles)
     a = sample_angle
-    # Zero IMU roll at first timepoint
-    assert np.allclose(
-        ray_rot_mat[0, 0],
-        np.array([[1, 0, 0], [0, np.cos(-a), -np.sin(-a)], [0, np.sin(-a), np.cos(-a)]]),
-    )
-    assert np.allclose(ray_rot_mat[0, 1], Rotation.identity().as_matrix())
-    assert np.allclose(
-        ray_rot_mat[0, 2],
-        np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]]),
-    )
-    # Non-zero IMU roll at second timepoint
-    assert np.allclose(
-        ray_rot_mat[1, 0],
-        np.array(
-            [[1, 0, 0], [0, np.cos(-2 * a), -np.sin(-2 * a)], [0, np.sin(-2 * a), np.cos(-2 * a)]]
-        ),
-    )
-    assert np.allclose(
-        ray_rot_mat[1, 1],
-        np.array([[1, 0, 0], [0, np.cos(-a), -np.sin(-a)], [0, np.sin(-a), np.cos(-a)]]),
-    )
-    assert np.allclose(ray_rot_mat[1, 2], Rotation.identity().as_matrix())
+
+    for phi, rot_mat_roll in zip([0, -a, a], ray_rot_mat[0:3]):
+        for alpha, rot_mat in zip([-a, 0, a], rot_mat_roll):
+            expected = np.array(
+                [
+                    [1, 0, 0],
+                    [0, np.cos(alpha + phi), -np.sin(alpha + phi)],
+                    [0, np.sin(alpha + phi), np.cos(alpha + phi)],
+                ]
+            )
+            close_mask = np.isclose(rot_mat, expected)
+            assert close_mask.all(), f"Matrices differ at indices:\n{np.argwhere(~close_mask)}"
 
 
 def test_ray_rotation_pitch(sample_angle, sample_camera_model, sample_imu_angles):
-    pass
-    # ray_rot_mat = sample_camera_model._ray_rotation_matrices(*sample_imu_angles)
-    # a = sample_angle
-    # assert np.allclose(
-    #     ray_rot_mat[0, 0],
-    #     np.array([[1, 0, 0], [0, np.cos(-a), -np.sin(-a)], [0, np.sin(-a), np.cos(-a)]]),
-    # )
-    # assert np.all(ray_rot_mat[0, 1] == Rotation.identity().as_matrix())
-    # assert np.allclose(
-    #     ray_rot_mat[0, 2],
-    #     np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]]),
-    # )
+    ray_rot_mat = sample_camera_model._ray_rotation_matrices(*sample_imu_angles)
+    a = sample_angle
+
+    # Test rotation matrices for pitch / looking angles only (zero roll and yaw)
+    for theta, rot_mat_pitch in zip([-a, a], ray_rot_mat[3:5]):
+        for phi, rot_mat in zip([-a, 0, a], rot_mat_pitch):
+            expected = np.array(
+                [
+                    [np.cos(theta), np.sin(phi) * np.sin(theta), np.cos(phi) * np.sin(theta)],
+                    [0, np.cos(phi), -np.sin(phi)],
+                    [-np.sin(theta), np.sin(phi) * np.cos(theta), np.cos(phi) * np.cos(theta)],
+                ]
+            )
+            close_mask = np.isclose(rot_mat, expected)
+            assert close_mask.all(), f"Matrices differ at indices:\n{np.argwhere(~close_mask)}"
+
+
+def test_ray_rotation_yaw(sample_angle, sample_camera_model, sample_imu_angles):
+    ray_rot_mat = sample_camera_model._ray_rotation_matrices(*sample_imu_angles)
+    a = sample_angle
+
+    # Test rotation matrices for yaw / looking angles only (zero roll and pitch)
+    for psi, rot_mat_yaw in zip([-a, a], ray_rot_mat[5:7]):
+        for phi, rot_mat in zip([-a, 0, a], rot_mat_yaw):
+            expected = np.array(
+                [
+                    [np.cos(psi), -np.sin(psi) * np.cos(phi), np.sin(psi) * np.sin(phi)],
+                    [np.sin(psi), np.cos(psi) * np.cos(phi), -np.cos(psi) * np.sin(phi)],
+                    [0, np.sin(phi), np.cos(phi)],
+                ]
+            )
+            close_mask = np.isclose(rot_mat, expected)
+            assert close_mask.all(), f"Matrices differ at indices:\n{np.argwhere(~close_mask)}"
+
+
+def test_camera_to_ground_simple(sample_camera_model):
+    # Simple test case with no rotation and flat terrain
+    imu_roll = np.array([0.0])
+    imu_pitch = np.array([0.0])
+    imu_yaw = np.array([0.0])
+    H = 100.0  # 100 meters altitude
+    imu_altitude = np.array([H])  # 100 meters altitude
+
+    R_world_cam = sample_camera_model._ray_rotation_matrices(imu_roll, imu_pitch, imu_yaw)
+    vectors = sample_camera_model._camera_to_ground_vectors(R_world_cam, imu_altitude)[0]
+
+    for alpha, vector in zip(sample_camera_model.looking_angles, vectors):
+        expected_vector = np.array([0, -np.tan(alpha) * H, H])
+
+        assert np.allclose(vector, expected_vector)
+
+
+def test_ground_offsets_no_yaw(sample_camera_model, sample_imu_angles):
+    # Test ground offsets without yaw
+    roll, pitch, _ = sample_imu_angles
+    yaw = np.zeros_like(roll)
+    H = 100.0
+    altitude = np.ones_like(roll) * H
+
+    R_world_cam = sample_camera_model._ray_rotation_matrices(roll, pitch, yaw)
+    all_vectors = sample_camera_model._camera_to_ground_vectors(R_world_cam, altitude)
+
+    for phi, theta, line_vectors in zip(roll, pitch, all_vectors):
+        for alpha, pixel_vector in zip(sample_camera_model.looking_angles, line_vectors):
+            expected_vector = H * np.array(
+                [np.tan(theta), (-np.tan(alpha + phi) / np.cos(theta)), 1]
+            )
+            close_mask = np.isclose(pixel_vector, expected_vector)
+            assert close_mask.all(), (
+                f"{pixel_vector=}, {expected_vector=}"
+                f"Vectors differ at indices:\n{np.argwhere(~close_mask)}, {phi=}, {theta=}"
+            )
