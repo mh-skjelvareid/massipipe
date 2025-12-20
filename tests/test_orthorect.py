@@ -127,3 +127,30 @@ def test_ground_offsets_no_yaw(sample_camera_model, sample_imu_angles):
                 f"{pixel_vector=}, {expected_vector=}"
                 f"Vectors differ at indices:\n{np.argwhere(~close_mask)}, {phi=}, {theta=}"
             )
+
+
+def test_ground_offsets_with_yaw(sample_camera_model, sample_imu_angles):
+    # Test ground offsets with yaw
+    roll, pitch, yaw = sample_imu_angles
+    H = 100.0
+    altitude = np.ones_like(roll) * H
+
+    R_world_cam = sample_camera_model._ray_rotation_matrices(roll, pitch, yaw)
+    all_vectors = sample_camera_model._camera_to_ground_vectors(R_world_cam, altitude)
+
+    for phi, theta, psi, line_vectors in zip(roll, pitch, yaw, all_vectors):
+        for alpha, pixel_vector in zip(sample_camera_model.looking_angles, line_vectors):
+            expected_vector = H * np.array(
+                [
+                    np.cos(psi) * np.tan(theta)
+                    - np.sin(psi) * (-np.tan(alpha + phi) / np.cos(theta)),
+                    np.sin(psi) * np.tan(theta)
+                    + np.cos(psi) * (-np.tan(alpha + phi) / np.cos(theta)),
+                    1,
+                ]
+            )
+            close_mask = np.isclose(pixel_vector, expected_vector)
+            assert close_mask.all(), (
+                f"{pixel_vector=}, {expected_vector=}"
+                f"Vectors differ at indices:\n{np.argwhere(~close_mask)}, {phi=}, {theta=}, {psi=}"
+            )
