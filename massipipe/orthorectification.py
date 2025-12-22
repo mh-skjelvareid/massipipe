@@ -238,35 +238,35 @@ class CameraModel:
 
 
 class Resampler:
-    def __init__(self, radius_of_influence, nodata):
-        self.radius = radius_of_influence
-        self.nodata = nodata
-
-    def _area_definition(self, pixel_utm_positions: NDArray, utm_epsg: int) -> AreaDefinition:
-        """Create AreaDefinition based on pixel coordinates
+    def __init__(self, nodata: float | None):
+        """Initialize resampler.
 
         Parameters
         ----------
-        pixel_utm_positions : NDArray
-            UTM coordinates (easting, northing) for each pixel in the input image.
-            Shape (n_lines, n_samples, 2).
-        utm_epsg : int
-            EPSG code for the UTM zone.
-
-        Returns
-        -------
-        AreaDefinition
-            Pyresample AreaDefinition object created based on outer x/y bounds of pixel
-            positions. The resolution is estimated median spacing of x and y coordinates
-            in the pixel positions.
+        nodata : float
+            Value to use for "no data" pixels in resampled image.
         """
-        gsd = resolution_from_pixel_coordinates(pixel_utm_positions)
+        self.nodata = nodata
+
+    def _area_definition(
+        self, pixel_utm_positions: NDArray, utm_epsg: int, gsd: float
+    ) -> AreaDefinition:
+        """Create AreaDefinition based on pixel coordinates"""
+        # Determine area extent and resolution
         area_extent = area_extent_from_pixel_coordinates(pixel_utm_positions)
+
+        # Calculate width and height in pixels
         x_min, y_min, x_max, y_max = area_extent
         width = int((x_max - x_min) / gsd)
         height = int((y_max - y_min) / gsd)
+        if width <= 0 or height <= 0:
+            raise ValueError(
+                "Incompatible GSD and pixel coordinates - "
+                "calculated width or height is non-positive."
+            )
 
-        area_def = AreaDefinition(
+        # Create area definition
+        return AreaDefinition(
             area_id="utm_grid",
             description="UTM orthorectified area",
             proj_id="utm",
@@ -275,7 +275,6 @@ class Resampler:
             height=height,
             area_extent=area_extent,
         )
-        return area_def
 
     def _swath_definition(self, pixel_utm_coordinates: NDArray, utm_epsg: int) -> SwathDefinition:
         """Create swath definition based on spatial pixel coordinates for image
@@ -306,36 +305,57 @@ class Resampler:
         )
         return swath_def
 
-    def resample(self, image: NDArray, area_def, swath_def, gsd: float) -> NDArray:
+    def resample(
+        self,
+        image: NDArray,
+        pixel_utm_coordinates: NDArray,
+        utm_epsg: int,
+        ground_sampling_distance: float | None = None,
+        radius_of_influence: float | None = None,
+    ) -> tuple[NDArray, AreaDefinition]:
         """Resample swath to grid using nearest neighbor resampling.
 
         Parameters
         ----------
         image : NDArray, shape (n_lines, n_samples, n_bands)
             Image to be resampled (original swath data).
-        area_def : AreaDefinition
-            The target area definition for the resampled image.
-        swath_def : SwathDefinition
-            The swath of the original image.
-        gsd : float
-            Ground sampling distance (in meters) of the resampled image.
+        pixel_utm_coordinates : NDArray
+            UTM coordinates (northing, easting) for each pixel in the input image.
+            Shape (n_lines, n_samples, 2).
+        utm_epsg : int
+            EPSG code for UTM zone.
+        ground_sampling_distance : float | None, optional
+            Ground sampling distance (in meters) of the resampled image. If None, GSD is
+            estimated from pixel coordinates.
+        radius_of_influence : float | None, optional
+            Radius of neighbor pixels considered for nearest-neighbor resampling (meters). If None,
+            radius of influence is set to 5 times the ground sampling distance.
 
         Returns
         -------
-        NDArray, shape (n_northing, n_easting, n_bands)
-            Resampled image.
+        tuple[NDArray, AreaDefinition]
+            resampled_image : NDArray, shape (n_northing, n_easting, n_bands)
+                Resampled image.
+            area_def : AreaDefinition
+                Pyresample AreaDefinition for the resampled grid.
         """
+        gsd = ground_sampling_distance or resolution_from_pixel_coordinates(pixel_utm_coordinates)
+        radius = radius_of_influence or 5 * gsd
 
-        radius = self.radius or 2 * gsd
-        return np.array(
+        area_def = self._area_definition(pixel_utm_coordinates, utm_epsg, gsd)
+        swath_def = self._swath_definition(pixel_utm_coordinates, utm_epsg)
+
+        image_resampled = np.array(
             resample_nearest(
                 swath_def,
                 image,
                 area_def,
                 radius_of_influence=radius,
-                fill_value=self.nodata,
+                fill_value=self.nodata,  # type: ignore
             )
         )
+
+        return image_resampled, area_def
 
 
 class GeoTiffWriter:
@@ -403,8 +423,8 @@ class FlatTerrainOrthorectifier_2:
         euler_imu_from_camera: NDArray | None = None,
         camera_altitude_offset: float = 0,
         radius_of_influence: float | None = None,
-        nodata_fill_value: float = np.nan,
         ground_sampling_distance: float | None = None,
+        nodata_fill_value: float = np.nan,
         estimate_yaw_from_positions: bool = False,
         imu_roll_direction_is_right_wing_down: bool = True,
         image_columns_increase_with_positive_y: bool = True,
@@ -429,11 +449,11 @@ class FlatTerrainOrthorectifier_2:
         radius_of_influence : float | None, optional
             Radius of neigbor pixels considered for nearest-neighbor resampling
             (meters). If None, radius of influence is set to twice the ground sampling distance.
-        nodata_fill_value : _type_, optional
-            Which value to use for "no data" (outside swath), by default np.nan
         ground_sampling_distance : float | None, optional
             Ground sampling distance (in meters) for the orthorectified image. If None, GSD is
             estimated from pixel coordinates.
+        nodata_fill_value : float, optional
+            Which value to use for "no data" (outside swath), by default np.nan
         estimate_yaw_from_positions: bool
             Whether to estimate yaw from positions rather than using yaw measurements
             from IMU. Useful if yaw measurements are inaccurate.
@@ -456,11 +476,12 @@ class FlatTerrainOrthorectifier_2:
             altitude_offset=camera_altitude_offset,
         )
         self.resampler = Resampler(
-            radius_of_influence=radius_of_influence, nodata=nodata_fill_value
+            nodata=nodata_fill_value,
         )
         self.file_writer = GeoTiffWriter(nodata=nodata_fill_value)
 
         # Set other parameters
+        self.radius_of_influence = radius_of_influence
         self.gsd = ground_sampling_distance
         self.estimate_yaw_from_positions = estimate_yaw_from_positions
         self.imu_roll_direction_is_right_wing_down = imu_roll_direction_is_right_wing_down
@@ -524,7 +545,7 @@ class FlatTerrainOrthorectifier_2:
             image = np.flip(image, axis=1)
 
         # Calculate pixel ground positions
-        pixel_utm_positions = self.camera_model.pixel_ground_positions(
+        pixel_utm_coordinates = self.camera_model.pixel_ground_positions(
             camera_northing=northing,
             camera_easting=easting,
             camera_altitude=altitude,
@@ -533,13 +554,14 @@ class FlatTerrainOrthorectifier_2:
             camera_yaw=yaw,
         )
 
-        # Create area and swath definitions
-        area_def = self.resampler._area_definition(pixel_utm_positions, utm_epsg)
-        swath_def = self.resampler._swath_definition(pixel_utm_positions, utm_epsg)
-
-        # Resample image to grid
-        gsd = self.gsd or resolution_from_pixel_coordinates(pixel_utm_positions)
-        ortho_image = self.resampler.resample(image, area_def, swath_def, gsd=gsd)
+        # Resample to orthorectified grid
+        ortho_image, area_def = self.resampler.resample(
+            image,
+            pixel_utm_coordinates,
+            utm_epsg,
+            ground_sampling_distance=self.gsd,
+            radius_of_influence=self.radius_of_influence,
+        )
 
         return ortho_image, area_def, utm_epsg
 
