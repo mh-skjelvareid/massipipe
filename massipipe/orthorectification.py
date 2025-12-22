@@ -688,13 +688,32 @@ def heading_from_positions(time: NDArray, northing: NDArray, easting: NDArray) -
     if not all(len(x) == M for x in (northing, easting)):
         raise ValueError("All input vectors must be of equal length.")
 
-    # Fit smoothing splines
-    sn = make_smoothing_spline(time, northing)
-    se = make_smoothing_spline(time, easting)
+    # Identify valid timestamps (strictly increasing)
+    valid = np.ones(M, dtype=bool)
+    valid[1:] = np.diff(time) > 0
 
-    # First derivatives (velocity components)
-    dn_dt = sn.derivative()(time)
-    de_dt = se.derivative()(time)
+    if valid.sum() < 2:
+        raise ValueError("Not enough unique timestamps for spline fitting.")
 
-    # calculate heading
-    return np.arctan2(de_dt, dn_dt)  # arctan (easting / northing)
+    # Fit splines using only valid data
+    sn = make_smoothing_spline(time[valid], northing[valid])
+    se = make_smoothing_spline(time[valid], easting[valid])
+
+    # Compute derivatives at valid timestamps
+    dn_dt_valid = sn.derivative()(time[valid])
+    de_dt_valid = se.derivative()(time[valid])
+
+    heading_valid = np.arctan2(de_dt_valid, dn_dt_valid)
+
+    # Linear interpolation for invalid timestamps (np.interp)
+    heading = np.empty(M)
+    heading[valid] = heading_valid
+
+    if not np.all(valid):
+        heading[~valid] = np.interp(
+            time[~valid],
+            time[valid],
+            heading_valid,
+        )
+
+    return heading
