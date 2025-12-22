@@ -417,7 +417,7 @@ class FlatTerrainOrthorectifier:
 
     def __init__(
         self,
-        camera_fov: float,
+        camera_cross_track_fov: float,
         camera_cross_track_n_pixels: int,
         R_imu_from_camera_dcm: NDArray | None = None,
         euler_imu_from_camera: NDArray | None = None,
@@ -433,7 +433,7 @@ class FlatTerrainOrthorectifier:
 
         Parameters
         ----------
-        camera_fov : float,
+        camera_cross_track_fov : float,
             Opening angle (radians) of pushbroom camera
         camera_cross_track_n_pixels : int
             Number of spatial pixels in pushbroom camera
@@ -469,7 +469,7 @@ class FlatTerrainOrthorectifier:
 
         # Create helper objects; camera model, resampler, file writer
         self.camera_model = CameraModel(
-            cross_track_fov=camera_fov,
+            cross_track_fov=camera_cross_track_fov,
             n_pix=camera_cross_track_n_pixels,
             R_imu_from_cam=R_imu_from_camera_dcm,
             euler_imu_from_cam=euler_imu_from_camera,
