@@ -412,7 +412,7 @@ class GeoTiffWriter:
         self._save(image, wavelengths, geotiff_profile, path)
 
 
-class FlatTerrainOrthorectifier_2:
+class FlatTerrainOrthorectifier:
     """Line-by-line orthorectification of hyperspectral images assuming flat terrain"""
 
     def __init__(
