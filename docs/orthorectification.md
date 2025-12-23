@@ -173,7 +173,7 @@ t^*
 \end{bmatrix}
 $$
 
-where $t^*$ corresponds to the length of the vector. The z coordinate lets us solve solve foe this length, $t^* = \frac{H}{\cos \phi \cos \theta}$. Inserting this into the equation above, we obtain 
+where $t^*$ corresponds to the length of the vector. The z coordinate lets us solve for this length, $t^* = \frac{H}{\cos \phi \cos \theta}$. Inserting this into the equation above, we obtain 
 
 $$
 \mathbf{r} =
