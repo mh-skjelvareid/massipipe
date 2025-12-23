@@ -27,7 +27,7 @@ Note that while positive pitch is almost always defined as "nose up", in some ca
 $$\phi = - \phi_\text{\ right wing up} $$
 
 ## Camera orientation
-The orethorectification assumes a push-broom camera with axes defined as shown in the image below. The $z$ axis points towards the middle of the camera line of sight, and the line of sight is parallell with the $y$ axis. The camera is mounted on a platform with the $x$ axis pointing along-track (forward) and the y axis pointing to the right, across-track.  
+The orthorectification assumes a push-broom camera with axes defined as shown in the image below. The $z$ axis points towards the middle of the camera line of sight, and the line of sight is parallel with the $y$ axis. The camera is mounted on a platform with the $x$ axis pointing along-track (forward) and the y axis pointing to the right, across-track.  
 
 ![](figures/orthorect_3d_swath.jpg)
 
