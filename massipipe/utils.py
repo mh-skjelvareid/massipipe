@@ -987,12 +987,12 @@ def resample_cube_spectrally(image: NDArray, old_wl: NDArray, new_wl: NDArray) -
 
 
 def round_float_up(num: float, to_digit: int = 2) -> float:
-    """Rounds a float up to next value, specifing precision.
+    """Rounds a positive float up to next value, specifing precision.
 
     Parameters
     ----------
     num : float
-        The number to round up.
+        The number to round up. Must be positive.
     to_digit : int, default = 2
         The digit position to round to (1 = first significant digit, 2 = second, etc.)
         Must be >= 1.
@@ -1009,6 +1009,8 @@ def round_float_up(num: float, to_digit: int = 2) -> float:
     >>> round_float_up(1234, to_digit=2)
     1300.0
     """
+    if num < 0:
+        raise ValueError("num must be positive")
     if num == 0:
         return 0
     if to_digit < 1:

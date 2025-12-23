@@ -16,15 +16,11 @@ import logging
 # Internal imports
 from .config import Config, read_config, update_yaml
 from .export import export_dataset_zip
-from .georeferencing import (
-    FlatTerrainOrthorectifier,
-    ImuDataParser,
-    ImuGeoTransformer,
-    georeferenced_hyspec_to_rgb_geotiff,
-)
+from .georeferencing import ImuDataParser, ImuGeoTransformer, georeferenced_hyspec_to_rgb_geotiff
 from .glint import FlatSpecGlintCorrector, HedleyGlintCorrector
 from .irradiance import IrradianceConverter
 from .mosaic import add_geotiff_overviews, convert_geotiff_to_8bit, mosaic_geotiffs
+from .orthorectification import FlatTerrainOrthorectifier
 from .pipeline import Pipeline, find_datasets
 from .quicklook import QuickLookProcessor
 from .radiance import RadianceConverter
