@@ -198,7 +198,7 @@ $$
 The $r_x$ and $r_y$ values thus correspond to the along-track and across-track pixel offsets on the ground, respectively. The result matches our intuition:
 
 - A positive pitch $\theta$ tilts the whole fan forwards, i.e. it results in a positive along-track offset $r_x$.
-- A positive roll $\phi$ tilts the whole fan in to the left, i.e., across-track offset $r_y$ is negative. The term $\cos \theta$ in the denominator is always positive for a down-looking camera, and accounts for the fact that when the fan is tilted forwards or backwards (non-zero pitch), the rays of the fan spread out more before they intersect the ground plane.  
+- A positive roll $\phi$ tilts the whole fan to the left, i.e., across-track offset $r_y$ is negative. The term $\cos \theta$ in the denominator is always positive for a down-looking camera, and accounts for the fact that when the fan is tilted forwards or backwards (non-zero pitch), the rays of the fan spread out more before they intersect the ground plane.  
 
 
 ## Correcting camera-IMU frame offsets
