@@ -117,9 +117,7 @@ class CameraModel:
         R_world_from_imu = Rotation.from_euler("xyz", np.column_stack([roll, pitch, yaw]))
 
         # Apply correction to misalignment between camera and IMU
-        # R_measured = R_imu_from_cam @ R_true
-        # R_true = R_imu_from_cam.inv() @ R_measured
-        R_world_from_cam = self.R_imu_from_cam.inv() * R_world_from_imu
+        R_world_from_cam = R_world_from_imu * self.R_imu_from_cam
 
         # Convert to matrices
         R_world_from_cam = R_world_from_cam.as_matrix()  # (M,3,3)
