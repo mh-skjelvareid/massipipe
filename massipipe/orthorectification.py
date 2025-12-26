@@ -29,7 +29,7 @@ class CameraModel:
 
         Parameters
         ----------
-        cross_track_fov_deg : float
+        cross_track_fov : float
             The cross-track field of view (angular extent) of the camera, in radians.
         n_pix : int
             The number of pixels per image line.
@@ -48,18 +48,18 @@ class CameraModel:
 
         Notes
         -----
-        - If neither `cam_to_imu_rot_dcm` nor `cam_to_imu_rot_euler` are provided,
+        - If neither `R_imu_from_cam` nor `euler_imu_from_cam` are provided,
         an identity rotation is assumed (i.e., camera and IMU frames are aligned).
 
         Raises
         ------
         ValueError
-            If both `cam_to_imu_rot_dcm` and `cam_to_imu_rot_euler` are provided.
+            If both `R_imu_from_cam` and `euler_imu_from_cam` are provided.
         """
 
         if cross_track_fov >= np.pi:
             raise ValueError("Cross-track FOV must be less than pi radians (180 degrees).")
-        self.opening_angle_deg = cross_track_fov
+        self.cross_track_fov = cross_track_fov
         self.n_pix = n_pix
 
         if (R_imu_from_cam is not None) and (euler_imu_from_cam is not None):
@@ -85,7 +85,7 @@ class CameraModel:
             A 1D array of angles (in radians) corresponding to each pixel
         """
 
-        edge = np.tan(self.opening_angle_deg / 2)
+        edge = np.tan(self.cross_track_fov / 2)
         return np.arctan(np.linspace(-edge, edge, self.n_pix))
 
     def _ray_rotation_matrices(self, roll: NDArray, pitch: NDArray, yaw: NDArray) -> NDArray:
