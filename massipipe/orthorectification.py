@@ -251,8 +251,8 @@ class Resampler:
 
         # Calculate width and height in pixels
         x_min, y_min, x_max, y_max = area_extent
-        width = int((x_max - x_min) / gsd)
-        height = int((y_max - y_min) / gsd)
+        width = int(np.ceil((x_max - x_min) / gsd))
+        height = int(np.ceil((y_max - y_min) / gsd))
         if width <= 0 or height <= 0:
             raise ValueError(
                 "Incompatible GSD and pixel coordinates - "
