@@ -22,7 +22,7 @@ class CameraModel:
         n_pix: int,
         R_imu_from_cam: NDArray | None = None,
         euler_imu_from_cam: NDArray | None = None,
-        altitude_offset: float = 0,
+        altitude_correction: float = 0,
     ):
         """
         Initialize the orthorectification parameters.
@@ -40,11 +40,9 @@ class CameraModel:
             Euler angles (roll, pitch, yaw), in radians, representing the (intrinsic) rotation
             from the camera to the IMU. If provided, `cam_to_imu_rot_dcm` must not
             be provided.
-        altitude_offset : float, optional
-            Offset between the true altitude above ground and the altitude measured by
-            the IMU, in meters.
-                imu_altitude = true_altitude + altitude_offset
-                true_altitude = imu_altitude - altitude_offset
+        altitude_correction : float, optional
+            Correction term added to altitude measurements to account for systematic offsets,
+                true_altitude = imu_altitude + altitude_correction
 
         Notes
         -----
@@ -73,7 +71,7 @@ class CameraModel:
             self.R_imu_from_cam = Rotation.from_euler("xyz", euler_imu_from_cam)
         else:
             self.R_imu_from_cam = Rotation.identity()  # No rotation
-        self.altitude_offset = altitude_offset
+        self.altitude_correction = altitude_correction
 
     @property
     def looking_angles(self) -> NDArray:
@@ -141,9 +139,7 @@ class CameraModel:
             An array of shape (N, M, 3, 3) representing the rotation matrices for each pixel.
         camera_altitude : NDArray
             A 1D array of shape (M,) representing the IMU measurements of altitude of the camera
-            relative to the ground for each image row. The CameraModel's altitude offset is used to
-            calculate true altitude as:
-                true_altitude = camera_altitude - camera_model.altitude_offset
+            relative to the ground for each image row.
 
         Returns
         -------
@@ -153,8 +149,8 @@ class CameraModel:
 
         """
 
-        # Adjust camera altitude using altitude offset
-        camera_altitude = camera_altitude - self.altitude_offset
+        # Correct camera altitude by adding altitude correction
+        camera_altitude = camera_altitude + self.altitude_correction
 
         # Parameterization: t corresponds to number of unit vectors to reach ground
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -419,7 +415,7 @@ class FlatTerrainOrthorectifier:
         camera_cross_track_n_pixels: int,
         R_imu_from_camera_dcm: NDArray | None = None,
         euler_imu_from_camera: NDArray | None = None,
-        camera_altitude_offset: float = 0,
+        camera_altitude_correction: float = 0,
         radius_of_influence: float | None = None,
         ground_sampling_distance: float | None = None,
         nodata_fill_value: float = np.nan,
@@ -441,9 +437,9 @@ class FlatTerrainOrthorectifier:
         euler_imu_from_camera : NDArray | None, optional
             Euler angles (roll, pitch, yaw), in radians, representing rotation from camera to IMU.
             If provided, `imu_camera_rotation_dcm` must not also be provided.
-        camera_altitude_offset : float, optional
-            Offset (in meters) between the real altitude and that measured by the IMU.
-            If the altitude above ground is larger than the IMU altitude, the offset is positive.
+        camera_altitude_correction : float, optional
+            Correction term added to altitude measurements to account for systematic offsets
+            between the true altitude above ground and the altitude measured by the IMU.
         radius_of_influence : float | None, optional
             Radius of neigbor pixels considered for nearest-neighbor resampling
             (meters). If None, radius of influence is set to twice the ground sampling distance.
@@ -471,7 +467,7 @@ class FlatTerrainOrthorectifier:
             n_pix=camera_cross_track_n_pixels,
             R_imu_from_cam=R_imu_from_camera_dcm,
             euler_imu_from_cam=euler_imu_from_camera,
-            altitude_offset=camera_altitude_offset,
+            altitude_correction=camera_altitude_correction,
         )
         self.resampler = Resampler(
             nodata=nodata_fill_value,
