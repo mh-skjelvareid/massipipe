@@ -147,14 +147,24 @@ class CameraModel:
             A 3D array of shape (M, N, 3) containing the direction vectors from the camera to the
             ground for eah pixel.
 
+        Raises
+        ------
+        ValueError
+            If any of the z-components of the direction vectors are non-positive.
+
         """
 
         # Correct camera altitude by adding altitude correction
         camera_altitude = camera_altitude + self.altitude_correction
 
+        # Validate rotations (ensure z-component of direction vector is positive and non-zero)
+        if np.any(R_world_from_pixel[:, :, 2, 2] <= 0):
+            raise ValueError(
+                "Invalid rotation matrix: z-component of direction vector is zero or negative"
+            )
+
         # Parameterization: t corresponds to number of unit vectors to reach ground
-        with np.errstate(divide="ignore", invalid="ignore"):
-            t = camera_altitude[:, np.newaxis] / R_world_from_pixel[:, :, 2, 2]  # (M,N)
+        t = camera_altitude[:, np.newaxis] / R_world_from_pixel[:, :, 2, 2]  # (M,N)
 
         # Direction vector corresponds to last column of rotation matrix
         # (multiplication with unit vector along z-axis, [0,0,1])
