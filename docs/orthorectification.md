@@ -114,7 +114,7 @@ where the order of operations is read from right to left, i.e. the rotation abou
 
 
 ## Pixel offsets on the ground - along-track and across-track 
-To understand how roll and pitch correspond to across- and alongtrack offsets, we'll first consider the combined rotation around the x and y axes:
+To understand how roll and pitch correspond to across- and along-track offsets, we'll first consider the combined rotation around the x and y axes:
 
 $$ 
 \begin{align}
