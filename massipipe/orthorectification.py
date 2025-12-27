@@ -259,8 +259,14 @@ class Resampler:
         # Determine area extent and resolution
         area_extent = area_extent_from_pixel_coordinates(pixel_utm_positions)
 
-        # Calculate width and height in pixels
+        # Add margin corresponding to half a pixel on each side
         x_min, y_min, x_max, y_max = area_extent
+        x_min = x_min - gsd / 2
+        x_max = x_max + gsd / 2
+        y_min = y_min - gsd / 2
+        y_max = y_max + gsd / 2
+
+        # Calculate width and height in pixels
         width = int(np.ceil((x_max - x_min) / gsd))
         height = int(np.ceil((y_max - y_min) / gsd))
         if width <= 0 or height <= 0:
@@ -339,9 +345,13 @@ class Resampler:
         -------
         tuple[NDArray, AreaDefinition]
             resampled_image : NDArray, shape (n_northing, n_easting, n_bands)
-                Resampled image.
+                Resampled image, type numpy.float32.
             area_def : AreaDefinition
                 Pyresample AreaDefinition for the resampled grid.
+
+        Notes
+        -----
+        - The image is converted to float32 prior to resampling to enable NaN handling.
         """
         gsd = ground_sampling_distance or resolution_from_pixel_coordinates(pixel_utm_coordinates)
         radius = radius_of_influence or 5 * gsd
@@ -352,7 +362,7 @@ class Resampler:
         image_resampled = np.array(
             resample_nearest(
                 swath_def,
-                image,
+                image.astype(np.float32),
                 area_def,
                 radius_of_influence=radius,
                 fill_value=self.nodata,  # type: ignore
