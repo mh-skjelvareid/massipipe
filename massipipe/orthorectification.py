@@ -260,11 +260,12 @@ class Resampler:
         area_extent = area_extent_from_pixel_coordinates(pixel_utm_positions)
 
         # Add margin corresponding to half a pixel on each side
+        half_pixel = gsd / 2
         x_min, y_min, x_max, y_max = area_extent
-        x_min = x_min - gsd / 2
-        x_max = x_max + gsd / 2
-        y_min = y_min - gsd / 2
-        y_max = y_max + gsd / 2
+        x_min = x_min - half_pixel
+        x_max = x_max + half_pixel
+        y_min = y_min - half_pixel
+        y_max = y_max + half_pixel
 
         # Calculate width and height in pixels
         width = int(np.ceil((x_max - x_min) / gsd))
@@ -283,7 +284,7 @@ class Resampler:
             projection=CRS.from_epsg(utm_epsg),
             width=width,
             height=height,
-            area_extent=area_extent,
+            area_extent=(x_min, y_min, x_max, y_max),
         )
 
     def _swath_definition(self, pixel_utm_coordinates: NDArray, utm_epsg: int) -> SwathDefinition:
