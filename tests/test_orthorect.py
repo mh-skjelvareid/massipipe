@@ -180,25 +180,30 @@ def test_full_orthorect_no_rot():
     in this case should be a flip along both axes (180 degree rotation).
 
     """
+    # Define small example image and parameters
     image = np.arange(12).reshape((4, 3))
     H = 1000.0  # 1000 meters altitude
-    alpha = 0.1
+    alpha = 0.1  # Approx 5.7 degrees in radians
     n_pix = 3
     fov = 2 * alpha
-    gsd = H * np.tan(alpha)  # Approx 100 meters
     altitude = np.array([H] * 4)
+    ll_100m_step = 0.0009047313695974662  # Decimal degrees corr. to approx 100m around equator
     longitude = np.array([-177.0] * 4)  # Center of UTM zone 1N
-    latitude = np.array([1.0, 2.0, 3.0, 4.0]) * 0.0009047313695974662  # Around equator, ~100m steps
+    latitude = np.array([1.0, 2.0, 3.0, 4.0]) * ll_100m_step  # Around equator, ~100m steps
     roll = np.zeros_like(altitude)
     pitch = np.zeros_like(altitude)
     yaw = np.zeros_like(altitude)
     time = np.array([0.0, 1.0, 2.0, 3.0])
 
+    # Set ground sampling distance slightly larger than raytracing result (avound rounding issues)
+    gsd = H * np.tan(alpha) * 1.02
+
+    # Orthorectify
     orthorect = FlatTerrainOrthorectifier(
         camera_cross_track_fov=fov,
         camera_cross_track_n_pixels=n_pix,
+        ground_sampling_distance=gsd,
     )
-
     orthorect_image, area_def, utm_epsg = orthorect.orthorectify_image(
         image,
         time=time,
@@ -210,7 +215,76 @@ def test_full_orthorect_no_rot():
         yaw=yaw,
     )
 
-    print(orthorect_image.shape)
     assert orthorect_image.shape == (4, 3)
     assert utm_epsg == 32601  # UTM zone 1N
     assert np.allclose(orthorect_image, np.flipud(np.fliplr(image.astype(np.float32))))
+
+
+def test_full_orthorect_with_rot():
+    """Test end-to-end pixel location calculation with no roll, pitch and yaw
+
+    This tests includes non-zero values for roll, pitch and yaw. To keep the case simple enough
+    for quick debugging / analysis, thw followoing angles are chosen
+    - Alpha (looking angle): 0.1 radians
+    - Roll: 0.05 radians - corresponds to approx 50 meter "left" offset
+    - Pitch: 0.2 radians - corresponds to approx. 200 meter forward offset
+    - Yaw: pi/2 radians - corresponds to rotation from north to east
+
+    Relatively small roll/pitch angles keeps the ground offsets fairly linear with angle.
+    """
+    # Define small example image and parameters
+    image = np.arange(12).reshape((4, 3))
+    H = 1000.0  # 1000 meters altitude
+    alpha = 0.1  # Approx 5.7 degrees in radians
+    n_pix = 3
+    fov = 2 * alpha
+    altitude = np.array([H] * 4)
+    roll = np.array([alpha / 2] * 4)
+    pitch = np.array([2 * alpha] * 4)
+    yaw = np.radians([90] * 4)  # Rotate from north to east
+    time = np.array([0.0, 1.0, 2.0, 3.0])
+
+    ll_100m_step = 0.0009047313695974662  # Decimal degrees corr. to approx 100m around equator
+    longitude = np.array([0.0, 1.0, 2.0, 3.0]) * ll_100m_step - 177  # Moving east in 100 m steps
+    latitude = np.array([10 * ll_100m_step] * 4)  # Approx 1000 m north of equator
+
+    # Set ground sampling distance slightly larger than raytracing result (avound rounding issues)
+    gsd = H * np.tan(alpha) * 1.05
+
+    # Orthorectify
+    orthorect = FlatTerrainOrthorectifier(
+        camera_cross_track_fov=fov,
+        camera_cross_track_n_pixels=n_pix,
+        ground_sampling_distance=gsd,
+    )
+    orthorect_image, area_def, utm_epsg = orthorect.orthorectify_image(
+        image,
+        time=time,
+        latitude=latitude,
+        longitude=longitude,
+        altitude=altitude,
+        roll=roll,
+        pitch=pitch,
+        yaw=yaw,
+    )
+
+    # Test corners of area definition
+    approx_expected_area_extent = np.array(
+        [
+            500150.0,  # 500 000 + 200 (pitch offset) - 50 (half pixel)
+            900.0,  # 1000 - 100 (looking angle) + 50 (roll offset) - 50 (half pixel)
+            500550.0,  # 500 000 + 200 (pitch offset) + 100*3 (along-track steps)
+            1200.0,  # 1000 + 100 (looking angle) + 50 (roll offset) + 50 (half pixel)
+        ]
+    )
+    assert np.allclose(np.array(area_def.area_extent), approx_expected_area_extent, atol=20)
+
+    # Pixels should correspond to 90 degree counterclockwise rotation
+    assert orthorect_image.shape == (3, 4)
+    assert orthorect_image[0, 0] == image[0, -1]
+    assert orthorect_image[-1, 0] == image[0, 0]
+    assert orthorect_image[0, -1] == image[-1, -1]
+    assert orthorect_image[-1, -1] == image[-1, 0]
+
+    # Test for correct UTM CRS
+    assert utm_epsg == 32601  # UTM zone 1N
