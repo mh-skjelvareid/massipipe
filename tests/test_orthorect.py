@@ -170,6 +170,35 @@ def test_ground_offsets_with_yaw(sample_camera_model):
             )
 
 
+def test_pixel_ground_positions_simple(sample_camera_model):
+    """Test for pixel ground positions in simple no-yaw case"""
+    N = 100
+    E = -50.0
+    H = 100.0
+    northing = np.array([N])
+    easting = np.array([E])
+    altitude = np.array([H])
+    roll = np.radians([5])
+    pitch = np.radians([-3])
+    yaw = np.radians([0])
+
+    calc_positions = sample_camera_model.pixel_ground_positions(
+        camera_northing=northing,
+        camera_easting=easting,
+        camera_altitude=altitude,
+        camera_roll=roll,
+        camera_pitch=pitch,
+        camera_yaw=yaw,
+    )
+
+    for alpha, calc_position in zip(sample_camera_model.looking_angles, calc_positions[0, :, :]):
+        expected_position = H * np.array(
+            [np.tan(pitch), (-np.tan(alpha + roll) / np.cos(pitch))]
+        ) + np.array([[N], [E]])
+        print(calc_positions)
+        assert np.allclose(calc_position, np.squeeze(expected_position), rtol=1e-5)
+
+
 def test_full_orthorect_no_rot():
     """Test end-to-end pixel location calculation with no rotations
 
