@@ -114,9 +114,17 @@ $$ R_z(\psi)=
 
 These matrices are combined to perform an "intrinsic" rotation of any column vector $\mathbf{v} = [x,y,z]^T$ from the IMU frame to the world frame:
 
-$$\mathbf{v}_{\text{world}} = R_z(\psi) R_y(\theta) R_x(\phi) \mathbf{v}_\text{IMU}$$
+$$
+\begin{align}
+\mathbf{v}_{\text{world}} 
+&= R_z(\psi) R_y(\theta) R_x(\phi) \cdot \mathbf{v}_\text{IMU} \\
+&= R_{\text{world} \leftarrow \text{IMU}} \cdot \mathbf{v}_\text{IMU}
+\end{align}
+$$
 
-where the order of operations is read from right to left, i.e. the rotation about the $x$-axis is applied first, then $y$, then $z$. 
+where the order of operations is read from right to left, i.e. the rotation about the $x$-axis is applied first, then $y$, then $z$. The product of the three rotation matrices is a single 3x3 matrix, $R_{\text{world} \leftarrow \text{IMU}}$, describing the rotation from the IMU frame to the world frame.
+
+
 
 
 ## Pixel offsets on the ground - along-track and across-track 
@@ -278,8 +286,9 @@ $$
 \end{align}
 $$
 
-The direction vector is extended until it reaches the ground via parameterization, $\mathbf{d} = t \cdot \hat{\mathbf{d}}$. We can then use the $z$ component, corresponding to altitude above ground, to solve for $t$
+The direction vector is extended until it reaches the ground via parameterization, $\mathbf{d} = t \cdot \hat{\mathbf{d}}$. We can then use the $z$ component, corresponding to altitude $H$ above ground, to solve for $t$
 
+$$ d_z = H = t \cdot R_{zz}$$
 $$ t = \frac{H}{R_{zz}}$$
 
 and this gives us an expression for the vector $\mathbf{d}$ from the camera to the ground.
