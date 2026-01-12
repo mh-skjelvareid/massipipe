@@ -4,8 +4,8 @@
 The orthorectification methods of MassiPipe assume that the camera position and orientation is measured with an IMU, with the following data available:
 - Time
 - Position (longitude and latitude)
-- Camera tilt ("roll" and "pitch")
-- Heading ("yaw" / compass direction)
+- Camera orientation ("roll", "pitch", and "yaw")
+
 
 The camera orientation is assumed to follow that of [aircraft principal axes](https://en.wikipedia.org/wiki/Aircraft_principal_axes), i.e. a right-handed coordinate system where
 
