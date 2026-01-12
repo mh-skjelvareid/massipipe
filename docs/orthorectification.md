@@ -30,17 +30,18 @@ $$\phi = - \phi_\text{\ right wing up} $$
 ## Camera orientation
 The orthorectification assumes a push-broom camera with axes defined as shown in the image below. The $z$ axis points towards the middle of the camera line of sight, and the line of sight is parallel with the $y$ axis. The camera is mounted on a platform with the $x$ axis pointing along-track (forward) and the y axis pointing to the right, across-track.  
 
-![](figures/orthorect_3d_swath.jpg)
+<img src="figures/orthorect_3d_swath.jpg" width="600">
+
 
 ## Image pixel matrix
 The pushbroom camera captures images line-by-line, and images are displayed with lines stacked horizontally, starting from the top. Image indexing follows the matrix indexing convention, with $(i,j)$ corresponding to row $i$ and column $j$. The number of rows and columns is denoted $M$ and $N$, respectively. Note that the spatial $x$ axis aligns with the $i$ "row axis", i.e. a higher row number corresponds to a position further forward. However, the spatial $y$ axis and the $j$ "column axis" point in opposite directions.  
 
-![](figures/orthorect_image_grid.jpg)
+<img src="figures/orthorect_image_grid.jpg" width="600">
 
 ## Looking angle
 A pushbroom camera creates an image of the ground by scanning a narrow "line of view" over it. The line of view corresponds to a line of spatial pixels. If we trace a ray from the camera to each pixel as imaged on the ground, the line of view corresponds to a planar "fan". Each pixel corresponds to a *looking angle* $\alpha_j$, with $j$ denoting the integer pixel index.   
 
-![](figures/orthorect_looking_angle.jpg)
+<img src="figures/orthorect_looking_angle.jpg" width="600">
 
 Assuming a centered fan, we can calculate the looking angle for each pixel based on the camera field of view (FOV). Note that the ordering of pixel indices matches the direction of positive roll.
 
@@ -53,13 +54,13 @@ When mounting a push-broom camera on a UAV or an airplane, the typical orientati
 
 $$\phi_{i,j} = \alpha_j + \phi_{\text{IMU},i} $$
 
-![](figures/orthorect_combined_roll_angle.jpg)
+<img src="figures/orthorect_combined_roll_angle.jpg" width="600">
 
 
 ## Pitch angle
 The effect of non-zero pitch angles is to tilt the image "fan" forward (positive pitch) or backward (negative pitch) relative to [nadir](https://en.wikipedia.org/wiki/Nadir).
 
-![](figures/orthorect_pitch_angle.jpg)
+<img src="figures/orthorect_pitch_angle.jpg" width="600">
 
 
 
@@ -197,7 +198,8 @@ $$
 \end{bmatrix} 
 $$
 
-![](figures/orthorect_3d_ground_offsets.jpg)
+<img src="figures/orthorect_3d_ground_offsets.jpg" width="600">
+
 
 The $r_x$ and $r_y$ values thus correspond to the along-track and across-track pixel offsets on the ground, respectively. The result matches our intuition:
 
@@ -260,7 +262,7 @@ To calculate the ground position of a pixel based on a combined rotation matrix 
 
 $$
 \begin{align}
-\hat{\mathbf{d}} &= R_{\text{world}\leftarrow\text{pixel}} \hat{\mathbf{z}} \\
+\hat{\mathbf{d}} &= R_{\text{world}\leftarrow\text{pixel}} \cdot \hat{\mathbf{z}} \\
 &=
 \begin{bmatrix}
     R_{xx} & R_{xy} & R_{xz}\\
@@ -315,4 +317,4 @@ The pushbroom camera "fan" covers a part of the ground called the "swath". The s
 
 MassiPipe orthorectification uses [pyresample](https://pyresample.readthedocs.io/en/latest/) to perform resampling. The swath and the rectangular raster area (orange and gray in image below) are defined as SwathDefinition and AreaDefinition objects. The SwathDefinition includes the spatial coordinates corresponding to each pixel in the original image. Resampling is performed as nearest-neighbor resampling, via [pykdtree](https://pypi.org/project/pykdtree/).
 
-![](figures/orthorect_swath_in_rectangle.jpg)
+<img src="figures/orthorect_swath_in_rectangle.jpg" width="600">
