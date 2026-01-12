@@ -19,7 +19,7 @@ This system is also referred to as "north-east-down" [(NED)](https://en.wikipedi
 - Pitch ($\theta$): Rotation around the Y axis, zero at horizontal, positive for "nose up".
 - Yaw ($\psi$): Rotation around the Z axis, zero at due North, positive for nose right (clockwise seen from above). 
 
-![text](https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Yaw_Axis_Corrected.svg/639px-Yaw_Axis_Corrected.svg.png)
+![](figures/Yaw_Axis_Corrected.svg.png)
 (*[Image](https://commons.wikimedia.org/wiki/File:Yaw_Axis_Corrected.svg): Auawise, Wikimedia Commons*)
 
 Note that while positive pitch is almost always defined as "nose up", in some cases positive roll is defined in the opposite direction of that above, i.e. "right wing **up**". Note that this is not consistent with a [right-handed coordinate system](https://en.wikipedia.org/wiki/Right-hand_rule), but it is used nevertheless. In this case, the sign of the roll angle should be flipped:
@@ -32,7 +32,7 @@ The orthorectification assumes a push-broom camera with axes defined as shown in
 ![](figures/orthorect_3d_swath.jpg)
 
 ## Image pixel matrix
-The pushbroom camera captures images line-by-line, and images are displayed with lines stacked horizontally, starting from the top. Image indexing follows the matrix indexing convention, with ($i$,$j$) corresponding to row $i$ and column $j$. The number of rows and columns is denoted $M$ and $N$, respectively. Note that the spatial $x$ axis aligns with the $i$ "row axis", i.e. a higher row number corresponds to a position further forward. However, the spatial $y$ axis and the $j$ "column axis" point in opposite directions.  
+The pushbroom camera captures images line-by-line, and images are displayed with lines stacked horizontally, starting from the top. Image indexing follows the matrix indexing convention, with $(i,j)$ corresponding to row $i$ and column $j$. The number of rows and columns is denoted $M$ and $N$, respectively. Note that the spatial $x$ axis aligns with the $i$ "row axis", i.e. a higher row number corresponds to a position further forward. However, the spatial $y$ axis and the $j$ "column axis" point in opposite directions.  
 
 ![](figures/orthorect_image_grid.jpg)
 
@@ -72,7 +72,9 @@ To calculate the coordinate of a pixel on flat ground, we start with a unit vect
 ## Rotation matrices
  In general, rotation of a vector in 3D space is performed with a 3x3 matrix,
 
-$$\mathbf{v_\text{rotated}} = R \cdot \mathbf{v} = 
+$$
+\mathbf{v_\text{rotated}} = 
+R \cdot \mathbf{v} = 
 \begin{bmatrix}
     R_{xx} & R_{xy} & R_{xz}\\
     R_{yx} & R_{yy} & R_{yz}\\
@@ -85,7 +87,9 @@ $$\mathbf{v_\text{rotated}} = R \cdot \mathbf{v} =
 $$
 
 Rotation matrices can be combined to effectively perform multiple rotations in succession. The three angles measured by the IMU (roll $\phi$, pitch $\theta$ and yaw $\psi$) describe three such combined rotations, performed around the $x$, $y$ and $z$ axis, respectively. The rotations are performed with the following three [rotation matrices](https://en.wikipedia.org/wiki/Rotation_matrix#General_3D_rotations):
-$$ R_x(\phi)=
+
+$$ 
+R_x(\phi)=
 \begin{bmatrix}
 1 & 0 & 0\\
 0 & \cos\phi & -\sin\phi\\
@@ -164,7 +168,6 @@ $$
     r_x \\ r_y \\ H 
 \end{bmatrix} = 
 t^* \mathbf{\hat{d}} = 
-
 t^*  
 \begin{bmatrix}
     \cos\phi \sin\theta\\
@@ -173,7 +176,7 @@ t^*
 \end{bmatrix}
 $$
 
-where $t^*$ corresponds to the length of the vector. The z coordinate lets us solve for this length, $t^* = \frac{H}{\cos \phi \cos \theta}$. Inserting this into the equation above, we obtain 
+where $t^{*}$ corresponds to the length of the vector. The z coordinate lets us solve for this length, $t^{*} = \frac{H}{\cos \phi \cos \theta}$ . Inserting this into the equation above, we obtain 
 
 $$
 \mathbf{r} =
@@ -181,14 +184,14 @@ $$
     r_x \\ r_y \\ H
 \end{bmatrix} = H \cdot 
 \begin{bmatrix}
-    \frac{\cos\phi \sin\theta}{\cos \phi \cos \theta}\\[8pt]
-    \frac{-\sin \phi}{\cos \phi \cos \theta}\\[6pt]
+    \frac{\cos\phi \sin\theta}{\cos \phi \cos \theta}\\
+    \frac{-\sin \phi}{\cos \phi \cos \theta}\\
     1
 \end{bmatrix} 
 = H \cdot
 \begin{bmatrix}
     \tan \theta\\[4pt]
-    \frac{-\tan \phi}{\cos \theta}\\[6pt]
+    \frac{-\tan \phi}{\cos \theta}\\
     1
 \end{bmatrix} 
 $$
