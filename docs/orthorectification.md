@@ -20,6 +20,7 @@ This system is also referred to as "north-east-down" [(NED)](https://en.wikipedi
 - Yaw ($\psi$): Rotation around the Z axis, zero at due North, positive for nose right (clockwise seen from above). 
 
 ![](figures/Yaw_Axis_Corrected.svg.png)
+
 (*[Image](https://commons.wikimedia.org/wiki/File:Yaw_Axis_Corrected.svg): Auawise, Wikimedia Commons*)
 
 Note that while positive pitch is almost always defined as "nose up", in some cases positive roll is defined in the opposite direction of that above, i.e. "right wing **up**". Note that this is not consistent with a [right-handed coordinate system](https://en.wikipedia.org/wiki/Right-hand_rule), but it is used nevertheless. In this case, the sign of the roll angle should be flipped:
@@ -167,8 +168,8 @@ $$
 \begin{bmatrix}
     r_x \\ r_y \\ H 
 \end{bmatrix} = 
-t^* \mathbf{\hat{d}} = 
-t^*  
+t \cdot \mathbf{\hat{d}} = 
+t \cdot 
 \begin{bmatrix}
     \cos\phi \sin\theta\\
      -\sin \phi\\
@@ -176,7 +177,7 @@ t^*
 \end{bmatrix}
 $$
 
-where $t^{*}$ corresponds to the length of the vector. The z coordinate lets us solve for this length, $t^{*} = \frac{H}{\cos \phi \cos \theta}$ . Inserting this into the equation above, we obtain 
+where $t$ corresponds to the length of the vector. The z coordinate lets us solve for this length, $t = \frac{H}{\cos \phi \cos \theta}$ . Inserting this into the equation above, we obtain 
 
 $$
 \mathbf{r} =
@@ -190,7 +191,7 @@ $$
 \end{bmatrix} 
 = H \cdot
 \begin{bmatrix}
-    \tan \theta\\[4pt]
+    \tan \theta\\
     \frac{-\tan \phi}{\cos \theta}\\
     1
 \end{bmatrix} 
@@ -275,9 +276,9 @@ $$
 \end{align}
 $$
 
-The direction vector is extended until it reaches the ground via parameterization, $\mathbf{d} = t^* \hat{\mathbf{d}}$. We can then use the $z$ component, corresponding to altitude above ground, to solve for $t^*$
+The direction vector is extended until it reaches the ground via parameterization, $\mathbf{d} = t \cdot \hat{\mathbf{d}}$. We can then use the $z$ component, corresponding to altitude above ground, to solve for $t$
 
-$$ t^* = \frac{H}{R_{zz}}$$
+$$ t = \frac{H}{R_{zz}}$$
 
 and this gives us an expression for the vector $\mathbf{d}$ from the camera to the ground.
 
