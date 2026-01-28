@@ -84,7 +84,8 @@ class CameraModel:
         """
 
         edge = np.tan(self.cross_track_fov / 2)
-        return np.arctan(np.linspace(-edge, edge, self.n_pix))
+        angles = np.arctan(np.linspace(-edge, edge, self.n_pix))
+        return angles.reshape(-1,1).tolist()
 
     def _ray_rotation_matrices(self, roll: NDArray, pitch: NDArray, yaw: NDArray) -> NDArray:
         """
@@ -624,6 +625,7 @@ class FlatTerrainOrthorectifier:
         )
 
         # Save orthorectified image as GeoTIFF
+        if not geotiff_path.parent.exists(): geotiff_path.parent.mkdir()
         self.file_writer.save_image(ortho_image, wl, transform, utm_epsg, geotiff_path)
 
 

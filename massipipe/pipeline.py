@@ -69,7 +69,8 @@ class Pipeline:
     def __init__(
         self,
         dataset_dir: Union[Path, str],
-        config_file_name: str = "config.seabee.yaml",
+        config_file_path= None,
+        calibration_dir=None
     ) -> None:
         """Initialize the pipeline for dataset processing.
 
@@ -77,11 +78,14 @@ class Pipeline:
         ----------
         dataset_dir : Union[Path, str]
             Path to the dataset directory containing required subfolders. The required
-            subfolders are either "0_raw" and "calibration" (for processing from raw
+            subfolders are either "0_raw" and "calibration"* (for processing from raw
             data), or "1a_radiance" and "imudata" (for processing from radiance data).
-        config_file_name : str, optional
-            Name of the YAML configuration file. A template is generated if the file
-            does not exist.
+            *the calibration directory can alternatively be set using `calibration_dir`
+        config_file_path: 
+            Name of the YAML configuration file. Assumes local path unless specified, 
+            A template is generated if the file does not exist.
+        calibration_dir: 
+            Path to the directory where calibration files live
 
         Raises
         ------
@@ -107,17 +111,26 @@ class Pipeline:
         self.geotransform_dir = self.dataset_dir / "geotransform"
         self.mosaic_dir = self.dataset_dir / "mosaics"
         self.mosaic_visualization_dir = self.dataset_dir / "orthophoto"
-        self.calibration_dir = self.dataset_dir / "calibration"
+
+        if not calibration_dir:  # assign default calibration directory
+            self.calibration_dir = self.dataset_dir / "calibration"
+        else: # user defined calibration directory
+            self.calibration_dir = Path(calibration_dir)
+
+            
         self.logs_dir = self.dataset_dir / "logs"
 
         # Configure logging
         self.log_file_handler = self._configure_file_logging()
 
-        # Read config file
-        config_file_path = self.dataset_dir / config_file_name
-        self.config_file_path = config_file_path
+        
+        if not config_file_path: # assign default config file
+            self.config_file_path = self.dataset_dir / 'config.seabee.yaml'
+        else: # user defined config file
+            self.config_file_path = Path(config_file_path)
+
         if not self.config_file_path.exists():
-            logger.info(f"No config file found - exporting template file {config_file_name}")
+            logger.info(f"No config file found - exporting template file {config_file_path}")
             export_template_yaml(self.config_file_path)
         self.load_config_from_file()  # Reads config from file into self.config
 
@@ -127,7 +140,7 @@ class Pipeline:
         if self.data_starting_point == "raw":
             # Get calibration file paths
             if not self.calibration_dir.exists():
-                raise FileNotFoundError(f'Folder "calibration" not found in {self.dataset_dir}')
+                raise FileNotFoundError(f'calibration_dir: {self.calibration_dir} not found')
             self.radiance_calibration_file = self._get_radiance_calibration_path()
             self.irradiance_calibration_file = self._get_irradiance_calibration_path()
 
@@ -1132,7 +1145,7 @@ class Pipeline:
         """Run all processing steps"""
 
         logger.info(
-            f"Running pipeline using configuration \n{pprint.pformat(self.config.model_dump())}"
+                f"Running pipeline using configuration from {self.config_file_path}: \n{pprint.pformat(self.config.model_dump())}"
         )
 
         self.run_quicklook()
