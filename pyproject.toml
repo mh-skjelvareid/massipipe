@@ -14,8 +14,8 @@ dependencies = [
   "pyresample",
   "pyyaml",
   "rasterio",
+  "scipy>=1.17",
   "spectral",
-  "scipy"
 ]
 requires-python = ">=3.9"
 authors = [
