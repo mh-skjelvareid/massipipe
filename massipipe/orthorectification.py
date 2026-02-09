@@ -85,7 +85,7 @@ class CameraModel:
 
         edge = np.tan(self.cross_track_fov / 2)
         angles = np.arctan(np.linspace(-edge, edge, self.n_pix))
-        return angles.reshape(-1,1).tolist()
+        return angles
 
     def _ray_rotation_matrices(self, roll: NDArray, pitch: NDArray, yaw: NDArray) -> NDArray:
         """
@@ -109,7 +109,7 @@ class CameraModel:
         """
 
         # Create rotation to camera frame from pixel
-        R_cam_from_pixel = Rotation.from_euler("x", self.looking_angles)
+        R_cam_from_pixel = Rotation.from_euler("x", self.looking_angles.reshape(-1, 1))
 
         # Create rotation from IMU to world
         # NOTE: "xyz" order corresponds to R_z(yaw) @ R_y(pitch) @ R_x(roll)
@@ -625,7 +625,8 @@ class FlatTerrainOrthorectifier:
         )
 
         # Save orthorectified image as GeoTIFF
-        if not geotiff_path.parent.exists(): geotiff_path.parent.mkdir()
+        if not geotiff_path.parent.exists():
+            geotiff_path.parent.mkdir()
         self.file_writer.save_image(ortho_image, wl, transform, utm_epsg, geotiff_path)
 
 
