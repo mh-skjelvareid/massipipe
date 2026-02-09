@@ -625,8 +625,9 @@ class FlatTerrainOrthorectifier:
         )
 
         # Save orthorectified image as GeoTIFF
+        geotiff_path = Path(geotiff_path)
         if not geotiff_path.parent.exists():
-            geotiff_path.parent.mkdir()
+            geotiff_path.parent.mkdir(parents=True, exist_ok=True)
         self.file_writer.save_image(ortho_image, wl, transform, utm_epsg, geotiff_path)
 
 
