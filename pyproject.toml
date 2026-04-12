@@ -17,7 +17,7 @@ dependencies = [
   "scipy>=1.17",
   "spectral",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 authors = [
   {name = "Martin H. Skjelvareid"},
 ]
@@ -68,3 +68,8 @@ select = ["E", "I"]
 [tool.ruff.format]
 docstring-code-format = true
 docstring-code-line-length = 88
+
+[dependency-groups]
+dev = [
+    "pylint>=4.0.5",
+]
