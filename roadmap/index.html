@@ -558,7 +558,7 @@
 <p><em>Author: Martin Skjelvareid</em><br />
 <em>Last updated: 2026-04-13</em>  </p>
 <h2 id="purpose">Purpose</h2>
-<p>This document is intended as an overview of long-term development goals for MassiPipe. Concrete feature request issues will be made based on this document and the developers' own priorities and time available. </p>
+<p>This document is intended as a guideline for long-term development of MassiPipe. Concrete feature request issues will be made based on this document and the developers' own priorities and time available. </p>
 <h2 id="background-massimal-project">Background: Massimal project</h2>
 <p>MassiPipe was originally developed for processing data from the <a href="https://en.uit.no/project/massimal">MASSIMAL research project</a> and publishing the dataset on the <a href="https://archive.sigma2.no/">NIRD Research Data Archive</a> and on the <a href="https://geonode.seabee.sigma2.no/">SeaBee Geovisualization Portal</a>.</p>
 <p>The initial goal of the project was to process large amounts of data from a <a href="https://resonon.com/hyperspectral-airborne-remote-sensing-system">Resonon system for UAV hyperspectral imaging</a>. Important features for the initial version included</p>
@@ -608,7 +608,7 @@
 <p>MassiPipe could potentially implement PCA for lossy compression and reconstruction on a per-image basis, and shrink file sizes with a factor of approx. 5-25 (depending on number of components and data type). The transformed image (PCA "scores") could be stored together with the small matrix needed to transform from/to the original wavelengths (PCA components), for example in a NetCDF file. </p>
 <h2 id="atmospheric-correction">Atmospheric correction</h2>
 <p>The initial version of MassiPipe was made for UAV images aquired at approx. 50-60 m altitude, at which atmospheric effects are more or less negligible. However, for images aquired from manned aircraft, which fly at altitudes of hundreds or thousands of meters, the light reaching the camera is significantly affected by scattering and absorption in the air. </p>
-<p><a href="https://en.wikipedia.org/wiki/Atmospheric_correction">Atmospheric correction</a> methods attempt to counter these effects, so that the true reflectance of the ground can be measured, are called. MassiPipe could potentially include some such methods (via external libraries, see e.g. <a href="https://py6s.readthedocs.io/en/latest/index.html">Py6S</a> and <a href="https://github.com/acolite/acolite">acolite</a>) </p>
+<p><a href="https://en.wikipedia.org/wiki/Atmospheric_correction">Atmospheric correction</a> methods attempt to counter these effects, so that the true reflectance of the ground can be measured. MassiPipe could potentially include some such methods (via external libraries, see e.g. <a href="https://py6s.readthedocs.io/en/latest/index.html">Py6S</a> and <a href="https://github.com/acolite/acolite">acolite</a>) </p>
 
 
 
