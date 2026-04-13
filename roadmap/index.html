@@ -1,0 +1,672 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="MassiPipe - a data processing pipeline for hyperspectral data acquired in the Massimal project.">
+      
+      
+      
+      
+        <link rel="prev" href="../api/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Development roadmap - MassiPipe Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/tex.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#massipipe-development-roadmap" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MassiPipe Documentation" class="md-header__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MassiPipe Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development roadmap
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MassiPipe Documentation" class="md-nav__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    MassiPipe Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development roadmap
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-massimal-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: Massimal project
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integrating-full-orthorectification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integrating full orthorectification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-flexible-structure-user-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More flexible structure / user interface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility-with-additional-imaging-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility with additional imaging systems
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-netcdf-xarray-cf-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using NetCDF / xarray / CF-compliance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lossy-compression-pca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lossy compression - PCA
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#atmospheric-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Atmospheric correction
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#background-massimal-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Background: Massimal project
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integrating-full-orthorectification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integrating full orthorectification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#more-flexible-structure-user-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        More flexible structure / user interface
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility-with-additional-imaging-systems" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility with additional imaging systems
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-netcdf-xarray-cf-compliance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using NetCDF / xarray / CF-compliance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lossy-compression-pca" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lossy compression - PCA
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#atmospheric-correction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Atmospheric correction
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="massipipe-development-roadmap">MassiPipe development roadmap</h1>
+<p><em>Author: Martin Skjelvareid</em><br />
+<em>Last updated: 2026-04-13</em>  </p>
+<h2 id="purpose">Purpose</h2>
+<p>This document is intended as an overview of long-term development goals for MassiPipe. Concrete feature request issues will be made based on this document and the developers' own priorities and time available. </p>
+<h2 id="background-massimal-project">Background: Massimal project</h2>
+<p>MassiPipe was originally developed for processing data from the <a href="https://en.uit.no/project/massimal">MASSIMAL research project</a> and publishing the dataset on the <a href="https://archive.sigma2.no/">NIRD Research Data Archive</a> and on the <a href="https://geonode.seabee.sigma2.no/">SeaBee Geovisualization Portal</a>.</p>
+<p>The initial goal of the project was to process large amounts of data from a <a href="https://resonon.com/hyperspectral-airborne-remote-sensing-system">Resonon system for UAV hyperspectral imaging</a>. Important features for the initial version included</p>
+<ul>
+<li>Being open source and Python-based, making it easily accessible and free </li>
+<li>Standardized file naming and folder structure</li>
+<li>Robust processing (gracefully handing errors)  </li>
+<li>Georeferencing (simple affine transform)</li>
+<li>Mosaicing of multiple images, with <a href="https://en.wikipedia.org/wiki/Pyramid_(image_processing)">image pyramids</a></li>
+</ul>
+<p>The project is now over, and the full dataset is available via <a href="https://doi.org/10.11582/2025.00041">DOI:10.11582/2025.00041</a>. Processed versions of hyperspectral, multispectral and RGB image datasets can be browsed in an interactive map (<a href="https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&amp;f=dataset">SeaBee datasets</a>). </p>
+<p>The project is now in a position to continue as a more general-purpose tool for airborne hyperspectral imaging. However, being able to generate higher-level image products from published Massimal data (e.g. converting radiance images to reflectance) remains a priority. </p>
+<p>The remainder of this document describes ideas for further development of MassiPipe. </p>
+<h2 id="integrating-full-orthorectification">Integrating full orthorectification</h2>
+<p>The original version of MassiPipe was based on a simplified georeferencing method which only applied an affine transform (scaling and rotation) to map the image from pixel coordinates to UTM coordinates. Code for full orthorectification (assuming flat terrain, see <a href="../api/#massipipe.orthorectification.FlatTerrainOrthorectifier">FlatTerrainOrthorectifier</a>) has subsequently been developed, but has not yet been integrated into the pipeline. The new orthorectifier should replace the simplified one.</p>
+<p>Additional (long-term) improvements to orthorectification could include:  </p>
+<ul>
+<li>Lever arm correction (taking offset between IMU and camera into account)</li>
+<li>Support for any terrain topography (based on elevation model)</li>
+<li>Support for using <a href="https://en.wikipedia.org/wiki/Quaternion">quaternions</a> for describing rotation (not just <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>)</li>
+</ul>
+<h2 id="more-flexible-structure-user-interface">More flexible structure / user interface</h2>
+<p>The initial version of MassiPipe was made for processing many images from the same camera in exactly the same way. This was implemented using a standardized folder structure and processing order. A more general version of MassiPipe should be more flexible, enabling multiple combinations of processing steps. </p>
+<p>Some inspiration could be taken from <a href="https://scikit-learn.org/stable/modules/compose.html#combining-estimators">sklearn.pipeline.Pipeline</a>. The use case is not exactly the same, but the idea of composing a pipeline from multiple elements is elegant. </p>
+<h2 id="compatibility-with-additional-imaging-systems">Compatibility with additional imaging systems</h2>
+<p>MassiPipe currently supports only Resonon hyperspectral cameras, and the specific formats that Resonon uses for calibration files, IMU data, and downwelling irradiance measurements. The Resonon-specific parts are limited to </p>
+<ul>
+<li>Converting raw hyperspectral images to radiance</li>
+<li>Converting raw spectra to downwelling irradiance</li>
+<li>Processing / interpolating IMU data to get camera position and orientation for each image line </li>
+</ul>
+<p>These operations could be bundled into a camera-specific part of the pipeline -- and the same could be done for other cameras. The pipeline should define a standardized data format for calbrated images (see NetCDF below), so that subsequent parts of the pipeline do not depend on camera specifics. </p>
+<h2 id="using-netcdf-xarray-cf-compliance">Using NetCDF / xarray / CF-compliance</h2>
+<p>MassiPipe is currently based on multiple file formats:</p>
+<ul>
+<li>ENVI files, for hyperspectral images and irradiance spectra. ENVI files consist of two files for each image; a binary data file and a text header file.</li>
+<li>JSON files, for IMU data</li>
+<li>(GeoTIFFs, for georeferenced images) </li>
+</ul>
+<p>Having multiple files for storing different parts of the same dataset is clunky and could lead to errors with missing data. </p>
+<p>Also, an important reason for calibrating hyperspectral images is to have proper radiometric units (e.g. watt per steradian per square metre per nanometre for <a href="https://en.wikipedia.org/wiki/Spectral_radiance">spectral radiance</a>). However, the units are usually not encoded as part of ENVI files or GeoTIFFs, and have to be read from external documentation. </p>
+<p><a href="https://en.wikipedia.org/wiki/NetCDF">NetCDF</a> provides a more modern file format, where the values and axes of multidimensional arrays have standardized names and units are built in to the file ("self-describing"). A NetCDF file could be used to store both the hyperspectral image, the corresponding irradiance spectrum, and IMU data / geographic coordinates / CRS, all in one clearly labelled dataset. NetCDF files can be created and read in Python with <a href="https://docs.xarray.dev/en/stable/getting-started-guide/why-xarray.html">xarray</a> (and other libraries as well).</p>
+<p>NetCDF follows the so-called <a href="https://en.wikipedia.org/wiki/Climate_and_Forecast_Metadata_Conventions">CF conventions</a> for Earth sciences data.</p>
+<p>Using NetCDF as an output format from MassiPipe would make the processed data more self-contained and easier to use by others. However, GeoTIFFs may still be relevant for visualization and processing in GIS tools. </p>
+<h2 id="lossy-compression-pca">Lossy compression - PCA</h2>
+<p>Hyperspectral images are large, often &gt; 1 GB, making them both impractical to store and transfer, and memory-intensive. Neighboring channels are also often highly correlated. This makes it possible to represent the data using a much smaller number of dimensions than the original number of image bands. The most common way to do this is via <a href="https://en.wikipedia.org/wiki/Principal_component_analysis">principal component analysis</a>, which basically defines a new set of spectral coordinate axes (rotated relative to original axes) that align with the directions in feature space with the highest variance. This typically enables a spectrum with 200-300 channels to be represented by 5-10 PCA "components" while retaining 99% or more of the variance (retaining 100% of variance requires using the same number of components as the original number of bands). In practice, using PCA with 5-10 components corresponds to a form of <a href="https://en.wikipedia.org/wiki/Lossy_compression">lossy compression</a> -- it is possible to reconstruct the original spectrum from the components, but not exactly. However, with images containing some amount of <a href="https://en.wikipedia.org/wiki/Image_noise">random image noise</a>, there often is no point in exact reconstruction.    </p>
+<p>MassiPipe could potentially implement PCA for lossy compression and reconstruction on a per-image basis, and shrink file sizes with a factor of approx. 5-25 (depending on number of components and data type). The transformed image (PCA "scores") could be stored together with the small matrix needed to transform from/to the original wavelengths (PCA components), for example in a NetCDF file. </p>
+<h2 id="atmospheric-correction">Atmospheric correction</h2>
+<p>The initial version of MassiPipe was made for UAV images aquired at approx. 50-60 m altitude, at which atmospheric effects are more or less negligible. However, for images aquired from manned aircraft, which fly at altitudes of hundreds or thousands of meters, the light reaching the camera is significantly affected by scattering and absorption in the air. </p>
+<p><a href="https://en.wikipedia.org/wiki/Atmospheric_correction">Atmospheric correction</a> methods attempt to counter these effects, so that the true reflectance of the ground can be measured, are called. MassiPipe could potentially include some such methods (via external libraries, see e.g. <a href="https://py6s.readthedocs.io/en/latest/index.html">Py6S</a> and <a href="https://github.com/acolite/acolite">acolite</a>) </p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

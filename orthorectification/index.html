@@ -1,0 +1,705 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="MassiPipe - a data processing pipeline for hyperspectral data acquired in the Massimal project.">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Camera model and IMU data - MassiPipe Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/tex.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#camera-model-and-imu-data" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="MassiPipe Documentation" class="md-header__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            MassiPipe Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Camera model and IMU data
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="MassiPipe Documentation" class="md-nav__button md-logo" aria-label="MassiPipe Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    MassiPipe Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/mh-skjelvareid/massipipe" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../example_usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Example Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development roadmap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#coordinate-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Coordinate system
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#camera-orientation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Camera orientation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#image-pixel-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image pixel matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#looking-angle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Looking angle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#combined-looking-angle-and-roll" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Combined looking angle and roll
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#pitch-angle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pitch angle
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="camera-model-and-imu-data">Camera model and IMU data</h1>
+<h2 id="coordinate-system">Coordinate system</h2>
+<p>The orthorectification methods of MassiPipe assume that the camera position and orientation is measured with an IMU, with the following data available:
+- Time
+- Position (longitude and latitude)
+- Camera orientation ("roll", "pitch", and "yaw")</p>
+<p>The camera orientation is assumed to follow that of <a href="https://en.wikipedia.org/wiki/Aircraft_principal_axes">aircraft principal axes</a>, i.e. a right-handed coordinate system where</p>
+<ul>
+<li>X axis points forward</li>
+<li>Y axis points right</li>
+<li>Z axis points down</li>
+</ul>
+<p>This system is also referred to as "north-east-down" <a href="https://en.wikipedia.org/wiki/Axes_conventions#World_reference_frames:_ENU_and_NED">(NED)</a>. The rotation angles (<a href="https://en.wikipedia.org/wiki/Euler_angles#Tait%E2%80%93Bryan_angles">Tait-Bryan angles</a>), are defined as follows (illustrated in the airplane image below).</p>
+<ul>
+<li>Roll (<span class="arithmatex">\(\phi\)</span>): Rotation around the X axis, zero at horizontal, positive for "right wing down".</li>
+<li>Pitch (<span class="arithmatex">\(\theta\)</span>): Rotation around the Y axis, zero at horizontal, positive for "nose up".</li>
+<li>Yaw (<span class="arithmatex">\(\psi\)</span>): Rotation around the Z axis, zero at due North, positive for nose right (clockwise seen from above). </li>
+</ul>
+<p><img alt="" src="../figures/Yaw_Axis_Corrected.svg.png" /></p>
+<p>(<em><a href="https://commons.wikimedia.org/wiki/File:Yaw_Axis_Corrected.svg">Image</a>: Auawise, Wikimedia Commons</em>)</p>
+<p>Note that while positive pitch is almost always defined as "nose up", in some cases positive roll is defined in the opposite direction of that above, i.e. "right wing <strong>up</strong>". Note that this is not consistent with a <a href="https://en.wikipedia.org/wiki/Right-hand_rule">right-handed coordinate system</a>, but it is used nevertheless. In this case, the sign of the roll angle should be flipped:</p>
+<div class="arithmatex">\[\phi = - \phi_\text{right wing up} \]</div>
+<h2 id="camera-orientation">Camera orientation</h2>
+<p>The orthorectification assumes a push-broom camera with axes defined as shown in the image below. The <span class="arithmatex">\(z\)</span> axis points towards the middle of the camera line of sight, and the line of sight is parallel with the <span class="arithmatex">\(y\)</span> axis. The camera is mounted on a platform with the <span class="arithmatex">\(x\)</span> axis pointing along-track (forward) and the y axis pointing to the right, across-track.  </p>
+<p><img alt="3D swath illustration" src="../figures/orthorect_3d_swath.jpg" width="600" /></p>
+<h2 id="image-pixel-matrix">Image pixel matrix</h2>
+<p>The pushbroom camera captures images line-by-line, and images are displayed with lines stacked horizontally, starting from the top. Image indexing follows the matrix indexing convention, with <span class="arithmatex">\((i,j)\)</span> corresponding to row <span class="arithmatex">\(i\)</span> and column <span class="arithmatex">\(j\)</span>. The number of rows and columns is denoted <span class="arithmatex">\(M\)</span> and <span class="arithmatex">\(N\)</span>, respectively. Note that the spatial <span class="arithmatex">\(x\)</span> axis aligns with the <span class="arithmatex">\(i\)</span> "row axis", i.e. a higher row number corresponds to a position further forward. However, the spatial <span class="arithmatex">\(y\)</span> axis and the <span class="arithmatex">\(j\)</span> "column axis" point in opposite directions.  </p>
+<p><img alt="Image grid indexing" src="../figures/orthorect_image_grid.jpg" width="600" /></p>
+<h2 id="looking-angle">Looking angle</h2>
+<p>A pushbroom camera creates an image of the ground by scanning a narrow "line of view" over it. The line of view corresponds to a line of spatial pixels. If we trace a ray from the camera to each pixel as imaged on the ground, the line of view corresponds to a planar "fan". Each pixel corresponds to a <em>looking angle</em> <span class="arithmatex">\(\alpha_j\)</span>, with <span class="arithmatex">\(j\)</span> denoting the integer pixel index.   </p>
+<p><img alt="Looking angle diagram" src="../figures/orthorect_looking_angle.jpg" width="600" /></p>
+<p>Assuming a centered fan, we can calculate the looking angle for each pixel based on the camera field of view (FOV). Note that the ordering of pixel indices matches the direction of positive roll.</p>
+<div class="arithmatex">\[ 
+\alpha_j =  \arctan  \left( -\tan \left( \frac{\text{FOV}}{2} \right) + j \cdot \frac{2 \cdot \tan \left( \frac{\text{FOV}}{2} \right)}{N-1} \right) 
+\]</div>
+<h2 id="combined-looking-angle-and-roll">Combined looking angle and roll</h2>
+<p>When mounting a push-broom camera on a UAV or an airplane, the typical orientation is with the camera pointed straight down and the fan spread out symmetrically "across-track", i.e. parallel to the pitch axis. If the camera and IMU frames of reference are perfectly aligned, the effective roll for a single pixel is given by the sum of the looking angle <span class="arithmatex">\(\alpha_j\)</span> and the overall camera roll <span class="arithmatex">\(\phi\)</span>. </p>
+<div class="arithmatex">\[\phi_{i,j} = \alpha_j + \phi_{\text{IMU},i} \]</div>
+<p><img alt="Combined roll angle" src="../figures/orthorect_combined_roll_angle.jpg" width="600" /></p>
+<h2 id="pitch-angle">Pitch angle</h2>
+<p>The effect of non-zero pitch angles is to tilt the image "fan" forward (positive pitch) or backward (negative pitch) relative to <a href="https://en.wikipedia.org/wiki/Nadir">nadir</a>.</p>
+<p><img alt="Pitch angle effect" src="../figures/orthorect_pitch_angle.jpg" width="600" /></p>
+<h1 id="ray-tracing">Ray tracing</h1>
+<h2 id="motivation">Motivation</h2>
+<p>Even though a pushbroom camera is pointed approximately downwards, movement of the camera platform (e.g. an aircraft) causes the pixel fan to "dance around" on the ground below the camera. By accurately tracking the pixel positions the original image, the raw image can be resampled / interpolated to a regularly spaced grid.  </p>
+<p>To calculate the coordinate of a pixel on flat ground, we start with a unit vector pointing towards the center of the camera field of view (along the <span class="arithmatex">\(z\)</span> axis in the camera frame). We then apply a set of rotations, based on looking angle and camera orientation, to find the direction of this vector in the "world" reference frame (in so-called NED coordinates; north, east and down). By extending the rotated vector until it reaches the ground below, we can calculate the coordinates of the point on the ground. For simplicity we start by considering a single pixel, and show a more general solution later.   </p>
+<h2 id="rotation-matrices">Rotation matrices</h2>
+<p>In general, rotation of a vector in 3D space is performed with a 3x3 matrix,</p>
+<div class="arithmatex">\[
+\mathbf{v_\text{rotated}} = 
+R \cdot \mathbf{v} = 
+\begin{bmatrix}
+    R_{xx} &amp; R_{xy} &amp; R_{xz}\\
+    R_{yx} &amp; R_{yy} &amp; R_{yz}\\
+    R_{zx} &amp; R_{zy} &amp; R_{zz} 
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+    v_x \\ v_y \\ v_z
+\end{bmatrix}
+\]</div>
+<p>Rotation matrices can be combined to effectively perform multiple rotations in succession. The three angles measured by the IMU (roll <span class="arithmatex">\(\phi\)</span>, pitch <span class="arithmatex">\(\theta\)</span> and yaw <span class="arithmatex">\(\psi\)</span>) describe three such combined rotations, performed around the <span class="arithmatex">\(x\)</span>, <span class="arithmatex">\(y\)</span> and <span class="arithmatex">\(z\)</span> axis, respectively. The rotations are performed with the following three <a href="https://en.wikipedia.org/wiki/Rotation_matrix#General_3D_rotations">rotation matrices</a>:</p>
+<div class="arithmatex">\[ 
+R_x(\phi)=
+\begin{bmatrix}
+1 &amp; 0 &amp; 0\\
+0 &amp; \cos\phi &amp; -\sin\phi\\
+0 &amp; \sin\phi &amp; \cos\phi
+\end{bmatrix} \]</div>
+<div class="arithmatex">\[ R_y(\theta)=
+\begin{bmatrix}
+\cos\theta &amp; 0 &amp; \sin\theta\\
+0 &amp; 1 &amp; 0\\
+-\sin\theta &amp; 0 &amp; \cos\theta
+\end{bmatrix} \]</div>
+<div class="arithmatex">\[ R_z(\psi)=
+\begin{bmatrix}
+\cos\psi &amp; -\sin\psi &amp; 0\\
+\sin\psi &amp; \cos\psi &amp; 0\\
+0 &amp; 0 &amp; 1
+\end{bmatrix}\]</div>
+<p>These matrices are combined to perform an "intrinsic" rotation of any column vector <span class="arithmatex">\(\mathbf{v} = [x,y,z]^T\)</span> from the IMU frame to the world frame:</p>
+<div class="arithmatex">\[
+\begin{align}
+\mathbf{v}_{\text{world}} 
+&amp;= R_z(\psi) R_y(\theta) R_x(\phi) \cdot \mathbf{v}_\text{IMU} \\
+&amp;= R_{\text{world} \leftarrow \text{IMU}} \cdot \mathbf{v}_\text{IMU}
+\end{align}
+\]</div>
+<p>where the order of operations is read from right to left, i.e. the rotation about the <span class="arithmatex">\(x\)</span>-axis is applied first, then <span class="arithmatex">\(y\)</span>, then <span class="arithmatex">\(z\)</span>. The product of the three rotation matrices is a single 3x3 matrix, <span class="arithmatex">\(R_{\text{world} \leftarrow \text{IMU}}\)</span>, describing the rotation from the IMU frame to the world frame.</p>
+<h2 id="pixel-offsets-on-the-ground-along-track-and-across-track">Pixel offsets on the ground - along-track and across-track</h2>
+<p>To understand how roll and pitch correspond to across- and along-track offsets, we'll first consider the combined rotation around the x and y axes:</p>
+<div class="arithmatex">\[ 
+\begin{align}
+ R_y(\theta) R_x(\phi) &amp;=
+\begin{bmatrix}
+\cos\theta &amp; 0 &amp; \sin\theta\\
+0 &amp; 1 &amp; 0\\
+-\sin\theta &amp; 0 &amp; \cos\theta
+\end{bmatrix} 
+\cdot
+\begin{bmatrix}
+1 &amp; 0 &amp; 0\\
+0 &amp; \cos\phi &amp; -\sin\phi\\
+0 &amp; \sin\phi &amp; \cos\phi
+\end{bmatrix}  \\[20pt]
+ &amp;= 
+\begin{bmatrix}
+\cos\theta &amp; \sin\phi \sin\theta &amp; \cos\phi \sin\theta\\
+0 &amp; \cos \phi &amp; -\sin \phi\\
+-\sin \theta &amp; \sin \phi \cos \theta &amp; \cos \phi \cos \theta
+\end{bmatrix} 
+\end{align}
+\]</div>
+<p>Let's now consider a unit vector <span class="arithmatex">\(\mathbf{\hat{z}} = [0,0,1]^T\)</span> pointing straight down, i.e. towards the middle of the field of view for the camera. We can rotate this vector to create a new unit vector <span class="arithmatex">\(\mathbf{\hat{d}}\)</span> :</p>
+<div class="arithmatex">\[
+\begin{align}
+\mathbf{\hat{d}} &amp;= R_y(\theta) \ R_x(\phi) \ \mathbf{\hat{z}} \\
+&amp;= R_y(\theta) \ R_x(\phi) \cdot
+\begin{bmatrix}
+    0 \\ 0 \\ 1 
+\end{bmatrix}
+&amp;= \begin{bmatrix}
+    \cos\phi \sin\theta\\
+     -\sin \phi\\
+     \cos \phi \cos \theta
+\end{bmatrix}
+\end{align}
+\]</div>
+<p>The new unit vector is simply equal to the last column of the combined rotation matrix. If we extend this new unit vector down to the ground below the camera, i.e. to where the z coordinate corresponds to the altitude above ground, <span class="arithmatex">\(H\)</span>, then the <span class="arithmatex">\(x\)</span> and <span class="arithmatex">\(y\)</span> coordinates correspond to the along-track and across-track offsets on the ground, respectively.</p>
+<div class="arithmatex">\[
+\mathbf{r} = 
+\begin{bmatrix}
+    r_x \\ r_y \\ H 
+\end{bmatrix} = 
+t \cdot \mathbf{\hat{d}} = 
+t \cdot 
+\begin{bmatrix}
+    \cos\phi \sin\theta\\
+     -\sin \phi\\
+     \cos \phi \cos \theta
+\end{bmatrix}
+\]</div>
+<p>where <span class="arithmatex">\(t\)</span> corresponds to the length of the vector. The z coordinate lets us solve for this length, <span class="arithmatex">\(t = \frac{H}{\cos \phi \cos \theta}\)</span> . Inserting this into the equation above, we obtain </p>
+<div class="arithmatex">\[
+\mathbf{r} =
+\begin{bmatrix}
+    r_x \\ r_y \\ H
+\end{bmatrix} = H \cdot 
+\begin{bmatrix}
+    \frac{\cos\phi \sin\theta}{\cos \phi \cos \theta}\\
+    \frac{-\sin \phi}{\cos \phi \cos \theta}\\
+    1
+\end{bmatrix} 
+= H \cdot
+\begin{bmatrix}
+    \tan \theta\\
+    \frac{-\tan \phi}{\cos \theta}\\
+    1
+\end{bmatrix} 
+\]</div>
+<p><img alt="3D ground offsets" src="../figures/orthorect_3d_ground_offsets.jpg" width="600" /></p>
+<p>The <span class="arithmatex">\(r_x\)</span> and <span class="arithmatex">\(r_y\)</span> values thus correspond to the along-track and across-track pixel offsets on the ground, respectively. The result matches our intuition:</p>
+<ul>
+<li>A positive pitch <span class="arithmatex">\(\theta\)</span> tilts the whole fan forwards, i.e. it results in a positive along-track offset <span class="arithmatex">\(r_x\)</span>.</li>
+<li>A positive roll <span class="arithmatex">\(\phi\)</span> tilts the whole fan to the left, i.e., across-track offset <span class="arithmatex">\(r_y\)</span> is negative. The term <span class="arithmatex">\(\cos \theta\)</span> in the denominator is always positive for a down-looking camera, and accounts for the fact that when the fan is tilted forwards or backwards (non-zero pitch), the rays of the fan spread out more before they intersect the ground plane.  </li>
+</ul>
+<h2 id="correcting-camera-imu-frame-offsets">Correcting camera-IMU frame offsets</h2>
+<p>A vector can be rotated from the camera frame to the "world" frame with a single rotation matrix:</p>
+<div class="arithmatex">\[ 
+\mathbf{v}_\text{world} = R_{\text{world}\leftarrow\text{camera}} \cdot \mathbf{v}_\text{camera} 
+\]</div>
+<p>Ideally the IMU and the camera frame of reference would be identical. However, in practice there are often small misalignments, such that</p>
+<div class="arithmatex">\[
+R_{\text{world}\leftarrow\text{IMU}} = R_{\text{world}\leftarrow\text{camera}} \cdot R_{\text{camera}\leftarrow\text{IMU}} 
+\]</div>
+<p>where <span class="arithmatex">\(R_{\text{world}\leftarrow\text{IMU}}\)</span> is the rotation matrix that can be directly calculated from IMU rotation angles. In the case above, the <span class="arithmatex">\(R_{\text{camera}\leftarrow\text{IMU}}\)</span> matrix represents a kind of additive "bias" to the measurement. For example, if the camera has a roll angle of 5 degrees (no other rotations), but the IMU is misaligned such that it measures 10 degrees roll, the <span class="arithmatex">\(R_{\text{camera}\leftarrow\text{IMU}}\)</span> represents the +5 degrees IMU bias. </p>
+<p>However, the relationship above can also be expressed as</p>
+<div class="arithmatex">\[\begin{align}
+R_{\text{world}\leftarrow\text{camera}} 
+&amp;= R_{\text{world}\leftarrow\text{IMU}} \cdot R_{\text{IMU}\leftarrow\text{camera}} \\
+&amp;(= R_{\text{world}\leftarrow\text{IMU}} \cdot R_{\text{camera}\leftarrow\text{IMU}}^{-1} )
+\end{align}
+\]</div>
+<p>In the equation above, the <span class="arithmatex">\(R_{\text{IMU}\leftarrow\text{camera}}\)</span> matrix acts as a "correction term", performing the inverse of the "bias" rotation described above. Continuing the numerical example above, the <span class="arithmatex">\(R_{\text{IMU}\leftarrow\text{camera}}\)</span> corresponds to a roll of -5 degrees, which combines with the IMU roll of 10 degrees, resulting in the true camera roll of 5 degrees. </p>
+<p>Note that when rotations are non-zero for multiple axes, the type of simple "angle addition" in the example is not possible.</p>
+<p>The bias / correction rotation matrices must be measured or estimated, e.g. by comparing image data with the IMU measurements (sometimes called "boresight calibration").  </p>
+<h2 id="full-rotation-from-pixel-to-world-frame">Full rotation from pixel to world frame</h2>
+<p>The camera looking angles <span class="arithmatex">\(\alpha_j\)</span> described above correspond to a simple rotation around the camera <span class="arithmatex">\(x\)</span> axis. This can also be interpreted as a rotation from a pixel reference frame to the camera reference frame:</p>
+<div class="arithmatex">\[R_{\text{camera} \leftarrow \text{pixel},j} = R_x(\alpha_j)\]</div>
+<p>We can combine this with the offset between camera and IMU and the rotation measured by the IMU to create an end-to-end rotation from a pixel to the world frame:</p>
+<div class="arithmatex">\[ R_{\text{world}\leftarrow\text{pixel},ij} = 
+R_{\text{world}\leftarrow\text{IMU},i} \cdot
+R_{\text{IMU}\leftarrow\text{camera}} \cdot
+R_{\text{camera}\leftarrow\text{pixel},j}
+\]</div>
+<p>In the expression below, subscripts <span class="arithmatex">\(i\)</span> and <span class="arithmatex">\(j\)</span> correspond to the image row and column. <span class="arithmatex">\(R_{\text{world} \leftarrow \text{IMU},i}\)</span> corresponds to the roll, pitch and yaw rotations for image line <span class="arithmatex">\(i\)</span>:</p>
+<div class="arithmatex">\[R_{\text{world} \leftarrow \text{IMU},i} = R_z(\psi_i) R_y(\theta_i) R_x(\phi_i)\]</div>
+<h1 id="pixel-coordinates-on-the-ground">Pixel coordinates on the ground</h1>
+<p>To calculate the ground position of a pixel based on a combined rotation matrix <span class="arithmatex">\(R_{\text{world}\leftarrow\text{pixel}}\)</span>, we follow the same procedure as in the section on along- and across-track offsets. A downward-pointing unit vector <span class="arithmatex">\(\hat{\mathbf{z}}\)</span> in the camera (pixel) frame is rotated to a direction unit vector <span class="arithmatex">\(\hat{\mathbf{d}}\)</span> in the world frame.</p>
+<div class="arithmatex">\[
+\begin{align}
+\hat{\mathbf{d}} &amp;= R_{\text{world}\leftarrow\text{pixel}} \cdot \hat{\mathbf{z}} \\
+&amp;=
+\begin{bmatrix}
+    R_{xx} &amp; R_{xy} &amp; R_{xz}\\
+    R_{yx} &amp; R_{yy} &amp; R_{yz}\\
+    R_{zx} &amp; R_{zy} &amp; R_{zz} 
+\end{bmatrix} \cdot 
+\begin{bmatrix}
+    0 \\ 0 \\ 1 
+\end{bmatrix} = 
+\begin{bmatrix}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix} 
+\end{align}
+\]</div>
+<p>The direction vector is extended until it reaches the ground via parameterization, <span class="arithmatex">\(\mathbf{d} = t \cdot \hat{\mathbf{d}}\)</span>. We can then use the <span class="arithmatex">\(z\)</span> component, corresponding to altitude <span class="arithmatex">\(H\)</span> above ground, to solve for <span class="arithmatex">\(t\)</span></p>
+<div class="arithmatex">\[ d_z = H = t \cdot R_{zz}$$
+$$ t = \frac{H}{R_{zz}}\]</div>
+<p>and this gives us an expression for the vector <span class="arithmatex">\(\mathbf{d}\)</span> from the camera to the ground.</p>
+<div class="arithmatex">\[ 
+\mathbf{d} = 
+\frac{H}{R_{zz}} 
+\begin{bmatrix}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix}   
+\]</div>
+<p>The coordinates of the camera are denoted <span class="arithmatex">\(\mathbf{r}_\text{camera} = [N,E,0]^T\)</span>, where <span class="arithmatex">\(N\)</span> and <span class="arithmatex">\(E\)</span> denote northing and easting. The <span class="arithmatex">\(z\)</span> coordinate of the camera is zero by definition. We combine the camera position with the ray vector <span class="arithmatex">\(\mathbf{d}\)</span> to get the position of the pixel in world coordinates:</p>
+<div class="arithmatex">\[
+\begin{align}
+\mathbf{r}_\text{pixel} &amp;= \mathbf{r}_\text{camera} + \mathbf{d} \\
+&amp;= 
+\begin{bmatrix} N \\ E \\ 0 \end{bmatrix} + \frac{H}{R_{zz}} 
+\begin{bmatrix}
+    R_{xz} \\ R_{yz} \\ R_{zz} 
+\end{bmatrix} 
+\end{align}
+\]</div>
+<p>This is repeated for every pixel <span class="arithmatex">\((i,j)\)</span>. We can highlight this by adding subscripts to the vector equation above:</p>
+<div class="arithmatex">\[
+\mathbf{r}_{\text{pixel},ij} = \mathbf{r}_{\text{camera},i} + \mathbf{d}_{ij} 
+\]</div>
+<h1 id="resampling-to-grid">Resampling to grid</h1>
+<p>The pushbroom camera "fan" covers a part of the ground called the "swath". The shape of the swath may be irregular due to camera platform movements, and the swath is usually not aligned with northing or easting axes. To convert the image data to a regular raster grid, it is resampled.</p>
+<p>MassiPipe orthorectification uses <a href="https://pyresample.readthedocs.io/en/latest/">pyresample</a> to perform resampling. The swath and the rectangular raster area (orange and gray in image below) are defined as SwathDefinition and AreaDefinition objects. The SwathDefinition includes the spatial coordinates corresponding to each pixel in the original image. Resampling is performed as nearest-neighbor resampling, via <a href="https://pypi.org/project/pykdtree/">pykdtree</a>.</p>
+<p><img alt="Swath in rectangle" src="../figures/orthorect_swath_in_rectangle.jpg" width="600" /></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../javascripts/mathjax.js"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
