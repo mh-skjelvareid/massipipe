@@ -1,10 +1,10 @@
 # MassiPipe development roadmap
 
 *Author: Martin Skjelvareid*  
-*Last updated: 2026-04-12*  
+*Last updated: 2026-04-13*  
 
 ## Purpose
-This document is intended as an overview of long-term development goals for MassiPipe. Concrete feature request issues will be made based on this document and the developers' own priorities and time available. 
+This document is intended as a guideline for long-term development of MassiPipe. Concrete feature request issues will be made based on this document and the developers' own priorities and time available. 
 
 ## Background: Massimal project
 MassiPipe was originally developed for processing data from the [MASSIMAL research project](https://en.uit.no/project/massimal) and publishing the dataset on the [NIRD Research Data Archive](https://archive.sigma2.no/) and on the [SeaBee Geovisualization Portal](https://geonode.seabee.sigma2.no/).
@@ -15,9 +15,9 @@ The initial goal of the project was to process large amounts of data from a [Res
 - Standardized file naming and folder structure
 - Robust processing (gracefully handing errors)  
 - Georeferencing (simple affine transform)
-- Mosaicing of multiple images, with image pyramids
+- Mosaicing of multiple images, with [image pyramids](https://en.wikipedia.org/wiki/Pyramid_(image_processing))
 
-The project is now over, and the full dataset is available  [DOI:10.11582/2025.00041](https://doi.org/10.11582/2025.00041). Processed versions of hyperspectral, multispectral and RGB image datasets can be browsed in an interactive map (see [SeaBee datasets](https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&f=dataset)). 
+The project is now over, and the full dataset is available via [DOI:10.11582/2025.00041](https://doi.org/10.11582/2025.00041). Processed versions of hyperspectral, multispectral and RGB image datasets can be browsed in an interactive map ([SeaBee datasets](https://geonode.seabee.sigma2.no/catalogue/#/search?q=massimal&f=dataset)). 
 
 The project is now in a position to continue as a more general-purpose tool for airborne hyperspectral imaging. However, being able to generate higher-level image products from published Massimal data (e.g. converting radiance images to reflectance) remains a priority. 
 
@@ -26,12 +26,26 @@ The remainder of this document describes ideas for further development of MassiP
 ## Integrating full orthorectification
 The original version of MassiPipe was based on a simplified georeferencing method which only applied an affine transform (scaling and rotation) to map the image from pixel coordinates to UTM coordinates. Code for full orthorectification (assuming flat terrain, see [FlatTerrainOrthorectifier](api.md#massipipe.orthorectification.FlatTerrainOrthorectifier)) has subsequently been developed, but has not yet been integrated into the pipeline. The new orthorectifier should replace the simplified one.
 
-Additional improvements to orthorectification could include:  
+Additional (long-term) improvements to orthorectification could include:  
 
 - Lever arm correction (taking offset between IMU and camera into account)
 - Support for any terrain topography (based on elevation model)
 - Support for using [quaternions](https://en.wikipedia.org/wiki/Quaternion) for describing rotation (not just [Euler angles](https://en.wikipedia.org/wiki/Euler_angles))
 
+
+## Optimizing for speed
+The pipeline already enables relative fast processing by removing the need for manual steps, e.g. by processing in Spectronon. However, processing still takes a considerable amount of time, on the order of ~1 hour for a UAV flight. It is worth considering if this can be reduced. Possible approaches include
+
+- Profiling the pipeline to identify bottlenecks (see e.g. [cProfile](https://docs.python.org/3/library/profile.html))
+- Reorganizing processing steps so that versions of the same image can be kept in memory, rather than being read from file (currently, each processing step reads input from file and writes output to file independently). This could reduce time spent on IO.
+- Using GPUs for processing. Many processing steps are [embarrasingly parallel](https://en.wikipedia.org/wiki/Embarrassingly_parallel) (e.g. performed per image line or per pixel) and can potentially be done faster on GPU than CPU - if GPU IO is not a bottleneck. [CuPy](https://cupy.dev/) could be considered as a drop-in GPU-accelerated replacement for NumPy. 
+
+
+## More flexible structure / user interface
+The initial version of MassiPipe was made for processing many images from the same camera in exactly the same way. This was implemented using a standardized folder structure and processing order. A more general version of MassiPipe should be more flexible, enabling multiple combinations of processing steps. 
+
+Some inspiration could be taken from [sklearn.pipeline.Pipeline](https://scikit-learn.org/stable/modules/compose.html#combining-estimators). The use case is not exactly the same, but the idea of composing a pipeline from multiple elements is elegant. 
+ 
 
 ## Compatibility with additional imaging systems
 MassiPipe currently supports only Resonon hyperspectral cameras, and the specific formats that Resonon uses for calibration files, IMU data, and downwelling irradiance measurements. The Resonon-specific parts are limited to 
@@ -61,7 +75,13 @@ NetCDF follows the so-called [CF conventions](https://en.wikipedia.org/wiki/Clim
 Using NetCDF as an output format from MassiPipe would make the processed data more self-contained and easier to use by others. However, GeoTIFFs may still be relevant for visualization and processing in GIS tools. 
 
 
+## Lossy compression - PCA
+Hyperspectral images are large, often > 1 GB, making them both impractical to store and transfer, and memory-intensive. Neighboring channels are also often highly correlated. This makes it possible to represent the data using a much smaller number of dimensions than the original number of image bands. The most common way to do this is via [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis), which basically defines a new set of spectral coordinate axes (rotated relative to original axes) that align with the directions in feature space with the highest variance. This typically enables a spectrum with 200-300 channels to be represented by 5-10 PCA "components" while retaining 99% or more of the variance (retaining 100% of variance requires using the same number of components as the original number of bands). In practice, using PCA with 5-10 components corresponds to a form of [lossy compression](https://en.wikipedia.org/wiki/Lossy_compression) -- it is possible to reconstruct the original spectrum from the components, but not exactly. However, with images containing some amount of [random image noise](https://en.wikipedia.org/wiki/Image_noise), there often is no point in exact reconstruction.    
+
+MassiPipe could potentially implement PCA for lossy compression and reconstruction on a per-image basis, and shrink file sizes with a factor of approx. 5-25 (depending on number of components and data type). The transformed image (PCA "scores") could be stored together with the small matrix needed to transform from/to the original wavelengths (PCA components), for example in a NetCDF file. 
+
+
 ## Atmospheric correction
 The initial version of MassiPipe was made for UAV images aquired at approx. 50-60 m altitude, at which atmospheric effects are more or less negligible. However, for images aquired from manned aircraft, which fly at altitudes of hundreds or thousands of meters, the light reaching the camera is significantly affected by scattering and absorption in the air. 
 
-[Atmospheric correction](https://en.wikipedia.org/wiki/Atmospheric_correction) methods attempt to counter these effects, so that the true reflectance of the ground can be measured, are called. MassiPipe could potentially include some such methods (via external libraries, see e.g. [Py6S](https://py6s.readthedocs.io/en/latest/index.html) and [acolite](https://github.com/acolite/acolite)) 
+[Atmospheric correction](https://en.wikipedia.org/wiki/Atmospheric_correction) methods attempt to counter these effects, so that the true reflectance of the ground can be measured. MassiPipe could potentially include some such methods (via external libraries, see e.g. [Py6S](https://py6s.readthedocs.io/en/latest/index.html) and [acolite](https://github.com/acolite/acolite)) 
