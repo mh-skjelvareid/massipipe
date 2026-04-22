@@ -358,6 +358,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#optimizing-for-speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimizing for speed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#more-flexible-structure-user-interface" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -480,6 +491,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#optimizing-for-speed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Optimizing for speed
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#more-flexible-structure-user-interface" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -579,6 +601,13 @@
 <li>Lever arm correction (taking offset between IMU and camera into account)</li>
 <li>Support for any terrain topography (based on elevation model)</li>
 <li>Support for using <a href="https://en.wikipedia.org/wiki/Quaternion">quaternions</a> for describing rotation (not just <a href="https://en.wikipedia.org/wiki/Euler_angles">Euler angles</a>)</li>
+</ul>
+<h2 id="optimizing-for-speed">Optimizing for speed</h2>
+<p>The pipeline already enables relative fast processing by removing the need for manual steps, e.g. by processing in Spectronon. However, processing still takes a considerable amount of time, on the order of ~1 hour for a UAV flight. It is worth considering if this can be reduced. Possible approaches include</p>
+<ul>
+<li>Profiling the pipeline to identify bottlenecks (see e.g. <a href="https://docs.python.org/3/library/profile.html">cProfile</a>)</li>
+<li>Reorganizing processing steps so that versions of the same image can be kept in memory, rather than being read from file (currently, each processing step reads input from file and writes output to file independently). This could reduce time spent on IO.</li>
+<li>Using GPUs for processing. Many processing steps are <a href="https://en.wikipedia.org/wiki/Embarrassingly_parallel">embarrasingly parallel</a> (e.g. performed per image line or per pixel) and can potentially be done faster on GPU than CPU - if GPU IO is not a bottleneck. <a href="https://cupy.dev/">CuPy</a> could be considered as a drop-in GPU-accelerated replacement for NumPy. </li>
 </ul>
 <h2 id="more-flexible-structure-user-interface">More flexible structure / user interface</h2>
 <p>The initial version of MassiPipe was made for processing many images from the same camera in exactly the same way. This was implemented using a standardized folder structure and processing order. A more general version of MassiPipe should be more flexible, enabling multiple combinations of processing steps. </p>
